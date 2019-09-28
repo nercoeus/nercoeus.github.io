@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="24.1 概述&amp;emsp;&amp;emsp;许多传输层有带外数据的概念，它有时也称为经加速数据。其想法是一个已连接某端发生重要的事情，而且该端希望迅速通告其对端（也就是比正在缓冲区排队的数据还要快）带外数据的优先级高于普通数据。带外数据不会新建立连接，会被映射到已有连接中。&amp;emsp;&amp;emsp;UDP 没有办法实现带外数据，所以我们仅仅关心 TCP 的带外数据模型。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第24章：带外数据">
+<meta property="og:url" content="http://yoursite.com/2019/09/25/24.带外数据/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="24.1 概述&amp;emsp;&amp;emsp;许多传输层有带外数据的概念，它有时也称为经加速数据。其想法是一个已连接某端发生重要的事情，而且该端希望迅速通告其对端（也就是比正在缓冲区排队的数据还要快）带外数据的优先级高于普通数据。带外数据不会新建立连接，会被映射到已有连接中。&amp;emsp;&amp;emsp;UDP 没有办法实现带外数据，所以我们仅仅关心 TCP 的带外数据模型。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-09-28T08:46:38.258Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="第24章：带外数据">
+<meta name="twitter:description" content="24.1 概述&amp;emsp;&amp;emsp;许多传输层有带外数据的概念，它有时也称为经加速数据。其想法是一个已连接某端发生重要的事情，而且该端希望迅速通告其对端（也就是比正在缓冲区排队的数据还要快）带外数据的优先级高于普通数据。带外数据不会新建立连接，会被映射到已有连接中。&amp;emsp;&amp;emsp;UDP 没有办法实现带外数据，所以我们仅仅关心 TCP 的带外数据模型。">
+  <link rel="canonical" href="http://yoursite.com/2019/09/25/24.带外数据/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>第24章：带外数据 | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/24.带外数据/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">第24章：带外数据
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="24-1-概述"><a href="#24-1-概述" class="headerlink" title="24.1 概述"></a>24.1 概述</h1><p>&emsp;&emsp;许多传输层有带外数据的概念，它有时也称为<strong>经加速数据</strong>。其想法是一个已连接某端发生重要的事情，而且该端希望迅速通告其对端（也就是比正在缓冲区排队的数据还要快）带外数据的优先级高于普通数据。带外数据不会新建立连接，会被映射到已有连接中。<br>&emsp;&emsp;UDP 没有办法实现带外数据，所以我们仅仅关心 TCP 的带外数据模型。</p>
+<a id="more"></a>
+<h1 id="24-2-tcp-带外数据"><a href="#24-2-tcp-带外数据" class="headerlink" title="24.2 tcp 带外数据"></a>24.2 tcp 带外数据</h1><p>&emsp;&emsp;TCP 没有真正的带外数据，不过提供了<strong>紧急模式</strong>。<br>eg：send(fd,”a”,1 MSG_OOB); // 写入一个字节的带外数据<br>&emsp;&emsp;TCP 会把这个数据放在缓冲区待发送数据之后，并把该连接的 TCP 紧急指针设置成在下一个可用位置，会把带外字节标记为 OOB。<br>&emsp;&emsp;TCP 紧急模式的特点：TCP 首部指出发送端进入紧急模式，但是紧急指针所指的实际数据并不一定会发出。  </p>
+<h2 id="接收端视角："><a href="#接收端视角：" class="headerlink" title="接收端视角："></a>接收端视角：</h2><ol>
+<li>当接受到一个设置了URG标志的分节时，接受端检查紧急指针，确定它是否指向新的带外数据，比如：前面发送了两个包，只有第一个才会通知接受进程有新的带外数据到达。</li>
+<li>当有新的紧急指针到达时，接受进程被通知到。首先，内核会给接受套接字的属主进程发送SIGURG信号，前提是接受进程调用了 fcntl或者ioctl为这个套接字建立了属主，并且该属主进程为该信号建立了信号处理函数 。</li>
+<li>只有一个OOB标记，如果新的OOB字节在旧的OOB字节之前到达，旧的OOB字节就会被丢弃。</li>
+<li>当由紧急指针指向的实际数据字节到达接受端TCP时，数据字节会有两个存储地区：一个是和普通数据一样的在线留存，另外一个是独立的单字节带外缓冲区，接受进程从这个单字节带外缓冲区读入数据的唯一方法是指定MSG_OOB调用recv，recvfrom，recvmsg。如果放在和普通数据一起的带内区域，接受进程就得通过检查该连接的带外标记OOB来获悉何时访问带这个数据字节。两个区域的使用通过套接字选项SO_OOBLINE来使用，默认情况下将带外数据字节放入独立的单字节带外缓冲区内。</li>
+</ol>
+<h2 id="可能发生的错误："><a href="#可能发生的错误：" class="headerlink" title="可能发生的错误："></a>可能发生的错误：</h2><ol>
+<li>如果接受进程请求读入数据（通过MSG_OOB标志），但是对端并没有发送任何带外数据，读入操作将返回EINVAL。</li>
+<li>在接受进程已被告知对端发送了一个带外字节（SIGURG和select）的前提下，如果接受进程试图读入该字节，但是该字节尚未到达，读入操作返回EWOULDBLOCK。接受进程此时做的就是从缓冲区中读入数据，腾出空间，以允许对端TCP发送出那个带外字节。</li>
+<li>如果接受进程试图多次读入同一个带外字节，读入操作返回EINVAL。</li>
+<li>如果开启了SO_OOBINLINE套接字选项，接受进程如果还是通过MSG_OOB读入带外数据，读入操作将返回EINVAL 。</li>
+</ol>
+<p>※ 下面介绍了两个发送接收带外数据的例子</p>
+<h1 id="24-3-sockatmark-函数"><a href="#24-3-sockatmark-函数" class="headerlink" title="24.3 sockatmark 函数"></a>24.3 sockatmark 函数</h1><p>&emsp;&emsp;本小节提供了多个例子来解释带外数据的发送接收情况，并说明了带外数据的以下两个特性：</p>
+<ol>
+<li>带外标记总是指向带外数据最后一个字节的下一个位置</li>
+<li>读操作总是停止在带外数据上</li>
+</ol>
+<h1 id="24-4-tcp-带外数据小结"><a href="#24-4-tcp-带外数据小结" class="headerlink" title="24.4 tcp 带外数据小结"></a>24.4 tcp 带外数据小结</h1><p>&emsp;&emsp;带外数据概念实际上时向接收端传送三个不同的信息：</p>
+<ol>
+<li>发送端进入紧急模式这个事实。接收进程得以通知这个事实的手段不外乎SIGURG信号或select调用。本通知在发送进程发送带外字节后由发送端TCP立即发送，即使往接收端的任何数据发送因流量控制而停止了，TCP仍然发送本通知。本通知可能导致接收端进入某种特殊处理模式，以处理接收的任何后继数据。</li>
+<li>带外字节的位置，也就是它相对于来自发送端的其余数据的发送位置：带外标记。</li>
+<li>带外字节的实际值。既然TCP是一个不解释应用进程所发送数据的字节流协议，带外字节就可以是任何8位值。</li>
+</ol>
+<p>&emsp;&emsp;对于TCP的紧急模式，我们可以认为URG标志时通知（信息1），紧急指针是带外标记（信息2），数据字节是其本身（信息3）。</p>
+<h2 id="带外数据概念相关的问题有："><a href="#带外数据概念相关的问题有：" class="headerlink" title="带外数据概念相关的问题有："></a>带外数据概念相关的问题有：</h2><ul>
+<li>每个连接只有一个TCP紧急指针；</li>
+<li>每个连接只有一个带外标记；</li>
+<li>每个连接只有一个单字节的带外缓冲区（该缓冲区只有在数据非在线读入时才需考虑）。  </li>
+</ul>
+<p>&emsp;&emsp;如果带外数据是在线读入的，那么当心的带外数据到达时，先前的带外字节字节并未丢失，不过他们的标记却因此被新的标记取代而丢失了。<br>&emsp;&emsp;带外数据的一个常见的用途体现在rlogin程序中。当客户中断运行在服务器主机上的程序时，服务器需要告知客户丢弃所有已在服务器排队的输出，因为已经排队等着从服务器发送到客户的输出最多有一个窗口的大小。服务器向客户发送一个特殊字节，告知后者清刷所有这些输出（在客户看来是输入），这个特殊字节就作为带外数据发送。客户收到由带外数据引发的SIGURG信号后，就从套接字中读入直到碰到带外数据发送。客户收到由带外数据引发的SIGURG信号后，就从套接字中读入直到碰到带外标记，并丢弃到标记之前的所有数据。这种情形下即使服务器相继地快速发送多个带外字节，客户也不受影响，因为客户只是读到最后一个标记为止，并丢弃所有读入的数据。<br>&emsp;&emsp;总之，带外数据是否有用取决于应用程序使用它的目的。如果目的是告知对端丢弃直到标记处得普通数据，那么丢失一个中间带外字节及其相应的标记不会有什么不良后果。但是如果不丢失带外字节本身很重要，那么必须在线收到这些数据。另外，作为带外数据发送的数据字节应该区别于普通数据，因为当前新的标记到达时，中间的标记将被覆写，从而事实上把带外字节混杂在普通数据之中。举例来说，telnet在客户和服务器之间普通的数据流中发送telnet自己的命令，手段是把值为255的一个字节作为telnet命令的前缀字节。（值为255的单个字节作为数据发送需要2个相继地值为255的字节。）这么做使得telnet能够区分其命令和普通用户数据，不过要求客户进程和服务器进程处理每个数据字节以寻找命令。</p>
+<h1 id="24-5-客户-服务器心搏函数"><a href="#24-5-客户-服务器心搏函数" class="headerlink" title="24.5 客户/服务器心搏函数"></a>24.5 客户/服务器心搏函数</h1><p>&emsp;&emsp;给出一个例子模拟 KEPPALIVE 选项的操作，但是避免了其一些不好的特性（时间过长，只能对内核进行操作，不能判断短暂断开连接）<br>&emsp;&emsp;我们会使用 TCP 的紧急模式轮询对端，客户端每秒发送一个带外字节，服务端进行应答返回一个带外字节</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 客户端部分</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span>		servfd;</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span>		nsec;			<span class="comment">/* #seconds betweeen each alarm */</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span>		maxnprobes;		<span class="comment">/* #probes w/no response before quit */</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span>		nprobes;		<span class="comment">/* #probes since last server response */</span></span><br><span class="line">static void	sig_urg(int), sig_alrm(int);</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span></span><br><span class="line">heartbeat_cli(<span class="keyword">int</span> servfd_arg, <span class="keyword">int</span> nsec_arg, <span class="keyword">int</span> maxnprobes_arg)</span><br><span class="line">&#123;</span><br><span class="line">	servfd = servfd_arg;		<span class="comment">/* set globals for signal handlers */</span></span><br><span class="line">	<span class="keyword">if</span> ( (nsec = nsec_arg) &lt; <span class="number">1</span>)</span><br><span class="line">		nsec = <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">if</span> ( (maxnprobes = maxnprobes_arg) &lt; nsec)</span><br><span class="line">		maxnprobes = nsec;</span><br><span class="line">	nprobes = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	Signal(SIGURG, sig_urg);</span><br><span class="line">	Fcntl(servfd, F_SETOWN, getpid());</span><br><span class="line"></span><br><span class="line">	Signal(SIGALRM, sig_alrm);</span><br><span class="line">	alarm(nsec);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span></span><br><span class="line">sig_urg(<span class="keyword">int</span> signo)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">int</span>		n;</span><br><span class="line">	<span class="keyword">char</span>	c;</span><br><span class="line"> </span><br><span class="line">	<span class="keyword">if</span> ( (n = recv(servfd, &amp;c, <span class="number">1</span>, MSG_OOB)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="keyword">if</span> (errno != EWOULDBLOCK)</span><br><span class="line">			err_sys(<span class="string">"recv error"</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	nprobes = <span class="number">0</span>;			<span class="comment">/* reset counter */</span></span><br><span class="line">	<span class="keyword">return</span>;					<span class="comment">/* may interrupt client code */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span></span><br><span class="line">sig_alrm(<span class="keyword">int</span> signo)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">if</span> (++nprobes &gt; maxnprobes) &#123;</span><br><span class="line">		<span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"server is unreachable\n"</span>);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	Send(servfd, <span class="string">"1"</span>, <span class="number">1</span>, MSG_OOB);</span><br><span class="line">	alarm(nsec);</span><br><span class="line">	<span class="keyword">return</span>;					<span class="comment">/* may interrupt client code */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 服务器部分</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span>	servfd;</span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span>	nsec;			<span class="comment">/* #seconds between each alarm */</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span>	maxnalarms;		<span class="comment">/* #alarms w/no client probe before quit */</span></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">int</span>	nprobes;		<span class="comment">/* #alarms since last client probe */</span></span><br><span class="line">static void	sig_urg(int), sig_alrm(int);</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span></span><br><span class="line">heartbeat_serv(<span class="keyword">int</span> servfd_arg, <span class="keyword">int</span> nsec_arg, <span class="keyword">int</span> maxnalarms_arg)</span><br><span class="line">&#123;</span><br><span class="line">	servfd = servfd_arg;		<span class="comment">/* set globals for signal handlers */</span></span><br><span class="line">	<span class="keyword">if</span> ( (nsec = nsec_arg) &lt; <span class="number">1</span>)</span><br><span class="line">		nsec = <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">if</span> ( (maxnalarms = maxnalarms_arg) &lt; nsec)</span><br><span class="line">		maxnalarms = nsec;</span><br><span class="line"></span><br><span class="line">	Signal(SIGURG, sig_urg);</span><br><span class="line">	Fcntl(servfd, F_SETOWN, getpid());</span><br><span class="line"></span><br><span class="line">	Signal(SIGALRM, sig_alrm);</span><br><span class="line">	alarm(nsec);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span></span><br><span class="line">sig_urg(<span class="keyword">int</span> signo)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">int</span>		n;</span><br><span class="line">	<span class="keyword">char</span>	c;</span><br><span class="line"> </span><br><span class="line">	<span class="keyword">if</span> ( (n = recv(servfd, &amp;c, <span class="number">1</span>, MSG_OOB)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">		<span class="keyword">if</span> (errno != EWOULDBLOCK)</span><br><span class="line">			err_sys(<span class="string">"recv error"</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	Send(servfd, &amp;c, <span class="number">1</span>, MSG_OOB);	<span class="comment">/* echo back out-of-band byte */</span></span><br><span class="line"></span><br><span class="line">	nprobes = <span class="number">0</span>;			<span class="comment">/* reset counter */</span></span><br><span class="line">	<span class="keyword">return</span>;					<span class="comment">/* may interrupt server code */</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span></span><br><span class="line">sig_alrm(<span class="keyword">int</span> signo)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">if</span> (++nprobes &gt; maxnalarms) &#123;</span><br><span class="line">		<span class="built_in">printf</span>(<span class="string">"no probes from client\n"</span>);</span><br><span class="line">		<span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	alarm(nsec);</span><br><span class="line">	<span class="keyword">return</span>;					<span class="comment">/* may interrupt server code */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>&emsp;&emsp;TCP 没有真正的带外数据，不过提供了紧急模式和紧急指针。一旦发送端进入紧急模式，紧急指针就出现在发送端的分节中的 TCP 首部中。对端的接收端收取该指针是在告知接收进程发送端已经进入紧急模式，并且该指针指向紧急数据的最后一个字节。然而所有数据的发送依然遵循 TCP 的流量控制。<br>&emsp;&emsp;套接字 API 把 TCP 的紧急模式映射为带外数据，发送进程指定 MSG_OOB 发送带外数据。TCP 接收端收到后通过发送 SIGURG 信号或者 select 出错处理来通知接收进程。<br>&emsp;&emsp;带外数据并未得到广泛的使用。tenlent 和 rlogin 使用，FTP 也是用。它们使用带外数据是为了通知对端异常情况发生，并且服务器丢弃带外标记前的所有数据。</p>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/09/25/25.信号驱动式IO/" rel="next" title="第25章：信号驱动式IO">
+                  <i class="fa fa-chevron-left"></i> 第25章：信号驱动式IO
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#24-1-概述"><span class="nav-number">1.</span> <span class="nav-text">24.1 概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#24-2-tcp-带外数据"><span class="nav-number">2.</span> <span class="nav-text">24.2 tcp 带外数据</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#接收端视角："><span class="nav-number">2.1.</span> <span class="nav-text">接收端视角：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#可能发生的错误："><span class="nav-number">2.2.</span> <span class="nav-text">可能发生的错误：</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#24-3-sockatmark-函数"><span class="nav-number">3.</span> <span class="nav-text">24.3 sockatmark 函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#24-4-tcp-带外数据小结"><span class="nav-number">4.</span> <span class="nav-text">24.4 tcp 带外数据小结</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#带外数据概念相关的问题有："><span class="nav-number">4.1.</span> <span class="nav-text">带外数据概念相关的问题有：</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#24-5-客户-服务器心搏函数"><span class="nav-number">5.</span> <span class="nav-text">24.5 客户/服务器心搏函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">6.</span> <span class="nav-text">小结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

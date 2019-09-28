@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="13.1 概述&amp;emsp;&amp;emsp;守护进程：是在后台运行且不与任何控制终端关联的进程。Unix 系统通常有很多守护进程在后台运行（20~50）执行不同的管理任务&amp;emsp;&amp;emsp;守护进程没有终端，通常是因为他们由开机时的脚本进行启动。但是守护进程也可能从某个终端由用户在 shell 提示符下键入命令行进行启动，这样的守护进程必须亲自脱离与控制终端的关联，从而避免与作业控制，终端会话管理，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第13章：守护进程和inetd超级服务器">
+<meta property="og:url" content="http://yoursite.com/2019/09/25/13.守护进程和inetd超级服务器/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="13.1 概述&amp;emsp;&amp;emsp;守护进程：是在后台运行且不与任何控制终端关联的进程。Unix 系统通常有很多守护进程在后台运行（20~50）执行不同的管理任务&amp;emsp;&amp;emsp;守护进程没有终端，通常是因为他们由开机时的脚本进行启动。但是守护进程也可能从某个终端由用户在 shell 提示符下键入命令行进行启动，这样的守护进程必须亲自脱离与控制终端的关联，从而避免与作业控制，终端会话管理，">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-09-28T08:46:38.257Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="第13章：守护进程和inetd超级服务器">
+<meta name="twitter:description" content="13.1 概述&amp;emsp;&amp;emsp;守护进程：是在后台运行且不与任何控制终端关联的进程。Unix 系统通常有很多守护进程在后台运行（20~50）执行不同的管理任务&amp;emsp;&amp;emsp;守护进程没有终端，通常是因为他们由开机时的脚本进行启动。但是守护进程也可能从某个终端由用户在 shell 提示符下键入命令行进行启动，这样的守护进程必须亲自脱离与控制终端的关联，从而避免与作业控制，终端会话管理，">
+  <link rel="canonical" href="http://yoursite.com/2019/09/25/13.守护进程和inetd超级服务器/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>第13章：守护进程和inetd超级服务器 | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/13.守护进程和inetd超级服务器/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">第13章：守护进程和inetd超级服务器
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="13-1-概述"><a href="#13-1-概述" class="headerlink" title="13.1 概述"></a>13.1 概述</h1><p>&emsp;&emsp;<strong>守护进程</strong>：是在后台运行且不与任何控制终端关联的进程。Unix 系统通常有很多守护进程在后台运行（20~50）执行不同的管理任务<br>&emsp;&emsp;守护进程没有终端，通常是因为他们由开机时的脚本进行启动。但是守护进程也可能从某个终端由用户在 shell 提示符下键入命令行进行启动，这样的守护进程必须亲自脱离与控制终端的关联，从而避免与作业控制，终端会话管理，终端产生信号等发生不希望的交互,也防止后台的守护进程输出到终端  </p>
+<a id="more"></a>
+<h3 id="守护进程的启动方式："><a href="#守护进程的启动方式：" class="headerlink" title="守护进程的启动方式："></a>守护进程的启动方式：</h3><ul>
+<li>在系统阶段进行启动，许多守护进程由系统初始化脚本进行启动，脚本通常位于 /etc 等目录，这些脚本启动的守护进程开始就拥有超级用户权限（inetd，Web，sendmail，syslogd 等等）</li>
+<li>许多网络服务器由 inetd 超级服务器进行启动。Inetd 监听网络请求，每当有一个请求到达，启动相应的实际服务器（Telnet，FTP…）</li>
+<li>cron 守护进程按规则定期执行一些程序。这些程序的时刻到来时，corn 执行的程序通常也是守护进行的方式运行</li>
+<li>at 命令用于指定将来某个时刻的程序执行，时间到达时，通常使用 corn 来进行执行</li>
+<li>守护进程还可以从用户的终端在前台或者后台进行启动。这么做往往是测试守护进程或者重启关闭的守护进程。  </li>
+</ul>
+<p><strong>因为守护进程没有终端，所以他们的消息使用 syslog 进行处理，即使用 syslog 函数，将消息发送给 syslogd 进程</strong></p>
+<h1 id="13-2-syslodg-守护进程"><a href="#13-2-syslodg-守护进程" class="headerlink" title="13.2 syslodg 守护进程"></a>13.2 syslodg 守护进程</h1><p>syslogd 守护进程通常由系统初始化脚本进行启动，并在系统工作时间一直运行，启动步骤如下：</p>
+<ol>
+<li>读取配置文件，在 /etc/syslog.conf 配置文件指定守护进程收取的各种日志消息应如何处理。可能添加到一个文件中，或被写到用户的登录窗口，或被转发给另一个主机上的 syslogd 进程</li>
+<li>创建 Unix 域数据报套接字，给它捆绑路径名 /var/run/log</li>
+<li>创建 UDP 套接字，捆绑 514 端口，接收别的主机发送过来的日志</li>
+<li>打开路径名 /dev/klog。来自内核的任何出错消息从这个设备输入<br>&emsp;&emsp;syslog 使用 select 来监听上面 2，3，4 步的描述符来接受日志，并按照配置文件进行处理。如果守护进程读取 SIGHUP 信号，就重新读取配置文件<br>&emsp;&emsp;<strong>最新的系统不建议开启 514 端口，会遭到攻击</strong></li>
+</ol>
+<h1 id="13-3-syslog-函数"><a href="#13-3-syslog-函数" class="headerlink" title="13.3 syslog 函数"></a>13.3 syslog 函数</h1><p>守护进程没有终端，所以不能把消息 fprintf 到 stderr 上。从守护进程中登记消息的常用技巧是调用 syslog 函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;syslog.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">syslog</span><span class="params">(<span class="keyword">int</span> priority, <span class="keyword">const</span> <span class="keyword">char</span> * message, ...)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>参数解析：</p>
+<ul>
+<li>priority：级别和设施两者的组合体</li>
+<li>message：类似 printf 格式串，增加了 %m 规范代表当前 errno 值</li>
+</ul>
+<p>&emsp;&emsp;当 syslog 被应用进程首次调用时，它创建一个 Unix 域数据报套接字，然后调用 connect 连接到由 syslogd 守护进程创建的 Unix 域数据报套接字的众所周知的路径名。这个套接字一直打开，直到进程终止关闭  </p>
+<h4 id="logger-命令在-shell-脚本中以向-syslogd-发送消息"><a href="#logger-命令在-shell-脚本中以向-syslogd-发送消息" class="headerlink" title="logger 命令在 shell 脚本中以向 syslogd 发送消息"></a>logger 命令在 shell 脚本中以向 syslogd 发送消息</h4><h1 id="13-4-daemon-init-函数"><a href="#13-4-daemon-init-函数" class="headerlink" title="13.4 daemon_init 函数"></a>13.4 daemon_init 函数</h1><p>编写一个守护进程的创建函数，有些系统提供 daemon 函数用来创建守护进程，和本程序类似</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span>	<span class="meta-string">"unp.h"</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span>	<span class="meta-string">&lt;syslog.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span>	MAXFD	64</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">extern</span> <span class="keyword">int</span>	daemon_proc;	<span class="comment">/* defined in error.c */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span></span><br><span class="line">daemon_init(<span class="keyword">const</span> <span class="keyword">char</span> *pname, <span class="keyword">int</span> facility)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">int</span>		i;</span><br><span class="line">	<span class="keyword">pid_t</span>	pid;</span><br><span class="line">    <span class="comment">// 调用 fork 创建子进程，然后直接终止父进程，留下子进程继续执行。如果是在 shell 中执行的程序，父进程终止，shell 会认为程序已经结束了，子进程就可以在后台执行了</span></span><br><span class="line">    <span class="comment">// 子进程继承父进程的进程组 ID，但它有自己的进程 ID，这就保证了子进程不是一个进程组的头进程，这是接下来调用 setsid 的必要条件</span></span><br><span class="line">	<span class="keyword">if</span> ( (pid = Fork()) &lt; <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">return</span> (<span class="number">-1</span>);</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (pid)</span><br><span class="line">		_exit(<span class="number">0</span>);			<span class="comment">/* parent terminates */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* child 1 continues... */</span></span><br><span class="line">    <span class="comment">// setsid 用来创建一个新的会话。当前进程变为新会话的会话头进程以及新进程组的进程组头进程，从而不再有控制终端</span></span><br><span class="line">	<span class="keyword">if</span> (setsid() &lt; <span class="number">0</span>)			<span class="comment">/* become session leader */</span></span><br><span class="line">		<span class="keyword">return</span> (<span class="number">-1</span>);</span><br><span class="line">    <span class="comment">// 忽略 SIGHUP 信号，并再次调用 fork。该函数返回时，同样只使用子进程，父进程返回</span></span><br><span class="line">    <span class="comment">// 再次 fork 是为了确保本守护进程将来即使打开一个新的终端，也不会自动获得控制终端。当没有终端的一个会话头进程打开终端时，该终端自动成为这个头进程的控制终端。再次调用 fork，产生的子进程不是会话头进程，就不会自动获得一个控制终端。这里必须忽略 SIGHUP 信号，当会话头进程终止时，所有会话子进程都会收到 SIGHUP 信号</span></span><br><span class="line">	Signal(SIGHUP, SIG_IGN);</span><br><span class="line">	<span class="keyword">if</span> ( (pid = Fork()) &lt; <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">return</span> (<span class="number">-1</span>);</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span> (pid)</span><br><span class="line">		_exit(<span class="number">0</span>);			<span class="comment">/* child 1 terminates */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* child 2 continues... */</span></span><br><span class="line">    <span class="comment">// 把全局变量 daemon_proc 设置为非 0 值，这个变量由 err_XXX 函数使用，不为 0 是为了告诉他们将 fprintf 输出替换为调用 syslog 函数</span></span><br><span class="line">	daemon_proc = <span class="number">1</span>;			<span class="comment">/* for err_XXX() functions */</span></span><br><span class="line">    <span class="comment">// 改变工作目录到根目录</span></span><br><span class="line">	chdir(<span class="string">"/"</span>);				<span class="comment">/* change working directory */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* close off file descriptors */</span></span><br><span class="line">    <span class="comment">// 关闭所有打开的描述符，直接关闭前 64 个，这里不考虑太多</span></span><br><span class="line">	<span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; MAXFD; i++)</span><br><span class="line">		close(i);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* redirect stdin, stdout, and stderr to /dev/null */</span></span><br><span class="line">    <span class="comment">// 将 stdin stdout stderr 重定向到 /dev/null</span></span><br><span class="line">	open(<span class="string">"/dev/null"</span>, O_RDONLY);</span><br><span class="line">	open(<span class="string">"/dev/null"</span>, O_RDWR);</span><br><span class="line">	open(<span class="string">"/dev/null"</span>, O_RDWR);</span><br><span class="line">    <span class="comment">// 使用 syslogd 处理错误</span></span><br><span class="line">	openlog(pname, LOG_PID, facility);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> (<span class="number">0</span>);				<span class="comment">/* success */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;守护进程在没有终端的环境下运行，不会接收 SIGHUP 信号。许多守护进程把这个信号可以当作系统发送的通知，表示配置文件发送了变化，应重新读取配置文件，类似的还有 SIGINT SINGWINCH 信号</p>
+<h1 id="13-5-inetd-守护进程"><a href="#13-5-inetd-守护进程" class="headerlink" title="13.5 inetd 守护进程"></a>13.5 inetd 守护进程</h1><p>&emsp;&emsp;通过 inetd 简化一系列服务器进程的启动流程，这些服务器程序流程相似，并且大部分时间处于睡眠，交给 inetd 守护进程来进行处理，既可以简化编写的代码，又可以对每次客户端的请求单独响应，并不需要每个服务器一直等待客户端，因为他们大多数时间都处于休眠状态。只需要 inetd 循环等待客户端的请求即可，来了请求，为对应的客户创建需要的服务器子进程即可。  </p>
+<h4 id="当使用-inetd-调用一个程序时，程序名作为第一个参数进行传递。"><a href="#当使用-inetd-调用一个程序时，程序名作为第一个参数进行传递。" class="headerlink" title="当使用 inetd 调用一个程序时，程序名作为第一个参数进行传递。"></a>当使用 inetd 调用一个程序时，程序名作为第一个参数进行传递。</h4><h3 id="inetd-工作流程"><a href="#inetd-工作流程" class="headerlink" title="inetd 工作流程"></a>inetd 工作流程</h3><ol>
+<li>启动阶段，读取配置文件，并给文件中每个类型服务器创建一个适当的类型（TCP or UDP…）的套接字。inetd 能够处理的服务器最大个数取决于 inetd 能够创建的描述符最大个数，使用 select 对所有描述符进行集中</li>
+<li>为每个套接字调用 bind，指定 IP + port。端口通过 getservbyname 获取</li>
+<li>对于 TCP 套接字，调用 listen 来进行监听，UDP 不用执行</li>
+<li>使用 select 对所有套接字描述符进行监听，inetd 大部分时间都花在这里</li>
+<li>如果可读的是 TCP 套接字描述符，调用 accept 来进行连接</li>
+<li>调用 fork 创建子进程来处理不同的请求，类似于并发服务器</li>
+<li>如果第 5 步返回字节流套接字，父进程要关闭已连接套接字，就是 accept 的套接字，类似于 TCP 并发服务器</li>
+</ol>
+<h1 id="13-6-daemon-inetd-函数"><a href="#13-6-daemon-inetd-函数" class="headerlink" title="13.6 daemon_inetd 函数"></a>13.6 daemon_inetd 函数</h1><p>该函数可以用在 inetd 启动的服务器程序中</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span>	<span class="meta-string">"unp.h"</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span>	<span class="meta-string">&lt;syslog.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">extern</span> <span class="keyword">int</span>	daemon_proc;	<span class="comment">/* defined in error.c */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span></span><br><span class="line">daemon_inetd(<span class="keyword">const</span> <span class="keyword">char</span> *pname, <span class="keyword">int</span> facility)</span><br><span class="line">&#123;</span><br><span class="line">	daemon_proc = <span class="number">1</span>;		<span class="comment">/* for our err_XXX() functions */</span></span><br><span class="line">	openlog(pname, LOG_PID, facility);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>所有的步骤已经由 inetd 在启动时执行完毕，本函数仅仅处理错误函数设置 daemon_proc 标志，并调用 openlog 函数</p>
+<h4 id="由-inetd-作为守护进程启动时间获取服务器程序"><a href="#由-inetd-作为守护进程启动时间获取服务器程序" class="headerlink" title="由 inetd 作为守护进程启动时间获取服务器程序"></a>由 inetd 作为守护进程启动时间获取服务器程序</h4><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span>	<span class="meta-string">"unp.h"</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span>	<span class="meta-string">&lt;time.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="keyword">int</span></span><br><span class="line">main(<span class="keyword">int</span> argc, <span class="keyword">char</span> **argv)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">socklen_t</span>		len;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sockaddr</span>	*<span class="title">cliaddr</span>;</span></span><br><span class="line">	<span class="keyword">char</span>			buff[MAXLINE];</span><br><span class="line">	<span class="keyword">time_t</span>			ticks;</span><br><span class="line"></span><br><span class="line">	daemon_inetd(argv[<span class="number">0</span>], <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">	cliaddr = Malloc(<span class="keyword">sizeof</span>(struct sockaddr_storage));</span><br><span class="line">	len = <span class="keyword">sizeof</span>(struct sockaddr_storage);</span><br><span class="line">	Getpeername(<span class="number">0</span>, cliaddr, &amp;len);</span><br><span class="line">	err_msg(<span class="string">"connection from %s"</span>, Sock_ntop(cliaddr, len));</span><br><span class="line"></span><br><span class="line">    ticks = time(<span class="literal">NULL</span>);</span><br><span class="line">    <span class="built_in">snprintf</span>(buff, <span class="keyword">sizeof</span>(buff), <span class="string">"%.24s\r\n"</span>, ctime(&amp;ticks));</span><br><span class="line">    Write(<span class="number">0</span>, buff, <span class="built_in">strlen</span>(buff));</span><br><span class="line"></span><br><span class="line">	Close(<span class="number">0</span>);	<span class="comment">/* close TCP connection */</span></span><br><span class="line">	<span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>&emsp;&emsp;守护进程是在后台运行并独立与所有终端的进程，许多网络服务器作为守护进程运行。守护进程所产生的输出调用 syslog 函数交给 syslogd 守护进程处理<br>启动任意一个程序并将其变为守护进程步骤如下：</p>
+<ol>
+<li>调用 fork 到后台运行</li>
+<li>调用 setsid 创建一个新会话，并让前一步的子进程成为会话头进程</li>
+<li>再次 fork 防止会话头进程自动获取控制终端</li>
+<li>改变工作目录</li>
+<li>创建模式掩码</li>
+<li>关闭所有非必要描述符<br>许多 Unix 服务器由 inetd 守护进程启动。它处理所有守护进程需要的步骤，当启动真正的服务器时，套接字已在标准输入，标准输出，标准错误上打开。这样就不用调用 socket，bind，accept，这些步骤已经由 inetd 完成。</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/09/25/12.IPv4和IPv6的互操作性/" rel="next" title="第12章：IPv4和IPv6的互操作性">
+                  <i class="fa fa-chevron-left"></i> 第12章：IPv4和IPv6的互操作性
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2019/09/25/22.高级UDP套接字编程/" rel="prev" title="第22章：高级UDP套接字编程">
+                  第22章：高级UDP套接字编程 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#13-1-概述"><span class="nav-number">1.</span> <span class="nav-text">13.1 概述</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#守护进程的启动方式："><span class="nav-number">1.0.1.</span> <span class="nav-text">守护进程的启动方式：</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#13-2-syslodg-守护进程"><span class="nav-number">2.</span> <span class="nav-text">13.2 syslodg 守护进程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#13-3-syslog-函数"><span class="nav-number">3.</span> <span class="nav-text">13.3 syslog 函数</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#logger-命令在-shell-脚本中以向-syslogd-发送消息"><span class="nav-number">3.0.0.1.</span> <span class="nav-text">logger 命令在 shell 脚本中以向 syslogd 发送消息</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#13-4-daemon-init-函数"><span class="nav-number">4.</span> <span class="nav-text">13.4 daemon_init 函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#13-5-inetd-守护进程"><span class="nav-number">5.</span> <span class="nav-text">13.5 inetd 守护进程</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#当使用-inetd-调用一个程序时，程序名作为第一个参数进行传递。"><span class="nav-number">5.0.0.1.</span> <span class="nav-text">当使用 inetd 调用一个程序时，程序名作为第一个参数进行传递。</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#inetd-工作流程"><span class="nav-number">5.0.1.</span> <span class="nav-text">inetd 工作流程</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#13-6-daemon-inetd-函数"><span class="nav-number">6.</span> <span class="nav-text">13.6 daemon_inetd 函数</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#由-inetd-作为守护进程启动时间获取服务器程序"><span class="nav-number">6.0.0.1.</span> <span class="nav-text">由 inetd 作为守护进程启动时间获取服务器程序</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">7.</span> <span class="nav-text">小结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

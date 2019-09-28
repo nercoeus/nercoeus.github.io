@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="5.1 概述&amp;emsp;&amp;emsp;本章使用上一章的函数来编写一个完整的 TCP 客户端服务器端的程序示例（回射服务器）">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第五章：TCP客户&amp;服务器程序示例">
+<meta property="og:url" content="http://yoursite.com/2019/09/25/05.TCP客户&服务器程序示例/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="5.1 概述&amp;emsp;&amp;emsp;本章使用上一章的函数来编写一个完整的 TCP 客户端服务器端的程序示例（回射服务器）">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-09-28T08:46:38.256Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="第五章：TCP客户&amp;服务器程序示例">
+<meta name="twitter:description" content="5.1 概述&amp;emsp;&amp;emsp;本章使用上一章的函数来编写一个完整的 TCP 客户端服务器端的程序示例（回射服务器）">
+  <link rel="canonical" href="http://yoursite.com/2019/09/25/05.TCP客户&服务器程序示例/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>第五章：TCP客户&服务器程序示例 | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/05.TCP客户&服务器程序示例/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">第五章：TCP客户&服务器程序示例
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="5-1-概述"><a href="#5-1-概述" class="headerlink" title="5.1 概述"></a>5.1 概述</h1><p>&emsp;&emsp;本章使用上一章的函数来编写一个完整的 TCP 客户端服务器端的程序示例（回射服务器）</p>
+<a id="more"></a>
+<h1 id="5-2-TCP回射服务器程序：main函数"><a href="#5-2-TCP回射服务器程序：main函数" class="headerlink" title="5.2 TCP回射服务器程序：main函数"></a>5.2 TCP回射服务器程序：main函数</h1><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">"unp.h"</span></span></span><br><span class="line"><span class="keyword">int</span> </span><br><span class="line">main(<span class="keyword">int</span> argc, <span class="keyword">char</span>** argv)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">int</span> listenfd, connfd;</span><br><span class="line">    <span class="keyword">pid_t</span> childpid;</span><br><span class="line">    <span class="keyword">socklen_t</span> clilen;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> <span class="title">cliaddr</span>,<span class="title">servaddr</span>;</span></span><br><span class="line">    <span class="comment">//创建一个TCP套接字，并捆绑通配地址，并将其转换为监听套接字</span></span><br><span class="line">    listenfd = Socket(AF_INET, SOCK_STREAM, <span class="number">0</span>);</span><br><span class="line">    <span class="comment">// 填充地址字段</span></span><br><span class="line">    bzero(&amp;servaddr, <span class="keyword">sizeof</span>(servaddr));</span><br><span class="line">    servaddr.sin_family = AF_INET;</span><br><span class="line">    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);</span><br><span class="line">    servaddr.sin_port = htons(SERV_PORT);</span><br><span class="line">    <span class="comment">// 调用 bind 函数来将描述符绑定至本地协议地址上</span></span><br><span class="line">    Bind(listenfd, (SA*)&amp;servaddr, <span class="keyword">sizeof</span>(servaddr));</span><br><span class="line">    <span class="comment">// 转换成 listen 状态</span></span><br><span class="line">    Listen(listenfd, LISTENQ);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(;;)&#123;</span><br><span class="line">        client = <span class="keyword">sizeof</span>(cliaddr);</span><br><span class="line">        <span class="comment">//到达这一步，服务器阻塞在accept调用，并等待客户连接的完成</span></span><br><span class="line">        connfd = Accept(listenfd, (SA*) &amp;cliaddr, &amp;client);</span><br><span class="line">        <span class="comment">//服务器的并发部分处理，这里子进程并没有Close（connfd);</span></span><br><span class="line">        <span class="keyword">if</span>( (childpid = Fork()) == <span class="number">0</span>)&#123;</span><br><span class="line">            <span class="comment">// 关闭监听套接字描述符</span></span><br><span class="line">            Close(listenfd);</span><br><span class="line">            <span class="comment">// 处理客户</span></span><br><span class="line">            str_echo(connfd);</span><br><span class="line">            <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 父进程关闭套接字描述符</span></span><br><span class="line">        Close(connfd);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="5-3-TCP回射服务器程序：str-echo函数"><a href="#5-3-TCP回射服务器程序：str-echo函数" class="headerlink" title="5.3 TCP回射服务器程序：str_echo函数"></a>5.3 TCP回射服务器程序：str_echo函数</h1><p>回射服务器逻辑部分：从客户读入数据，并回射给客户</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">"unp.h"</span></span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">str_echo</span><span class="params">(<span class="keyword">int</span> sockfd)</span></span>&#123;</span><br><span class="line">    <span class="keyword">ssize_t</span> n;</span><br><span class="line">    <span class="keyword">char</span> buf[MAXLINE];</span><br><span class="line">again:</span><br><span class="line">    <span class="comment">//如果客户关闭连接，则read会返回 0，则此函数结束，否则，继续循环。。。</span></span><br><span class="line">    <span class="keyword">while</span>( (n = read(sockfd, buf, MAXLINE)) &gt; <span class="number">0</span>)</span><br><span class="line">    <span class="comment">// 回射给客户</span></span><br><span class="line">        Writen(Sockfd, buf, n);</span><br><span class="line">    <span class="keyword">if</span>(n &lt; <span class="number">0</span> &amp;&amp; errno == EINTR)</span><br><span class="line">        <span class="keyword">goto</span> again;</span><br><span class="line">    <span class="keyword">else</span> <span class="keyword">if</span>(n &lt; <span class="number">0</span>)</span><br><span class="line">        err_sys(<span class="string">"str_echo: read error"</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="5-4-TCP回射客户程序：main函数"><a href="#5-4-TCP回射客户程序：main函数" class="headerlink" title="5.4 TCP回射客户程序：main函数"></a>5.4 TCP回射客户程序：main函数</h1><p>话不多说直接上代码。。。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">"unp.h"</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> **argv)</span></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> sockfd;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> <span class="title">servaddr</span>;</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(argc != <span class="number">2</span>)&#123;</span><br><span class="line">        err_quit(<span class="string">"usage: tcpcli &lt;IPaddress&gt;"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    sockfd = Socket(AF_INET, SOCK_STREAM, <span class="number">0</span>);</span><br><span class="line">    bzero(&amp;servaddr, <span class="keyword">sizeof</span>(servaddr));</span><br><span class="line">    servaddr.sin_family = AF_INET;</span><br><span class="line">    servaddr.sin_port = htons(SERV_PORT);   <span class="comment">//这里是提前约定好的</span></span><br><span class="line">    Inet_pton(AF_INET, argv[<span class="number">1</span>], &amp;servaddr.sin_addr);</span><br><span class="line">    <span class="comment">// 连接服务器</span></span><br><span class="line">    Connect(sockfd, (SA*) &amp;servaddr, <span class="keyword">sizeof</span>(servaddr));</span><br><span class="line">    <span class="comment">// 客户逻辑</span></span><br><span class="line">    str_cli(<span class="built_in">stdin</span>, sockfd);</span><br><span class="line">    <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>创建一个TCP套接字，用服务器的IP地址和端口号装填一个网际网套接字地址结构，我们可从命令行参数取得服务器的IP地址，从头文件中获取端口号：SERV_PORT<br>str_cli是客户端的逻辑代码部分</p>
+<h1 id="5-5-TCP回射客户程序：str-cli函数"><a href="#5-5-TCP回射客户程序：str-cli函数" class="headerlink" title="5.5 TCP回射客户程序：str_cli函数"></a>5.5 TCP回射客户程序：str_cli函数</h1><p>从标准输入读入一行文本，写到服务器上，读回服务器对该行的回射，并把回射写到标准输出上</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">"unp.h"</span></span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">str_cli</span><span class="params">(FILE* fp, <span class="keyword">int</span> sockfd)</span></span>&#123;</span><br><span class="line">    <span class="keyword">char</span> sendline[MAXLINE], resvline[MAXLINE];</span><br><span class="line">    <span class="comment">// 不断地读入文本</span></span><br><span class="line">    <span class="keyword">while</span>(Fgets(sendline, MAXLINE, fp) != <span class="literal">NULL</span>)&#123;</span><br><span class="line">        <span class="comment">// 把文本发送给服务器</span></span><br><span class="line">        Writen(sockfd, sendline, <span class="built_in">strlen</span>(sndline));</span><br><span class="line">        <span class="comment">// 从服务器读取数据</span></span><br><span class="line">        <span class="keyword">if</span>(Readline(sockfd, recvline, MAXLINE) == <span class="number">0</span>)&#123;</span><br><span class="line">            err_quit(<span class="string">"something"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 写到标准输出</span></span><br><span class="line">        Fputs(recvline, <span class="built_in">stdout</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>读入一行文本，把该行发送给服务器，使用readline从服务器读入回射行，fputs把它写到标准输出<br>fgets 出错返回空指针，循环终止，遇到文件终止符 EOF 也会返回空指针</p>
+<h1 id="5-8-POSIX信号处理"><a href="#5-8-POSIX信号处理" class="headerlink" title="5.8 POSIX信号处理"></a>5.8 POSIX信号处理</h1><p>信号就是某个进程发生了某个事件的通知，有时也称为软件中断，信号通常是异步发生的<br>信号可以由另一个进程发送给一个进程（或自身），也可以由内核发送给一个进程<br>SIGCHLD 是由内核在子进程终止时发送给其父进程的  </p>
+<ul>
+<li>调用 sigaction 处理信号有关的三种选择<ul>
+<li>提供一个函数，只有特定的信号才进行调用（捕获信号），有两个信号不能被捕获（SIGKILL，SIGSTOP）信号处理函数由信号值这个单一的整数参数进行调用，且没有返回值：void handler(int signo)</li>
+<li>可以将信号的处置设为SIG_IGN来进行忽略，SIGKILL和SIGSTOP这两个信号不能进行忽略</li>
+<li>可以吧某个信号的处置设定为SIG_DEF来进行默认处理，通产是在收到信号后进行终止进程（SIGCHID和SIGURG的默认处理是忽略）</li>
+</ul>
+</li>
+</ul>
+<p><strong>一旦安装了信号处理函数，就一直安装着</strong><br><strong>在一个信号处理函数运行期间，被递交的信号阻塞</strong><br><strong>多个相同信号阻塞，恢复后仅递交一次</strong><br><strong>可以使用 sigprocmask 选择性的阻塞或解阻塞一组信号，带一些特殊代码片段进行操作</strong></p>
+<h1 id="5-9-处理SIGCHLD信号"><a href="#5-9-处理SIGCHLD信号" class="headerlink" title="5.9 处理SIGCHLD信号"></a>5.9 处理SIGCHLD信号</h1><pre><code>设置僵死状态的子进程是为了维护子进程的信息，以便父进程随时获取。这些信息包括子进程的进程ID，终止状态以及资源利用信息（CPU，内存使用等等），如果父进程终止，那么它所有的僵死子进程的父进程ID会被重置为1（init进程）。继承这些子进程并清理它们（init进程会wait它们，从而去除它们的僵死状态）</code></pre><h2 id="处理僵死进程"><a href="#处理僵死进程" class="headerlink" title="处理僵死进程"></a>处理僵死进程</h2><pre><code>僵死进程会占用内核空间，会导致资源耗尽。无论何时fork子进程都需要wait它们以等待资源的释放，防止其变为僵死进程。要达到此目的，我们需要捕获SIGCHLD信号的信号处理函数。在函数中我们调用wait。</code></pre><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">"unp.h"</span></span></span><br><span class="line">Signal(SIGCHLD, sig_chld);</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">sig_chld</span><span class="params">(<span class="keyword">int</span> signo)</span></span>&#123;</span><br><span class="line">    <span class="keyword">pid_t</span> pid;</span><br><span class="line">    <span class="keyword">int</span> stat;</span><br><span class="line">    pid = wait(&amp;stat);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">"child %d terminated\n"</span>, pid);</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在信号处理函数中不建议使用printf。</p>
+<ol>
+<li>我们键入EOF来终止客户，客户TCP发送一个FIN给服务器，服务器响应一个ACK</li>
+<li>收到客户的FIN导致服务器TCP递送一个EOF给子进程阻塞中的readline，从而子进程终止</li>
+<li>当SIGCHLD信号递交是，父进程阻塞于accept调用。sig_chld函数执行，其wait调用取到子进程的PID和终止状态，随后是printf调用并返回</li>
+<li>既然信号是在父进程阻塞于慢系统调用（accept）时由父进程捕获的，内核就会使accept返回一个EINTR错误（被中断的系统调用），而父进程不处理该错误，于是中止</li>
+</ol>
+<h5 id="在信号处理函数中加入return语句虽然对于void返回函数来说并没有用处，但可以帮助我们来确定是那个函数来进行的处理（方便调试）"><a href="#在信号处理函数中加入return语句虽然对于void返回函数来说并没有用处，但可以帮助我们来确定是那个函数来进行的处理（方便调试）" class="headerlink" title="在信号处理函数中加入return语句虽然对于void返回函数来说并没有用处，但可以帮助我们来确定是那个函数来进行的处理（方便调试）"></a>在信号处理函数中加入return语句虽然对于void返回函数来说并没有用处，但可以帮助我们来确定是那个函数来进行的处理（方便调试）</h5><h3 id="处理被中断的系统调用"><a href="#处理被中断的系统调用" class="headerlink" title="处理被中断的系统调用"></a>处理被中断的系统调用</h3><p>我们用术语慢系统调用来描述accept函数，该属于也适用于那些可能永远阻塞的系统调用。永远阻塞的系统调用是指调用可能永远无法返回，多数网络支持函数都属于这一类，如果没有客户连接到服务器上，那么服务器的accept调用就没有返回的保证。</p>
+<h5 id="适用于慢系统调用的基本规则是：当阻塞于某个慢系统调用的一个进程捕获某个信号且响应信号处理函数返回时，系统调用可能返回一个EINTR错误，有些内核自动重启被中断的系统调用。不过为了便于移植，当我们编写捕获信号时，我们必须对慢系统调用返回EINTR有所准备，例子如下："><a href="#适用于慢系统调用的基本规则是：当阻塞于某个慢系统调用的一个进程捕获某个信号且响应信号处理函数返回时，系统调用可能返回一个EINTR错误，有些内核自动重启被中断的系统调用。不过为了便于移植，当我们编写捕获信号时，我们必须对慢系统调用返回EINTR有所准备，例子如下：" class="headerlink" title="适用于慢系统调用的基本规则是：当阻塞于某个慢系统调用的一个进程捕获某个信号且响应信号处理函数返回时，系统调用可能返回一个EINTR错误，有些内核自动重启被中断的系统调用。不过为了便于移植，当我们编写捕获信号时，我们必须对慢系统调用返回EINTR有所准备，例子如下："></a>适用于慢系统调用的基本规则是：当阻塞于某个慢系统调用的一个进程捕获某个信号且响应信号处理函数返回时，系统调用可能返回一个EINTR错误，有些内核自动重启被中断的系统调用。不过为了便于移植，当我们编写捕获信号时，我们必须对慢系统调用返回EINTR有所准备，例子如下：</h5><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span>( ; ; )&#123;</span><br><span class="line">    client = <span class="keyword">sizeof</span>(cliaddr);</span><br><span class="line">    <span class="keyword">if</span>( (connfd = accept(listenfd, (SA*) &amp;cliaddr, &amp;clilen)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">        <span class="keyword">if</span>(errno == EINTR)</span><br><span class="line">            <span class="keyword">continue</span>;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">            err_sys(<span class="string">"accept error"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码自己重启被中断的系统调用。对于accept以及read，write。select,open之类的函数来说合适，有一个函数我们不能重启：connect。如果该函数返回EINTR，不能再次调用它，会报错。当connect捕获一个信号并且不自动重启时，我们必须调用select来等待连接完成</p>
+<h1 id="5-10-wait和waitpid函数"><a href="#5-10-wait和waitpid函数" class="headerlink" title="5.10 wait和waitpid函数"></a>5.10 wait和waitpid函数</h1><p>使用这两个函数来处理已终止的子进程</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/wait.h&gt;</span></span></span><br><span class="line"><span class="keyword">pid_t</span> wait(<span class="keyword">int</span> *statloc);</span><br><span class="line"><span class="keyword">pid_t</span> waitpid(<span class="keyword">pid_t</span> pid, <span class="keyword">int</span>* statloc, <span class="keyword">int</span> options);</span><br><span class="line"><span class="comment">//均返回：成功返回1，出错为0或-1</span></span><br></pre></td></tr></table></figure>
+
+<p>函数wait和waitpid均返回两个值：已终止子进程的进程ID号，以及通过statloc指针返回的子进程终止状态（一个整数）。<br>如果调用wait的进程没有已终止的子进程，不过有一个或多个子进程仍在执行，那么wait将阻塞到现有子进程第一个终止出现为止<br>waitpid函数就等待那个进程以及是否阻塞给了更多控制方式。pid 允许我们指定想等待的进程 ID，-1 代表第一个终止的子进程。options 可以添加选项，常用的有 WNOHANG 表示内核在没有终止子进程时不阻塞。</p>
+<h4 id="函数wait和waitpid的区别"><a href="#函数wait和waitpid的区别" class="headerlink" title="函数wait和waitpid的区别"></a>函数wait和waitpid的区别</h4><p>wait函数可能在多个信号同时接收时只会执行一次，这个时候在信号处理函数中使用一个循环来调用waitpid来将所有僵死进程释放</p>
+<h4 id="重点速记"><a href="#重点速记" class="headerlink" title="重点速记"></a>重点速记</h4><ol>
+<li>当fork子进程时必须捕获SIGCHLD信号</li>
+<li>当捕获信号时，必须处理被中断的系统调用</li>
+<li>SIGCHLD的信号处理函数必须正确编写，应使用waitpid函数，以免留下僵死进程</li>
+</ol>
+<p>服务器终极版本：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">"unp.h"</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span>** argv)</span></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> listenfd, connfd;</span><br><span class="line">    <span class="keyword">pid_t</span> childpid;</span><br><span class="line">    <span class="keyword">socklen_t</span> client;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_in</span> <span class="title">cliaddr</span>, <span class="title">servaddr</span>;</span></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">sig_chld</span><span class="params">(<span class="keyword">int</span>)</span></span>;</span><br><span class="line">    listenfd = Socket(AF_INET, SOCK_STREAM, <span class="number">0</span>);</span><br><span class="line">    bzero(&amp;servaddr, <span class="keyword">sizeof</span>(servaddr));</span><br><span class="line">    servaddr.sin_family = AF_INET;</span><br><span class="line">    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);</span><br><span class="line">    servaddr.sin_port =htons(SERV_PORT);</span><br><span class="line">    Bind(listenfd, (SA*) &amp;servaddr, <span class="keyword">sizeof</span>(servaddr));</span><br><span class="line">    Listen(listenfd, LISTENQ);</span><br><span class="line">    Signal(SIGCHLD, sig_chld);</span><br><span class="line">    <span class="keyword">for</span>(; ; )&#123;</span><br><span class="line">        clilen = <span class="keyword">sizeof</span>(cliaddr);</span><br><span class="line">        <span class="keyword">if</span>( (connfd = accept(listenfd, (SA*) &amp;cliaddr, &amp;clilen)) &lt; <span class="number">0</span>)&#123;</span><br><span class="line">            <span class="keyword">if</span>(errno == EINTR)</span><br><span class="line">                <span class="keyword">continue</span>;</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">                err_sys(<span class="string">"accept error"</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span>( (childpid = Fork()) == <span class="number">0</span>)&#123;</span><br><span class="line">            Close(listenfd);</span><br><span class="line">            str_echo(connfd);</span><br><span class="line">            <span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">        &#125;</span><br><span class="line">        Close(connfd);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="5-11-accept-返回前连接终止"><a href="#5-11-accept-返回前连接终止" class="headerlink" title="5.11 accept 返回前连接终止"></a>5.11 accept 返回前连接终止</h1><p>当三次握手完毕，服务器准备调用 accept 时，客户端发送了 RST<br>不同的系统处理方式不同，有的不做回应，有的会返回特定错误</p>
+<h1 id="5-12-服务器进程终止"><a href="#5-12-服务器进程终止" class="headerlink" title="5.12 服务器进程终止"></a>5.12 服务器进程终止</h1><p>服务器进程崩溃处理</p>
+<ol>
+<li>当服务器子进程终止时，子进程中所有打开的描述符都会被关闭。这导致向客户发送一个FIN，而客户TCP则响应一个ACK。完成TCP断开连接的前半部分。</li>
+<li>SIGCHLD信号被发送给服务器父进程，并正确处理</li>
+<li>这时客户还阻塞在获取输入的状态，此时输入一行字符，这时客户会尝试向服务器发送数据，但是服务器已经关闭会响应一个RST，但是客户端看不到，因为它还在等待信息，所以阻塞在了readline，并且由于之前接收了FIN，所调用的readline立即返回0，我们的客户此时并未收到EOF，所以报错<h4 id="本节重点：当FIN到达套接字时，客户阻塞在fgets上，客户实际在应对两个描述符，（套接字和用户输入），它不能单纯阻塞在这两个源中某个特定源的输入上。而是应该阻塞在其中任何一个源的输入上。这正是poll和select的目的之一，后面的处理方式是：一旦杀死服务器子程序，客户会立即被告知已收到FIN"><a href="#本节重点：当FIN到达套接字时，客户阻塞在fgets上，客户实际在应对两个描述符，（套接字和用户输入），它不能单纯阻塞在这两个源中某个特定源的输入上。而是应该阻塞在其中任何一个源的输入上。这正是poll和select的目的之一，后面的处理方式是：一旦杀死服务器子程序，客户会立即被告知已收到FIN" class="headerlink" title="本节重点：当FIN到达套接字时，客户阻塞在fgets上，客户实际在应对两个描述符，（套接字和用户输入），它不能单纯阻塞在这两个源中某个特定源的输入上。而是应该阻塞在其中任何一个源的输入上。这正是poll和select的目的之一，后面的处理方式是：一旦杀死服务器子程序，客户会立即被告知已收到FIN"></a>本节重点：当FIN到达套接字时，客户阻塞在fgets上，客户实际在应对两个描述符，（套接字和用户输入），它不能单纯阻塞在这两个源中某个特定源的输入上。而是应该阻塞在其中任何一个源的输入上。这正是poll和select的目的之一，后面的处理方式是：一旦杀死服务器子程序，客户会立即被告知已收到FIN</h4></li>
+</ol>
+<h1 id="5-13-SIGPIPE信号"><a href="#5-13-SIGPIPE信号" class="headerlink" title="5.13 SIGPIPE信号"></a>5.13 SIGPIPE信号</h1><p>当一个进程向某个已收到RST的套接字执行写操作时，内核向该进程发送一个SIGPIPE信号，默认行为是终止进程，所以必须要捕获它，防止进程被意外终止，忽略即可</p>
+<h1 id="5-14-服务器主机崩溃"><a href="#5-14-服务器主机崩溃" class="headerlink" title="5.14 服务器主机崩溃"></a>5.14 服务器主机崩溃</h1><ol>
+<li>服务器崩溃，此时客户写入一行文本，并且由writen写入内核，再由TCP客户作为一个数据分节送出，客户随后阻塞于readline调用，等待回射应答</li>
+<li>这时客户会持续重传文本，试图从服务器接受一个ACK。当客户TCP最终放弃重传的时候（这段时间里，服务器没有重启成功），给客户进程返回一个错误。则调用readline返回一个错误，如果是服务器崩溃不可达，返回ETIMEOUT，如果是中间路由器表示不可达则响应一个“destination unreachable”的ICMP消息，这时返回的错误为EHOSTUNREACH或ENETUNREACH。</li>
+</ol>
+<p>使用 keepalive 选项来检测之际是否连通</p>
+<p>如果觉得客户重传时间过久，可以设置一个超时即可</p>
+<h1 id="5-15-服务器主机崩溃后重启"><a href="#5-15-服务器主机崩溃后重启" class="headerlink" title="5.15 服务器主机崩溃后重启"></a>5.15 服务器主机崩溃后重启</h1><p>这里的关键之处在于如果客户端不知道服务器崩溃了，在服务器重启后，服务器会丢失所有连接信息，此时客户发送TCP，服务器会响应一个RST，这时阻塞于readline的客户会返回ECONNRESET错误。<br>如果客户需要实时监测服务器是否崩溃，则要采用一些技术（SO_KEEPALIVE套接字选项或/某些客户/服务器心博函数。</p>
+<h1 id="5-16-服务器主机关机"><a href="#5-16-服务器主机关机" class="headerlink" title="5.16 服务器主机关机"></a>5.16 服务器主机关机</h1><p>unix系统关机时，init进程会给所有进程发送SIGTERM信号，然后等待一段时间，然后给所有仍在运行的进程发送SIGKILL信号（该信号不可捕获），这么做是为了将一小段时间给进程做清除和终止，它所有打开的描述符都需要关闭释放，我们必须在客户中使用select或poll函数，使得服务器一终止，客户端可以检查到，否则会阻塞在 fgets 上。。。</p>
+<h1 id="5-18-数据格式"><a href="#5-18-数据格式" class="headerlink" title="5.18 数据格式"></a>5.18 数据格式</h1><p>书上给了两个例子</p>
+<ol>
+<li>在客户与服务器之间传递文本串，其中包含空格分开的两个数字，服务器返回二者之和</li>
+<li>在客户与服务器之间传递二进制结构<br>但是存在问题<ol>
+<li>不同机器存在大端小端问题</li>
+<li>不同实现存储的C数据类型上可能存在差异，它们各自的大小不确定相同</li>
+<li>不同实现打包方式存在差异  </li>
+</ol>
+</li>
+</ol>
+<p>解决办法</p>
+<ul>
+<li>把数值数据作为文本串来传递，确保机器上的字符集相同即可</li>
+<li>显示定义所支持数据类型的二进制格式（位数，大小端字节序）RPC 通常使用这种方式</li>
+</ul>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>本章解决了几个问题 point</p>
+<ol>
+<li>僵死子进程问题，通过捕获 SIGCHLD 处理，</li>
+<li>处理信号的函数推荐使用 waitpid 函数进行处理</li>
+<li>防止服务器崩溃，客户端不知道的情况</li>
+<li>在网络中传输数值数据会产生一些问题</li>
+<li>等等。。。</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/09/25/06.IO复用：select和poll函数/" rel="next" title="第六章：IO复用">
+                  <i class="fa fa-chevron-left"></i> 第六章：IO复用
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2019/09/25/16.非阻塞式IO/" rel="prev" title="第16章：非阻塞式IO">
+                  第16章：非阻塞式IO <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#5-1-概述"><span class="nav-number">1.</span> <span class="nav-text">5.1 概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-2-TCP回射服务器程序：main函数"><span class="nav-number">2.</span> <span class="nav-text">5.2 TCP回射服务器程序：main函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-3-TCP回射服务器程序：str-echo函数"><span class="nav-number">3.</span> <span class="nav-text">5.3 TCP回射服务器程序：str_echo函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-4-TCP回射客户程序：main函数"><span class="nav-number">4.</span> <span class="nav-text">5.4 TCP回射客户程序：main函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-5-TCP回射客户程序：str-cli函数"><span class="nav-number">5.</span> <span class="nav-text">5.5 TCP回射客户程序：str_cli函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-8-POSIX信号处理"><span class="nav-number">6.</span> <span class="nav-text">5.8 POSIX信号处理</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-9-处理SIGCHLD信号"><span class="nav-number">7.</span> <span class="nav-text">5.9 处理SIGCHLD信号</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#处理僵死进程"><span class="nav-number">7.1.</span> <span class="nav-text">处理僵死进程</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#在信号处理函数中加入return语句虽然对于void返回函数来说并没有用处，但可以帮助我们来确定是那个函数来进行的处理（方便调试）"><span class="nav-number">7.1.0.0.1.</span> <span class="nav-text">在信号处理函数中加入return语句虽然对于void返回函数来说并没有用处，但可以帮助我们来确定是那个函数来进行的处理（方便调试）</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#处理被中断的系统调用"><span class="nav-number">7.1.1.</span> <span class="nav-text">处理被中断的系统调用</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#适用于慢系统调用的基本规则是：当阻塞于某个慢系统调用的一个进程捕获某个信号且响应信号处理函数返回时，系统调用可能返回一个EINTR错误，有些内核自动重启被中断的系统调用。不过为了便于移植，当我们编写捕获信号时，我们必须对慢系统调用返回EINTR有所准备，例子如下："><span class="nav-number">7.1.1.0.1.</span> <span class="nav-text">适用于慢系统调用的基本规则是：当阻塞于某个慢系统调用的一个进程捕获某个信号且响应信号处理函数返回时，系统调用可能返回一个EINTR错误，有些内核自动重启被中断的系统调用。不过为了便于移植，当我们编写捕获信号时，我们必须对慢系统调用返回EINTR有所准备，例子如下：</span></a></li></ol></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-10-wait和waitpid函数"><span class="nav-number">8.</span> <span class="nav-text">5.10 wait和waitpid函数</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#函数wait和waitpid的区别"><span class="nav-number">8.0.0.1.</span> <span class="nav-text">函数wait和waitpid的区别</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#重点速记"><span class="nav-number">8.0.0.2.</span> <span class="nav-text">重点速记</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-11-accept-返回前连接终止"><span class="nav-number">9.</span> <span class="nav-text">5.11 accept 返回前连接终止</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-12-服务器进程终止"><span class="nav-number">10.</span> <span class="nav-text">5.12 服务器进程终止</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#本节重点：当FIN到达套接字时，客户阻塞在fgets上，客户实际在应对两个描述符，（套接字和用户输入），它不能单纯阻塞在这两个源中某个特定源的输入上。而是应该阻塞在其中任何一个源的输入上。这正是poll和select的目的之一，后面的处理方式是：一旦杀死服务器子程序，客户会立即被告知已收到FIN"><span class="nav-number">10.0.0.1.</span> <span class="nav-text">本节重点：当FIN到达套接字时，客户阻塞在fgets上，客户实际在应对两个描述符，（套接字和用户输入），它不能单纯阻塞在这两个源中某个特定源的输入上。而是应该阻塞在其中任何一个源的输入上。这正是poll和select的目的之一，后面的处理方式是：一旦杀死服务器子程序，客户会立即被告知已收到FIN</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-13-SIGPIPE信号"><span class="nav-number">11.</span> <span class="nav-text">5.13 SIGPIPE信号</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-14-服务器主机崩溃"><span class="nav-number">12.</span> <span class="nav-text">5.14 服务器主机崩溃</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-15-服务器主机崩溃后重启"><span class="nav-number">13.</span> <span class="nav-text">5.15 服务器主机崩溃后重启</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-16-服务器主机关机"><span class="nav-number">14.</span> <span class="nav-text">5.16 服务器主机关机</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-18-数据格式"><span class="nav-number">15.</span> <span class="nav-text">5.18 数据格式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结"><span class="nav-number">16.</span> <span class="nav-text">总结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

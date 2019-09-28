@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="20.1 概述&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;不同类型的寻址方式   类型 IPv4 IPv6 TCP UDP 所标识接口数 递送到接口数    单播 √ √ √ √ 一个 一个   任播  √ 尚没有 √ 一组 一组中的一个   组播 可选 √  √ 全体 一组中的全体   广播 √   √ 全体 全体    组播支持在">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第20章：广播">
+<meta property="og:url" content="http://yoursite.com/2019/09/25/20.广播/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="20.1 概述&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;不同类型的寻址方式   类型 IPv4 IPv6 TCP UDP 所标识接口数 递送到接口数    单播 √ √ √ √ 一个 一个   任播  √ 尚没有 √ 一组 一组中的一个   组播 可选 √  √ 全体 一组中的全体   广播 √   √ 全体 全体    组播支持在">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-09-28T08:46:38.258Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="第20章：广播">
+<meta name="twitter:description" content="20.1 概述&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;&amp;emsp;不同类型的寻址方式   类型 IPv4 IPv6 TCP UDP 所标识接口数 递送到接口数    单播 √ √ √ √ 一个 一个   任播  √ 尚没有 √ 一组 一组中的一个   组播 可选 √  √ 全体 一组中的全体   广播 √   √ 全体 全体    组播支持在">
+  <link rel="canonical" href="http://yoursite.com/2019/09/25/20.广播/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>第20章：广播 | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/20.广播/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">第20章：广播
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="20-1-概述"><a href="#20-1-概述" class="headerlink" title="20.1 概述"></a>20.1 概述</h1><h3 id="emsp-emsp-emsp-emsp-emsp-emsp-emsp-emsp-emsp-不同类型的寻址方式"><a href="#emsp-emsp-emsp-emsp-emsp-emsp-emsp-emsp-emsp-不同类型的寻址方式" class="headerlink" title="&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;不同类型的寻址方式"></a>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;不同类型的寻址方式</h3><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>IPv4</th>
+<th>IPv6</th>
+<th>TCP</th>
+<th>UDP</th>
+<th>所标识接口数</th>
+<th>递送到接口数</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>单播</td>
+<td>√</td>
+<td>√</td>
+<td>√</td>
+<td>√</td>
+<td>一个</td>
+<td>一个</td>
+</tr>
+<tr>
+<td>任播</td>
+<td></td>
+<td>√</td>
+<td>尚没有</td>
+<td>√</td>
+<td>一组</td>
+<td>一组中的一个</td>
+</tr>
+<tr>
+<td>组播</td>
+<td>可选</td>
+<td>√</td>
+<td></td>
+<td>√</td>
+<td>全体</td>
+<td>一组中的全体</td>
+</tr>
+<tr>
+<td>广播</td>
+<td>√</td>
+<td></td>
+<td></td>
+<td>√</td>
+<td>全体</td>
+<td>全体</td>
+</tr>
+</tbody></table>
+<ul>
+<li>组播支持在 IPv4 中是可选的，在 IPv6 中却是必须的</li>
+<li>IPv6 不支持广播。任何使用 IPv4 编写的广播程序，在移植到 IPV6 上要换成组播</li>
+<li>广播和组播要求用于 UDP 或原始 IP，他们不能用于 TCP</li>
+</ul>
+<p>&emsp;&emsp;IPv6 往寻址体系结构中增加了任播方式。任播允许从一组通常提供相同服务的主机中选择一个（一般是最近的一个）通过适当的配置路由，并在多个位置往路由协议中注入同一个地址，多个 IPv4 或 IPv6 主机可以提供该地址的任播服务，任播还在逐步地完善中。<br>&emsp;&emsp;广播的用途之一是在本地子网定位一个服务器主机，前提是已经知道这台服务器主机位于本地子网，但并不知道具体的单播地址。这种操作也称为 <strong>资源发现</strong> 。另一个用途是在有多个客户端与单个服务器主机通信的局域网环境中尽量减少分组流通。处于这个目的使用广播的因特网应用有多个例子：</p>
+<ul>
+<li>ARP：ARP 并不是一个用户应用，而是 IPv4 的基本组成之一。ARP 在本地子网上广播一个请获取想要的硬件地址。ARP 使用在链路层不是 IP 层</li>
+<li>DHCP：在认定本地子网存在一个 DHCP 服务器主机的前提下，DCHP 客户主机向广播地址（通常是 255.255.255.255）发送自己的请求</li>
+<li>NTP：NTR 的一种常见使用情形是客户主机配置上待使用的一个或多个服务器主机的 IP 地址，然后以某个频度轮询这些服务器主机。根据由服务器返回的当前时间和到达服务器的 RTT，客户使用更精妙的算法更新本地时钟</li>
+<li>路由守护进程：route 是最早实现且常用的路由守护进程之一，它在一个局域网上广播自己的路由表。这样一来该局域网所有路由器都可以接受这些路由通告，而无须事先为每个路由器配置其邻居路由的 IP 地址</li>
+</ul>
+<p><strong>组播可以代替广播的这两个用途（资源发现、减少网络分组流通）广播有一定的问题</strong></p>
+<a id="more"></a>
+<h1 id="20-2-广播地址"><a href="#20-2-广播地址" class="headerlink" title="20.2 广播地址"></a>20.2 广播地址</h1><p>广播地址例子：</p>
+<ul>
+<li>子网 192.168.42/24 的所有接口的子网定向广播地址是 192.168.42.255 {子网 ID，-1}  </li>
+<li>受限广播地址 {-1， -1} 或 255.255.255.255   </li>
+</ul>
+<p><strong>路由器从不转发目的地址为 255.255.255.255 的 IP 数据报</strong></p>
+<h1 id="20-3-单播和广播的比较"><a href="#20-3-单播和广播的比较" class="headerlink" title="20.3 单播和广播的比较"></a>20.3 单播和广播的比较</h1><p>&emsp;&emsp;单播局域网中其余的主机可以在比较了自己的以太网地址和数据报的目标以太网地址，发现不同就会忽略，只有相同才会沿着协议栈对其进行处理。所以忽略它的是接口而不是主机。但是对于广播，局域网中的所有主机都会对其沿着协议栈进行处理，所以忽略它的是主机<br>&emsp;&emsp;广播存在的问题是：子网上未参与相应广播的所有主机也不得不沿协议栈一路向上完整的处理收取的 UDP 广播数据报，直到该数据报在 UDP 层时被丢弃。另外，子网所有非 IP 主机也不得不在数据链路层接受完整的帧，然后再丢弃它。如果又较高速率产生 IP 广播数据报，可能会严重影响子网其余主机的性能，使用组播来解决这个问题。</p>
+<h1 id="20-4-使用广播的-dg-cli-函数"><a href="#20-4-使用广播的-dg-cli-函数" class="headerlink" title="20.4 使用广播的 dg_cli 函数"></a>20.4 使用广播的 dg_cli 函数</h1><p>修改 dg_cli 函数，使得可以向 UDP 标准 daytime 服务器广播发送请求，然后显示所有应答</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">dg_cli</span><span class="params">(FILE *fp, <span class="keyword">int</span> sockfd, <span class="keyword">const</span> SA *pservaddr, <span class="keyword">socklen_t</span> servlen)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">int</span>				n;</span><br><span class="line">	<span class="keyword">const</span> <span class="keyword">int</span>		on = <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">char</span>			sendline[MAXLINE], recvline[MAXLINE + <span class="number">1</span>];</span><br><span class="line">	<span class="keyword">socklen_t</span>		len;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sockaddr</span>	*<span class="title">preply_addr</span>;</span></span><br><span class="line">    <span class="comment">// 给 recvfrom 收到的服务器地址分配空间</span></span><br><span class="line">	preply_addr = Malloc(servlen);</span><br><span class="line">    <span class="comment">// 设置 SO_BROADCAST 套接字选项</span></span><br><span class="line">	Setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &amp;on, <span class="keyword">sizeof</span>(on));</span><br><span class="line">    <span class="comment">// 设置 SIGALRM 的信号处理函数 recvfrom_alarm</span></span><br><span class="line">	Signal(SIGALRM, recvfrom_alarm);</span><br><span class="line">    <span class="comment">// 下面发送的是广播数据报，可能会获得多个应答，我们在一个循环中调用 recvfrom，并显示在 5 秒钟内收到应答</span></span><br><span class="line">    <span class="comment">// 5 秒后系统会产生 SIGLARM 信号，导致 recvfrom 返回 EINTR 错误</span></span><br><span class="line">	<span class="keyword">while</span> (Fgets(sendline, MAXLINE, fp) != <span class="literal">NULL</span>) &#123;</span><br><span class="line"></span><br><span class="line">		Sendto(sockfd, sendline, <span class="built_in">strlen</span>(sendline), <span class="number">0</span>, pservaddr, servlen);</span><br><span class="line"></span><br><span class="line">		alarm(<span class="number">5</span>);</span><br><span class="line">		<span class="keyword">for</span> ( ; ; ) &#123;</span><br><span class="line">			len = servlen;</span><br><span class="line">			n = recvfrom(sockfd, recvline, MAXLINE, <span class="number">0</span>, preply_addr, &amp;len);</span><br><span class="line">			<span class="keyword">if</span> (n &lt; <span class="number">0</span>) &#123;</span><br><span class="line">				<span class="keyword">if</span> (errno == EINTR)</span><br><span class="line">					<span class="keyword">break</span>;		<span class="comment">/* waited long enough for replies */</span></span><br><span class="line">				<span class="keyword">else</span></span><br><span class="line">					err_sys(<span class="string">"recvfrom error"</span>);</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">// 打印收到的回答</span></span><br><span class="line">				recvline[n] = <span class="number">0</span>;	<span class="comment">/* null terminate */</span></span><br><span class="line">				<span class="built_in">printf</span>(<span class="string">"from %s: %s"</span>,</span><br><span class="line">						Sock_ntop_host(preply_addr, len), recvline);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">free</span>(preply_addr);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">recvfrom_alarm</span><span class="params">(<span class="keyword">int</span> signo)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span>;		<span class="comment">/* just interrupt the recvfrom() */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;内核不允许对广播数据报进行分片，对于目的地址是广播地址的 IP 数据报，如果其大小超过外出接口 MTU 会返回 EMSGSIZE 错误。原因可能是广播已经给网络造成很大压力，再进行分片，局域网的压力会大大增加。</p>
+<h1 id="20-5-竞争状态"><a href="#20-5-竞争状态" class="headerlink" title="20.5 竞争状态"></a>20.5 竞争状态</h1><p>&emsp;&emsp;对于上一小节的代码，其中存在着一个问题：我们在一个无限 for 循环处理打印程序，通过定时闹钟来 break。但是问题是在 for 循环的任何时候都可能执行信号处理，并不仅仅是我们期望的在 recvfrom 阻塞中进行。所以当正在打印时执行信号处理操作，我们就一直会阻塞在 recvfrom 上了，因为我们唯一可以通过信号处理在 recvfrom 上跳出循环的机会让我们错失在了打印时。  </p>
+<p>下面有 4 种解决办法，第一种是错误的：</p>
+<h2 id="1-阻塞和解阻塞信号（错误版本）："><a href="#1-阻塞和解阻塞信号（错误版本）：" class="headerlink" title="1.阻塞和解阻塞信号（错误版本）："></a>1.阻塞和解阻塞信号（错误版本）：</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">dg_cli</span><span class="params">(FILE *fp, <span class="keyword">int</span> sockfd, <span class="keyword">const</span> SA *pservaddr, <span class="keyword">socklen_t</span> servlen)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">int</span>				n;</span><br><span class="line">	<span class="keyword">const</span> <span class="keyword">int</span>		on = <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">char</span>			sendline[MAXLINE], recvline[MAXLINE + <span class="number">1</span>];</span><br><span class="line">	<span class="keyword">sigset_t</span>		sigset_alrm;</span><br><span class="line">	<span class="keyword">socklen_t</span>		len;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sockaddr</span>	*<span class="title">preply_addr</span>;</span></span><br><span class="line"> </span><br><span class="line">	preply_addr = Malloc(servlen);</span><br><span class="line"></span><br><span class="line">	Setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &amp;on, <span class="keyword">sizeof</span>(on));</span><br><span class="line">    <span class="comment">// 声明一个信号集，把它初始化为空集，再打开 SIGALRM 对应的位</span></span><br><span class="line">	Sigemptyset(&amp;sigset_alrm);</span><br><span class="line">	Sigaddset(&amp;sigset_alrm, SIGALRM);</span><br><span class="line"></span><br><span class="line">	Signal(SIGALRM, recvfrom_alarm);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span> (Fgets(sendline, MAXLINE, fp) != <span class="literal">NULL</span>) &#123;</span><br><span class="line"></span><br><span class="line">		Sendto(sockfd, sendline, <span class="built_in">strlen</span>(sendline), <span class="number">0</span>, pservaddr, servlen);</span><br><span class="line"></span><br><span class="line">		alarm(<span class="number">5</span>);</span><br><span class="line">		<span class="keyword">for</span> ( ; ; ) &#123;</span><br><span class="line">            <span class="comment">// 调用 recvfrom 前，解阻塞 SIGALRM 信号</span></span><br><span class="line">			len = servlen;</span><br><span class="line">			Sigprocmask(SIG_UNBLOCK, &amp;sigset_alrm, <span class="literal">NULL</span>);</span><br><span class="line">			n = recvfrom(sockfd, recvline, MAXLINE, <span class="number">0</span>, preply_addr, &amp;len);</span><br><span class="line">            <span class="comment">// recvfrom 函数结束后，立即阻塞 SIGALRM 信号，直到等到下一次解阻塞，也就是下一次循环开始</span></span><br><span class="line">			Sigprocmask(SIG_BLOCK, &amp;sigset_alrm, <span class="literal">NULL</span>);</span><br><span class="line">			<span class="keyword">if</span> (n &lt; <span class="number">0</span>) &#123;</span><br><span class="line">				<span class="keyword">if</span> (errno == EINTR)</span><br><span class="line">					<span class="keyword">break</span>;		<span class="comment">/* waited long enough for replies */</span></span><br><span class="line">				<span class="keyword">else</span></span><br><span class="line">					err_sys(<span class="string">"recvfrom error"</span>);</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				recvline[n] = <span class="number">0</span>;	<span class="comment">/* null terminate */</span></span><br><span class="line">				<span class="built_in">printf</span>(<span class="string">"from %s: %s"</span>,</span><br><span class="line">						Sock_ntop_host(preply_addr, len), recvline);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">free</span>(preply_addr);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span> </span><br><span class="line">recvfrom_alarm(<span class="keyword">int</span> signo)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span>;		<span class="comment">/* just interrupt the recvfrom() */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;这种方式仍然存在问题，就是 recvfrom 和 阻塞 SIGALRM 信号操作都是相互独立的操作，万一，信号在 recvfrom 调用完但是信号还没有阻塞之前进行递交，那么内核就不能阻塞该信号，虽然出错拆给你扣已经很小了，但是问题依然是存在的。</p>
+<h2 id="2-用-pselect-阻塞和解阻塞信号："><a href="#2-用-pselect-阻塞和解阻塞信号：" class="headerlink" title="2.用 pselect 阻塞和解阻塞信号："></a>2.用 pselect 阻塞和解阻塞信号：</h2><p>使用 pselect 来解决这个问题：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">dg_cli</span><span class="params">(FILE *fp, <span class="keyword">int</span> sockfd, <span class="keyword">const</span> SA *pservaddr, <span class="keyword">socklen_t</span> servlen)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">int</span>				n;</span><br><span class="line">	<span class="keyword">const</span> <span class="keyword">int</span>		on = <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">char</span>			sendline[MAXLINE], recvline[MAXLINE + <span class="number">1</span>];</span><br><span class="line">	fd_set			rset;</span><br><span class="line">	<span class="keyword">sigset_t</span>		sigset_alrm, sigset_empty;</span><br><span class="line">	<span class="keyword">socklen_t</span>		len;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sockaddr</span>	*<span class="title">preply_addr</span>;</span></span><br><span class="line"> </span><br><span class="line">	preply_addr = Malloc(servlen);</span><br><span class="line"></span><br><span class="line">	Setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &amp;on, <span class="keyword">sizeof</span>(on));</span><br><span class="line"></span><br><span class="line">	FD_ZERO(&amp;rset);</span><br><span class="line"></span><br><span class="line">	Sigemptyset(&amp;sigset_empty);</span><br><span class="line">	Sigemptyset(&amp;sigset_alrm);</span><br><span class="line">	Sigaddset(&amp;sigset_alrm, SIGALRM);</span><br><span class="line"></span><br><span class="line">	Signal(SIGALRM, recvfrom_alarm);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span> (Fgets(sendline, MAXLINE, fp) != <span class="literal">NULL</span>) &#123;</span><br><span class="line">		Sendto(sockfd, sendline, <span class="built_in">strlen</span>(sendline), <span class="number">0</span>, pservaddr, servlen);</span><br><span class="line">        <span class="comment">// 阻塞 SIGALRM 并调用 pselect</span></span><br><span class="line">		Sigprocmask(SIG_BLOCK, &amp;sigset_alrm, <span class="literal">NULL</span>);</span><br><span class="line">		alarm(<span class="number">5</span>);</span><br><span class="line">		<span class="keyword">for</span> ( ; ; ) &#123;</span><br><span class="line">			FD_SET(sockfd, &amp;rset);</span><br><span class="line">            <span class="comment">// 调用 pselect 时，信号都是非阻塞的。调用完成，再恢复成被调用时的状态</span></span><br><span class="line">			n = pselect(sockfd+<span class="number">1</span>, &amp;rset, <span class="literal">NULL</span>, <span class="literal">NULL</span>, <span class="literal">NULL</span>, &amp;sigset_empty);</span><br><span class="line">			<span class="keyword">if</span> (n &lt; <span class="number">0</span>) &#123;</span><br><span class="line">				<span class="keyword">if</span> (errno == EINTR)</span><br><span class="line">					<span class="keyword">break</span>;</span><br><span class="line">				<span class="keyword">else</span></span><br><span class="line">					err_sys(<span class="string">"pselect error"</span>);</span><br><span class="line">			&#125; <span class="keyword">else</span> <span class="keyword">if</span> (n != <span class="number">1</span>)</span><br><span class="line">				err_sys(<span class="string">"pselect error: returned %d"</span>, n);</span><br><span class="line">            <span class="comment">// 套接字变为可读，直接调用 recvfrom</span></span><br><span class="line">			len = servlen;</span><br><span class="line">			n = Recvfrom(sockfd, recvline, MAXLINE, <span class="number">0</span>, preply_addr, &amp;len);</span><br><span class="line">			recvline[n] = <span class="number">0</span>;	<span class="comment">/* null terminate */</span></span><br><span class="line">			<span class="built_in">printf</span>(<span class="string">"from %s: %s"</span>,</span><br><span class="line">					Sock_ntop_host(preply_addr, len), recvline);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">free</span>(preply_addr);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span></span><br><span class="line">recvfrom_alarm(<span class="keyword">int</span> signo)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">return</span>;		<span class="comment">/* just interrupt the recvfrom() */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="3-使用-sigsetjmp-和-siglongjmp："><a href="#3-使用-sigsetjmp-和-siglongjmp：" class="headerlink" title="3.使用 sigsetjmp 和 siglongjmp："></a>3.使用 sigsetjmp 和 siglongjmp：</h2><p>&emsp;&emsp;解决静态问题还可以不使用信号来进行中断被阻塞系统调用并跳出循环。在是在信号处理函数中调用 siglongjmp 函数，siglongjmp 是非局部跳转，使用它可以从一个函数跳转到另一个函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span>			<span class="title">recvfrom_alarm</span><span class="params">(<span class="keyword">int</span>)</span></span>;</span><br><span class="line"><span class="comment">// 本函数和信号处理函数使用的跳转缓冲区</span></span><br><span class="line"><span class="keyword">static</span> sigjmp_buf	jmpbuf;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">dg_cli</span><span class="params">(FILE *fp, <span class="keyword">int</span> sockfd, <span class="keyword">const</span> SA *pservaddr, <span class="keyword">socklen_t</span> servlen)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">int</span>				n;</span><br><span class="line">	<span class="keyword">const</span> <span class="keyword">int</span>		on = <span class="number">1</span>;</span><br><span class="line">	<span class="keyword">char</span>			sendline[MAXLINE], recvline[MAXLINE + <span class="number">1</span>];</span><br><span class="line">	<span class="keyword">socklen_t</span>		len;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sockaddr</span>	*<span class="title">preply_addr</span>;</span></span><br><span class="line"> </span><br><span class="line">	preply_addr = Malloc(servlen);</span><br><span class="line"></span><br><span class="line">	Setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &amp;on, <span class="keyword">sizeof</span>(on));</span><br><span class="line"></span><br><span class="line">	Signal(SIGALRM, recvfrom_alarm);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span> (Fgets(sendline, MAXLINE, fp) != <span class="literal">NULL</span>) &#123;</span><br><span class="line"></span><br><span class="line">		Sendto(sockfd, sendline, <span class="built_in">strlen</span>(sendline), <span class="number">0</span>, pservaddr, servlen);</span><br><span class="line"></span><br><span class="line">		alarm(<span class="number">5</span>);</span><br><span class="line">		<span class="keyword">for</span> ( ; ; ) &#123;</span><br><span class="line">            <span class="comment">// 从 dg_cli 函数中直接调用 sigsetjmp 时，它在建立跳转缓冲区后返回 0，接着调用 recvfrom。</span></span><br><span class="line">			<span class="keyword">if</span> (sigsetjmp(jmpbuf, <span class="number">1</span>) != <span class="number">0</span>)</span><br><span class="line">				<span class="keyword">break</span>;</span><br><span class="line">			len = servlen;</span><br><span class="line">			n = Recvfrom(sockfd, recvline, MAXLINE, <span class="number">0</span>, preply_addr, &amp;len);</span><br><span class="line">			recvline[n] = <span class="number">0</span>;	<span class="comment">/* null terminate */</span></span><br><span class="line">			<span class="built_in">printf</span>(<span class="string">"from %s: %s"</span>,</span><br><span class="line">					Sock_ntop_host(preply_addr, len), recvline);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">free</span>(preply_addr);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="keyword">void</span></span><br><span class="line">recvfrom_alarm(<span class="keyword">int</span> signo)</span><br><span class="line">&#123;</span><br><span class="line">    <span class="comment">// 调用 siglongjmp 使 dg_cli 进行跳转</span></span><br><span class="line">	siglongjmp(jmpbuf, <span class="number">1</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="4-使用从信号处理函数到主控函数的-IPC："><a href="#4-使用从信号处理函数到主控函数的-IPC：" class="headerlink" title="4.使用从信号处理函数到主控函数的 IPC："></a>4.使用从信号处理函数到主控函数的 IPC：</h2><p>&emsp;&emsp;通过信号通知系统 IPC 再通过 IPC 管道通知 dg_cli 中循环跳出，这里不贴代码了</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>&emsp;&emsp;广播发送的数据报由子网上所有终端主机接收。广播的劣势在于同一个子网上所有主机都必须处理数据报，若是 UDP 数据报则需要沿着协议栈一直处理到 UDP 层，即使不参与广播也需要处理，运行大量广播的应用，系统负担较大。使用组播解决这个问题，因为组播发送的数据只会对相应组播应用感兴趣的主机接收处理。  </p>
+<p>&emsp;解决竞争状态的几种方式：</p>
+<ul>
+<li>使用 pselect</li>
+<li>使用 sigsetjmp 和 siglongjmp</li>
+<li>使用从信号处理函数到主循环的 IPC（典型为管道）</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/09/25/21.组播/" rel="next" title="第21章：组播">
+                  <i class="fa fa-chevron-left"></i> 第21章：组播
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2019/09/25/18.路由套接字/" rel="prev" title="第18章：路由套接字">
+                  第18章：路由套接字 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#20-1-概述"><span class="nav-number">1.</span> <span class="nav-text">20.1 概述</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#emsp-emsp-emsp-emsp-emsp-emsp-emsp-emsp-emsp-不同类型的寻址方式"><span class="nav-number">1.0.1.</span> <span class="nav-text">         不同类型的寻址方式</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#20-2-广播地址"><span class="nav-number">2.</span> <span class="nav-text">20.2 广播地址</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#20-3-单播和广播的比较"><span class="nav-number">3.</span> <span class="nav-text">20.3 单播和广播的比较</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#20-4-使用广播的-dg-cli-函数"><span class="nav-number">4.</span> <span class="nav-text">20.4 使用广播的 dg_cli 函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#20-5-竞争状态"><span class="nav-number">5.</span> <span class="nav-text">20.5 竞争状态</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-阻塞和解阻塞信号（错误版本）："><span class="nav-number">5.1.</span> <span class="nav-text">1.阻塞和解阻塞信号（错误版本）：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-用-pselect-阻塞和解阻塞信号："><span class="nav-number">5.2.</span> <span class="nav-text">2.用 pselect 阻塞和解阻塞信号：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-使用-sigsetjmp-和-siglongjmp："><span class="nav-number">5.3.</span> <span class="nav-text">3.使用 sigsetjmp 和 siglongjmp：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-使用从信号处理函数到主控函数的-IPC："><span class="nav-number">5.4.</span> <span class="nav-text">4.使用从信号处理函数到主控函数的 IPC：</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">6.</span> <span class="nav-text">小结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="4.1 概述&amp;emsp;&amp;emsp;本章编写完整的TCP客户、服务程序所需要的套接字函数，并编写程序。同样包括并发服务器，通过派生子进程来处理新的连接">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第四章：基本TCP套接字编程">
+<meta property="og:url" content="http://yoursite.com/2019/09/25/04.基本TCP套接字编程/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="4.1 概述&amp;emsp;&amp;emsp;本章编写完整的TCP客户、服务程序所需要的套接字函数，并编写程序。同样包括并发服务器，通过派生子进程来处理新的连接">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-09-28T08:46:38.255Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="第四章：基本TCP套接字编程">
+<meta name="twitter:description" content="4.1 概述&amp;emsp;&amp;emsp;本章编写完整的TCP客户、服务程序所需要的套接字函数，并编写程序。同样包括并发服务器，通过派生子进程来处理新的连接">
+  <link rel="canonical" href="http://yoursite.com/2019/09/25/04.基本TCP套接字编程/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>第四章：基本TCP套接字编程 | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/04.基本TCP套接字编程/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">第四章：基本TCP套接字编程
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="4-1-概述"><a href="#4-1-概述" class="headerlink" title="4.1 概述"></a>4.1 概述</h1><p>&emsp;&emsp;本章编写完整的TCP客户、服务程序所需要的套接字函数，并编写程序。同样包括并发服务器，通过派生子进程来处理新的连接</p>
+<a id="more"></a>
+<h1 id="4-2-socket函数"><a href="#4-2-socket函数" class="headerlink" title="4.2 socket函数"></a>4.2 socket函数</h1><pre><code>调用socket函数来确定通讯协议的类型：使用 Ipv4 的 TCP，使用 Ipv6 的 UDP, Unix 域等等</code></pre><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">socket</span><span class="params">(<span class="keyword">int</span> family, <span class="keyword">int</span> type, <span class="keyword">int</span> protocol)</span></span>;</span><br><span class="line"><span class="comment">//返回:成功为非负描述符，若出错则为-1</span></span><br></pre></td></tr></table></figure>
+
+<p>参数解析：famiy:代表协议族，type指明套接字类型<br>         protocol设置为某个协议类型常值，或0，用来选择所选family和type组合的系统默认值</p>
+<p><strong>这里仅仅使用socket来获得一个套接字描述符，并给其绑定协议族和套接字类型，并没有指定本地协议地址和远程协议地址</strong></p>
+<ul>
+<li>AF_XX 和 PF_XX 的差别不做考虑</li>
+</ul>
+<h1 id="4-3-connect函数"><a href="#4-3-connect函数" class="headerlink" title="4.3 connect函数"></a>4.3 connect函数</h1><pre><code>TCP客户用connect来建立与TCP服务器的连接</code></pre><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">connect</span><span class="params">(<span class="keyword">int</span> sockfd, <span class="keyword">const</span> struct sockaddr* servaddr, <span class="keyword">socklen_t</span> addrlen)</span></span>;</span><br><span class="line"><span class="comment">//返回：成功返回0，出错返回-1</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>参数解析</strong>：sockfd是由socket返回的套接字描述符，第二个，第三个参数分别是一个指向套接字地址结构的指针和该结构的大小，套接字地址使用的是通用套接字地址结构，使用时需要进行类型转换，包含服务器的 IP + port</p>
+<p>套接字地址结构必须含有服务器的IP地址和端口号，客户端调用connect不需要调用bind，因为内核会自动确定IP以及一个临时端口</p>
+<p>TCP套接字在调用connect会进行三次握手过程，而且仅在建立连接成功的情况下或出错才会返回，出错返回有以下几种情况</p>
+<ol>
+<li>TCP客户没有收到SYN分节的响应，返回ETIMEDOUT错误，举例来说，发送一个SYN，无响应6s会重发，再无响应24s重发，再无响应75s再发一次，仍未收到则返回错误</li>
+<li>若对客户的响应是RST（复位），则表示服务器在我们所访问的端口上并无进程等待与之连接，直接返回ECONNREFUSED错误<br> RST是TCP发生错误时返回的一种TCP分节，三种产生RST的方式为：<ol>
+<li>目的端口SYN到达，但并没有进程正在等待，返回RST</li>
+<li>TCP想取消一个已有连接</li>
+<li>TCP接收到一个根本不存在的连接上的分节</li>
+</ol>
+</li>
+<li>客户端发送的SYN在中间的路由上引发了“目的地不可达”ICMP错误，软错误，按第一种方式进行多次重发，如果仍未收到，则返回ICMP错误消息返回</li>
+</ol>
+<p>connect 函数让客户端套接字从 CLOSED 状态，转换至 SYN_SEND 状态，三次握手成功后转换为 ESTABLISHED 状态。若失败，该套接字不可以使用，不可以在调用 connect。</p>
+<h1 id="4-4-bind函数"><a href="#4-4-bind函数" class="headerlink" title="4.4 bind函数"></a>4.4 bind函数</h1><pre><code>bind函数把本地的协议地址赋予一个套接字。根据协议类型，可以是 32 位的 Ipv4 地址或 128 位的 Ipv6 地址加 16 位的 TCP 或 UDP 端口号</code></pre><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">bind</span><span class="params">(<span class="keyword">int</span> sockfd, <span class="keyword">const</span> struct *myaddr, <span class="keyword">socklen_t</span> addrlen)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>参数解析：第一个参数，是用来进行绑定的文件描述符，第二个参数是一个指向特定协议地址结构的指针，第三个参数是地址结构的长度</p>
+<h4 id="INADDR-ANY-是用来指定通配地址的常值，其值一般为-0，告知内核自己选择-IP-地址，Ipv6-使用-in6addr-any-来设置"><a href="#INADDR-ANY-是用来指定通配地址的常值，其值一般为-0，告知内核自己选择-IP-地址，Ipv6-使用-in6addr-any-来设置" class="headerlink" title="INADDR_ANY 是用来指定通配地址的常值，其值一般为 0，告知内核自己选择 IP 地址，Ipv6 使用 in6addr_any 来设置"></a>INADDR_ANY 是用来指定通配地址的常值，其值一般为 0，告知内核自己选择 IP 地址，Ipv6 使用 in6addr_any 来设置</h4><p>服务器可以通过 bind 来绑定一个众所周知的端口，否则系统自动为其分配，但是这种情况十分少见，比如远程过程调用（RPC）<br>进程也可以默认绑定一个 IP，但必须是本地对外的端口<br>bind经常返回 EADDRINUSE 错误，表示地址已使用</p>
+<h1 id="4-5-listen函数"><a href="#4-5-listen函数" class="headerlink" title="4.5 listen函数"></a>4.5 listen函数</h1><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">listen</span><span class="params">(<span class="keyword">int</span> sockfd, <span class="keyword">int</span> backlog)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>listen 仅由 TCP 服务器进行调用</p>
+<ul>
+<li>当 socket 创建一个套接字时，他被假设为一个主动套接字，它是一个将调用 connect 发起连接的客户套接字。listen 把一个未连接的套接字变为一个被动的套接字，指示内核应接收指向该套接字的连接请求。调用 listen 将套接字由 CLOSE 态转换为 LISTEN 状态。</li>
+<li>本函数的第二个参数用来指定队列最大个数<ul>
+<li>未完成连接队列，由某客户端发送SYN到服务器，但还未完成三次握手过程，套接字处于STN_RCVD状态</li>
+<li>已完成连接队列，已完成三次握手，套接字处于ESTABLISHED状态<br>不同系统对这个参数有不同的解释，有加一，有加三等等  </li>
+</ul>
+</li>
+</ul>
+<p>当来自客户端的 SYN 到达时，TCP 在未完成队列上创建一个连接，响应该 SYN，直到完成三次握手才会将其移动至完成连接队列的队尾，当服务器调用 accept 时，会从已完成队列的队首进行返回，为空则会睡眠，直到添加完成的连接才会唤醒。</p>
+<p><strong>不要设置为 0 ，不同系统解释不同，不想使用可以关闭套接字</strong><br><strong>如果收到一个 SYN 但是未完成队列已满，忽略它，并且不返回 RST，等待客户端重新发送</strong></p>
+<h1 id="4-6-accept函数"><a href="#4-6-accept函数" class="headerlink" title="4.6 accept函数"></a>4.6 accept函数</h1><p>accept函数由TCP服务进行调用，用于从已完成队列中返回下一个已完成连接，如果已完成队列为空，则投入睡眠</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt; sys/socket.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">accept</span><span class="params">(<span class="keyword">int</span> sockfd, struct sockaddr* cliaddr, <span class="keyword">socklen_t</span> *addrlen)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>参数 cliaddr，addrlen 用来返回已完成连接的客户端的协议地址，addr_len 是值-结果参数<br>如果accept成功则返回一个由内核自动生成的描述符，代表与所返回的客户的链接<br>accept第一个参数为监听字套接符，称它的返回值为已连接套接字描述符<br>一个服务器同城仅仅创建一个套接字描述符，在他的生命周期中一直存在，内核为每个新的连接创建一个套接字描述符（TCP三次握手已经完成），当服务器完成对应的操作，相应的已连接套接字旧会关闭。<br>如果对客户端协议地址不感兴趣则可以将后两个参数置为空指针。  </p>
+<h1 id="4-7-fork-exec函数"><a href="#4-7-fork-exec函数" class="headerlink" title="4.7 fork,exec函数"></a>4.7 fork,exec函数</h1><p>fock()函数，Unix中用来生成进程的唯一函数</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="keyword">pid_t</span> fork(<span class="keyword">void</span>); <span class="comment">// 子进程中返回 0，父进程返回子进程 ID，出错为 -1</span></span><br></pre></td></tr></table></figure>
+
+<p>任何子进程仅有一个父进程，子进程可以通过调用 getppid 来获取父进程的 ID，父进程可以有许多子进程，他必须保存所有子进程的 ID，才可以进行跟踪子进程。<br>父进程调用 fork 前打开的所有描述符均和子进程进行共享，通过这可以将 accept 完成后在父进程关闭连接套接字，并在子进程中进行套接字的读写。  </p>
+<h1 id="4-8-并发服务器"><a href="#4-8-并发服务器" class="headerlink" title="4.8 并发服务器"></a>4.8 并发服务器</h1><p>处理长时间的连接请求，并希望同时处理多个的情况下可以采用并发服务器，最简单的方式采用fork()来处理每一个客户</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">eg:</span><br><span class="line"><span class="keyword">pid_t</span> pid;</span><br><span class="line"><span class="keyword">int</span> listenfd,connfd;</span><br><span class="line"><span class="comment">// 服务器开始监听</span></span><br><span class="line">listenfd = Socket();</span><br><span class="line">Bind(listenfd, ...);</span><br><span class="line">Listen(listenfd, LISTENQ);</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span>(;;)&#123;</span><br><span class="line">    confd = Accept(listenfd, ...);</span><br><span class="line">    <span class="keyword">if</span>((pid = Fork()) == <span class="number">0</span>)&#123;</span><br><span class="line">        <span class="comment">// 子进程进行处理操作</span></span><br><span class="line">        Close(listenfd);</span><br><span class="line">        doit(connfd);</span><br><span class="line">        Close(connfd);</span><br><span class="line">        <span class="built_in">exit</span>(<span class="number">0</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 关闭套接字描述符</span></span><br><span class="line">    Close(connfd);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>子进程完成服务后显式 close 描述符，其实没有这个必要，因为后面调用 exit 函数会关闭所有套接字描述符  </li>
+<li>这里子进程关闭监听套接字，父进程则继续等待并关闭已连接套接字。（这里需要格外注意一下，每个套接字描述符均有一个引用计数，只有当引用计数为0时才释放描述符，所以父进程进行close时不会断开连接，因为子进程还在使用，引用计数 &gt; 1）</li>
+</ul>
+<h1 id="4-9-close函数"><a href="#4-9-close函数" class="headerlink" title="4.9 close函数"></a>4.9 close函数</h1><p>通常Unix使用close来进行套接字的关闭，当引用计数为 0 时，会终止TCP连接。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">close</span><span class="params">(<span class="keyword">int</span> sockfd)</span></span>;</span><br></pre></td></tr></table></figure>
+
+<p>close一个套接字默认行为是将其标记成以关闭，然后立即返回到调用进程，即该套接字不能再使用read，write操作</p>
+<h3 id="如果我们确实想关闭一个套接字（在其引用计数不为0的情况下）这里使用shutdown-函数即可实现"><a href="#如果我们确实想关闭一个套接字（在其引用计数不为0的情况下）这里使用shutdown-函数即可实现" class="headerlink" title="如果我们确实想关闭一个套接字（在其引用计数不为0的情况下）这里使用shutdown()函数即可实现"></a>如果我们确实想关闭一个套接字（在其引用计数不为0的情况下）这里使用shutdown()函数即可实现</h3><p>如果父进程（这里默认子进程结束后关闭描述符）对每个套接字均不进行close操作，最后会耗尽描述符的个数，更为重要的是，没有一个客户链接会被终止。</p>
+<h1 id="4-10-getsockname，getpeername函数"><a href="#4-10-getsockname，getpeername函数" class="headerlink" title="4.10 getsockname，getpeername函数"></a>4.10 getsockname，getpeername函数</h1><p>这两个函数或者返回与某某个套接字关联的本地协议地址，或者返回与某个套接字关联的外地协议地址。</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">getsockname</span><span class="params">(<span class="keyword">int</span> sockfd, struct sockaddr *localaddr, <span class="keyword">socklen_t</span> *addrlen)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">getpeername</span><span class="params">(<span class="keyword">int</span> sockfd, struct sockaddr *peeraddr, socklen *addrlen)</span></span>;</span><br><span class="line"><span class="comment">//二者成功均返回一，失败均返回0</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>在一个不调用 bind 的 TCP 客户上，可以使用 getsockname 来获取内核分配的地址和端口号</li>
+<li>在一个调用 bind 但端口号为 0 的 TCP 客户上，可以使用 getsockname 来获取内核分配端口号</li>
+<li>getsockname 可以用于获取某个套接字的地址族</li>
+<li>更多情景这里没有详解<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2></li>
+</ul>
+<p>所有客户端和服务器端均从调用 socket 开始，大多数 TCP 服务器是并发的，为每个客户连接调用一个 fork。大多数 UDP 服务器是迭代的<br>服务器：socket-&gt;bind-&gt;listen-&gt;accept-&gt;close(shotdown)<br>客户端: socket-&gt;(bind)-&gt;connect-&gt;close(shutdown)</p>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/09/25/03.套接字编程简介/" rel="next" title="第三章：套接字编程简介">
+                  <i class="fa fa-chevron-left"></i> 第三章：套接字编程简介
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2019/09/25/08.基本UDP套接字编程/" rel="prev" title="第八章：基于UDP套接字编程">
+                  第八章：基于UDP套接字编程 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#4-1-概述"><span class="nav-number">1.</span> <span class="nav-text">4.1 概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-2-socket函数"><span class="nav-number">2.</span> <span class="nav-text">4.2 socket函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-3-connect函数"><span class="nav-number">3.</span> <span class="nav-text">4.3 connect函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-4-bind函数"><span class="nav-number">4.</span> <span class="nav-text">4.4 bind函数</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#INADDR-ANY-是用来指定通配地址的常值，其值一般为-0，告知内核自己选择-IP-地址，Ipv6-使用-in6addr-any-来设置"><span class="nav-number">4.0.0.1.</span> <span class="nav-text">INADDR_ANY 是用来指定通配地址的常值，其值一般为 0，告知内核自己选择 IP 地址，Ipv6 使用 in6addr_any 来设置</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-5-listen函数"><span class="nav-number">5.</span> <span class="nav-text">4.5 listen函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-6-accept函数"><span class="nav-number">6.</span> <span class="nav-text">4.6 accept函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-7-fork-exec函数"><span class="nav-number">7.</span> <span class="nav-text">4.7 fork,exec函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-8-并发服务器"><span class="nav-number">8.</span> <span class="nav-text">4.8 并发服务器</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-9-close函数"><span class="nav-number">9.</span> <span class="nav-text">4.9 close函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#如果我们确实想关闭一个套接字（在其引用计数不为0的情况下）这里使用shutdown-函数即可实现"><span class="nav-number">9.0.1.</span> <span class="nav-text">如果我们确实想关闭一个套接字（在其引用计数不为0的情况下）这里使用shutdown()函数即可实现</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-10-getsockname，getpeername函数"><span class="nav-number">10.</span> <span class="nav-text">4.10 getsockname，getpeername函数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#小结"><span class="nav-number">10.1.</span> <span class="nav-text">小结</span></a></li></ol></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

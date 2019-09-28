@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="18.1 概述&amp;emsp;&amp;emsp;内核中的 Unix 路由表传统上一直使用 ioctl 命令进行访问，但是没有 ioctl 命令可以获得所有路由表，相反，类似 netstat 等程序通过读取内核的内存获取路由表的内容。  进程可以通过写出到路由套接字而往内核发送消息。路径的增加和删除采用这种操作实现 进程可以通过从路由套接字读入而自内核接收消息。内核采用这种操作通知进程已收到并处理一个 ICM">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第18章：路由套接字">
+<meta property="og:url" content="http://yoursite.com/2019/09/25/18.路由套接字/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="18.1 概述&amp;emsp;&amp;emsp;内核中的 Unix 路由表传统上一直使用 ioctl 命令进行访问，但是没有 ioctl 命令可以获得所有路由表，相反，类似 netstat 等程序通过读取内核的内存获取路由表的内容。  进程可以通过写出到路由套接字而往内核发送消息。路径的增加和删除采用这种操作实现 进程可以通过从路由套接字读入而自内核接收消息。内核采用这种操作通知进程已收到并处理一个 ICM">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-09-28T08:46:38.258Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="第18章：路由套接字">
+<meta name="twitter:description" content="18.1 概述&amp;emsp;&amp;emsp;内核中的 Unix 路由表传统上一直使用 ioctl 命令进行访问，但是没有 ioctl 命令可以获得所有路由表，相反，类似 netstat 等程序通过读取内核的内存获取路由表的内容。  进程可以通过写出到路由套接字而往内核发送消息。路径的增加和删除采用这种操作实现 进程可以通过从路由套接字读入而自内核接收消息。内核采用这种操作通知进程已收到并处理一个 ICM">
+  <link rel="canonical" href="http://yoursite.com/2019/09/25/18.路由套接字/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>第18章：路由套接字 | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/18.路由套接字/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">第18章：路由套接字
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="18-1-概述"><a href="#18-1-概述" class="headerlink" title="18.1 概述"></a>18.1 概述</h1><p>&emsp;&emsp;内核中的 Unix 路由表传统上一直使用 ioctl 命令进行访问，但是没有 ioctl 命令可以获得所有路由表，相反，类似 netstat 等程序通过读取内核的内存获取路由表的内容。</p>
+<ol>
+<li>进程可以通过写出到路由套接字而往内核发送消息。路径的增加和删除采用这种操作实现</li>
+<li>进程可以通过从路由套接字读入而自内核接收消息。内核采用这种操作通知进程已收到并处理一个 ICMP 重定向消息，或者请求外部路由进程解析一个消息</li>
+<li>进程可以使用 sysctl 函数获取所有路由表或所有已配置的接口</li>
+</ol>
+<p><strong>前两种操作需要超级用户权限，最后一种只需要普通用户权限</strong></p>
+<a id="more"></a>
+<h1 id="18-2-数据链路套接字地址结构"><a href="#18-2-数据链路套接字地址结构" class="headerlink" title="18.2 数据链路套接字地址结构"></a>18.2 数据链路套接字地址结构</h1><p>通过路由套接字返回一些消息中含有作为返回值给出的数据链路套接字地址结构，结构如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_dl</span> &#123;</span></span><br><span class="line">  <span class="keyword">uint8_t</span>      sdl_len;</span><br><span class="line">  <span class="keyword">sa_family_t</span>  sdl_family; <span class="comment">/* AF_LINK */</span> </span><br><span class="line">  <span class="keyword">uint16_t</span>     sdl_index; <span class="comment">/* system assigned index, if &gt; 0 */</span> </span><br><span class="line">  <span class="keyword">uint8_t</span>      sdl_type; <span class="comment">/* IFT_ETHER, etc. from  */</span> </span><br><span class="line">  <span class="keyword">uint8_t</span>      sdl_nlen; <span class="comment">/* name length, starting in sdl_data[0] */</span>           </span><br><span class="line">  <span class="keyword">uint8_t</span>      sdl_alen; <span class="comment">/* link-layer address length */</span> </span><br><span class="line">  <span class="keyword">uint8_t</span>      sdl_slen; <span class="comment">/* link-layer selector length */</span> </span><br><span class="line">  <span class="keyword">char</span>         sdl_data[<span class="number">12</span>]; <span class="comment">/* minimum work area, can be larger; </span></span><br><span class="line"><span class="comment">                      contains i/f name and link-layer address */</span> </span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>每个接口都有一个唯一的正值索引，返回索引的方法有：if_nametoindex 和 if_nameindex 函数，还有不同协议对应的套接字选项  </li>
+<li>sdl_data 成员含有名字和链路地址。名字从 sdl_data[0] 开始，而且不以空字符结尾。链路层地址从 sdl_data[sdl_nlen] 开始</li>
+<li>数据链路套接字地址结构的长度是可变的。如果链路层地址和名字超过 12 字节，结构将大于 20 字节</li>
+</ul>
+<h1 id="18-3-读和写"><a href="#18-3-读和写" class="headerlink" title="18.3 读和写"></a>18.3 读和写</h1><p>&emsp;&emsp;创建一个路由套接字后，进程可以通过写到该套接字向核和发送命令，通过读自该套接字的内核接受信息。路由域套接字共有 12 个路有消息，其中 5 个可以由进程发出，具体消息和数据结构参照 UNP 图18-2，图18-3<br>&emsp;&emsp;每个结构有相同的前 3 个成员：本消息的长度，版本和类型。</p>
+<h1 id="18-4-sysct-操作"><a href="#18-4-sysct-操作" class="headerlink" title="18.4 sysct 操作"></a>18.4 sysct 操作</h1><p>&emsp;&emsp;我们对路由套接字的主要兴趣在于使用 sysctl 函数检查路由表和接口列表。创建路由套接字（一个 AF_ROUTE 域的原始套接字）需要超级用户权限，然而使用 sysctl 检查路由表和接口列表的进程普通用户也可以操作</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;sys/param.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;sys/sysctl.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">sysctl</span><span class="params">(<span class="keyword">int</span>* name, u_int namelen, <span class="keyword">void</span>* oldp, <span class="keyword">size_t</span>* oldlenp, <span class="keyword">void</span> * newp, <span class="keyword">size_t</span> newlen)</span></span>;</span><br><span class="line"><span class="comment">// 返回：若成功返回 0，出错返回 -1</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>name 参数指定名字的整数数组</li>
+<li>namelen 参数指定数组中的元素数，该数组中的第一个元素指定本请求定向到内核的拿一个子系统，后面的值逐渐细化该子系统的某个部分</li>
+<li>oldp 参数指向一个宫内和存放分层的层级值的缓冲区</li>
+<li>oldlenp 参数指定的值代表该缓冲区的大小</li>
+</ul>
+<p>&emsp;&emsp;sysctl 函数可以获取许多系统信息：文件系统，虚拟内存，内核限制，硬件等等。我们在这里感兴趣的是网络子系统，通过把 name 数组的第一个元素设置为 CTL_NET 来指定。第二个参数可以是下面几种：</p>
+<ul>
+<li>AF_INET：获取或设置影响网际网协议的变量。下一级为使用某个 IPPROTO_xx 常值指定的具体协议</li>
+<li>AF_LINK：获取或设置链路层信息，譬如 PPP 接口的数目</li>
+<li>AF_ROUTE：返回路由表或接口列表的信息</li>
+<li>AF_UNSPEC：获取或设置一些套接字层变量，譬如套接字发送或接收缓冲区的最大大小。</li>
+</ul>
+<p>UNP 小例子：判断 UDP 检验和是否开启</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span>	<span class="meta-string">"unproute.h"</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span>	<span class="meta-string">&lt;netinet/udp.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span>	<span class="meta-string">&lt;netinet/ip_var.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span>	<span class="meta-string">&lt;netinet/udp_var.h&gt;		/* for UDPCTL_xxx constants */</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> **argv)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">int</span>		mib[<span class="number">4</span>], val;</span><br><span class="line">	<span class="keyword">size_t</span>	len;</span><br><span class="line"></span><br><span class="line">	mib[<span class="number">0</span>] = CTL_NET;</span><br><span class="line">	mib[<span class="number">1</span>] = AF_INET;</span><br><span class="line">	mib[<span class="number">2</span>] = IPPROTO_UDP;</span><br><span class="line">	mib[<span class="number">3</span>] = UDPCTL_CHECKSUM;</span><br><span class="line"></span><br><span class="line">	len = <span class="keyword">sizeof</span>(val);</span><br><span class="line">	Sysctl(mib, <span class="number">4</span>, &amp;val, &amp;len, <span class="literal">NULL</span>, <span class="number">0</span>);</span><br><span class="line">	<span class="built_in">printf</span>(<span class="string">"udp checksum flag: %d\n"</span>, val);</span><br><span class="line"></span><br><span class="line">	<span class="built_in">exit</span>(<span class="number">0</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="18-5-get-ifi-info-函数"><a href="#18-5-get-ifi-info-函数" class="headerlink" title="18.5 get_ifi_info 函数"></a>18.5 get_ifi_info 函数</h1><p>使用路由套接字又把 get_ifi_info 实现了一遍，具体代码见 UNP-18.6</p>
+<h1 id="18-6-接口名字和索引函数"><a href="#18-6-接口名字和索引函数" class="headerlink" title="18.6 接口名字和索引函数"></a>18.6 接口名字和索引函数</h1><p>&emsp;&emsp;有四个函数用于处理接口名字和索引。这四个函数用于需要描述一个接口的地方，适用于 IPv4 和 IPv6。需要注意一个基本概念：每个接口都有唯一的名字和唯一的正值索引（0 从不用做索引）</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;net/if.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="title">if_nametoindex</span><span class="params">(<span class="keyword">const</span> <span class="keyword">char</span> * ifname)</span></span>;</span><br><span class="line"><span class="comment">// 返回：成功返回为正值的接口索引，出错返回 0</span></span><br><span class="line"><span class="function"><span class="keyword">char</span>* <span class="title">if_indextoname</span><span class="params">(unisgned <span class="keyword">int</span> ifindex, <span class="keyword">char</span>* ifname)</span></span>;</span><br><span class="line"><span class="comment">// 返回：成功返回指向接口名字的指针，出错返回 NULL</span></span><br><span class="line"><span class="function">struct if_nameindex* <span class="title">if_nameindex</span><span class="params">(<span class="keyword">void</span>)</span></span>;</span><br><span class="line"><span class="comment">// 返回：成功为非空指针，出错返回 NULL</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">if_freenameindex</span><span class="params">(struct if_nameindex* ptr)</span></span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>if_nametoindex 返回名字为 ifname 的接口的索引</li>
+<li>if_indextoname 返回索引为 ifindex 的接口名字</li>
+<li>if_nameindex 返回一个指向 if_nameindex 结构数组的指针</li>
+</ul>
+<p>下面使用路由套接字实现这四个函数：</p>
+<h2 id="if-nametoindex-函数"><a href="#if-nametoindex-函数" class="headerlink" title="if_nametoindex 函数"></a>if_nametoindex 函数</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="title">if_nametoindex</span><span class="params">(<span class="keyword">const</span> <span class="keyword">char</span> *name)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span>		idx, namelen;</span><br><span class="line">	<span class="keyword">char</span>				*buf, *next, *lim;</span><br><span class="line">	<span class="keyword">size_t</span>				len;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">if_msghdr</span>	*<span class="title">ifm</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sockaddr</span>		*<span class="title">sa</span>, *<span class="title">rti_info</span>[<span class="title">RTAX_MAX</span>];</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_dl</span>	*<span class="title">sdl</span>;</span></span><br><span class="line">  <span class="comment">// net_rt_iflist 函数用来返回接口列表</span></span><br><span class="line">	<span class="keyword">if</span> ( (buf = net_rt_iflist(<span class="number">0</span>, <span class="number">0</span>, &amp;len)) == <span class="literal">NULL</span>)</span><br><span class="line">		<span class="keyword">return</span>(<span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">	namelen = <span class="built_in">strlen</span>(name);</span><br><span class="line">	lim = buf + len;</span><br><span class="line">	<span class="keyword">for</span> (next = buf; next &lt; lim; next += ifm-&gt;ifm_msglen) &#123;</span><br><span class="line">    <span class="comment">// 处理缓冲区中的消息，仅仅查找 RTM_IFINFO 消息</span></span><br><span class="line">    <span class="comment">// 找到后调用 get_rtaddrs 函数设置指向各个套接字地址结构的指针</span></span><br><span class="line">    <span class="comment">// 如果存在一个接口名字，那就比较其中的接口名字（rti_info[RTAX_IFP]）和调用者参数中要查找的接口名字</span></span><br><span class="line">		ifm = (struct if_msghdr *) next;</span><br><span class="line">		<span class="keyword">if</span> (ifm-&gt;ifm_type == RTM_IFINFO) &#123;</span><br><span class="line">			sa = (struct sockaddr *) (ifm + <span class="number">1</span>);</span><br><span class="line">			get_rtaddrs(ifm-&gt;ifm_addrs, sa, rti_info);</span><br><span class="line">			<span class="keyword">if</span> ( (sa = rti_info[RTAX_IFP]) != <span class="literal">NULL</span>) &#123;</span><br><span class="line">				<span class="keyword">if</span> (sa-&gt;sa_family == AF_LINK) &#123;</span><br><span class="line">					sdl = (struct sockaddr_dl *) sa;</span><br><span class="line">					<span class="keyword">if</span> (sdl-&gt;sdl_nlen == namelen &amp;&amp; <span class="built_in">strncmp</span>(&amp;sdl-&gt;sdl_data[<span class="number">0</span>], name, sdl-&gt;sdl_nlen) == <span class="number">0</span>) &#123;</span><br><span class="line">						idx = sdl-&gt;sdl_index;	<span class="comment">/* save before free() */</span></span><br><span class="line">						<span class="built_in">free</span>(buf);</span><br><span class="line">						<span class="keyword">return</span>(idx);</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">free</span>(buf);</span><br><span class="line">	<span class="keyword">return</span>(<span class="number">0</span>);		<span class="comment">/* no match for name */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="if-indextoname-函数"><a href="#if-indextoname-函数" class="headerlink" title="if_indextoname 函数"></a>if_indextoname 函数</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 该函数和上一个函数类似，仅仅是比较的类型不一样而已</span></span><br><span class="line"><span class="function"><span class="keyword">char</span> * <span class="title">if_indextoname</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">int</span> idx, <span class="keyword">char</span> *name)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">char</span>				*buf, *next, *lim;</span><br><span class="line">	<span class="keyword">size_t</span>				len;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">if_msghdr</span>	*<span class="title">ifm</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sockaddr</span>		*<span class="title">sa</span>, *<span class="title">rti_info</span>[<span class="title">RTAX_MAX</span>];</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_dl</span>	*<span class="title">sdl</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> ( (buf = net_rt_iflist(<span class="number">0</span>, idx, &amp;len)) == <span class="literal">NULL</span>)</span><br><span class="line">		<span class="keyword">return</span>(<span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">	lim = buf + len;</span><br><span class="line">	<span class="keyword">for</span> (next = buf; next &lt; lim; next += ifm-&gt;ifm_msglen) &#123;</span><br><span class="line">		ifm = (struct if_msghdr *) next;</span><br><span class="line">		<span class="keyword">if</span> (ifm-&gt;ifm_type == RTM_IFINFO) &#123;</span><br><span class="line">			sa = (struct sockaddr *) (ifm + <span class="number">1</span>);</span><br><span class="line">			get_rtaddrs(ifm-&gt;ifm_addrs, sa, rti_info);</span><br><span class="line">			<span class="keyword">if</span> ( (sa = rti_info[RTAX_IFP]) != <span class="literal">NULL</span>) &#123;</span><br><span class="line">				<span class="keyword">if</span> (sa-&gt;sa_family == AF_LINK) &#123;</span><br><span class="line">					sdl = (struct sockaddr_dl *) sa;</span><br><span class="line">					<span class="keyword">if</span> (sdl-&gt;sdl_index == idx) &#123;</span><br><span class="line">						<span class="keyword">int</span> slen = min(IFNAMSIZ - <span class="number">1</span>, sdl-&gt;sdl_nlen);</span><br><span class="line">						<span class="built_in">strncpy</span>(name, sdl-&gt;sdl_data, slen);</span><br><span class="line">						name[slen] = <span class="number">0</span>;	<span class="comment">/* null terminate */</span></span><br><span class="line">						<span class="built_in">free</span>(buf);</span><br><span class="line">						<span class="keyword">return</span>(name);</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">free</span>(buf);</span><br><span class="line">	<span class="keyword">return</span>(<span class="literal">NULL</span>);		<span class="comment">/* no match for index */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="if-nameindex-函数"><a href="#if-nameindex-函数" class="headerlink" title="if_nameindex 函数"></a>if_nameindex 函数</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 返回一个 if_nameindex 结构数组，包含所有接口名字和索引对</span></span><br><span class="line"><span class="function">struct if_nameindex * <span class="title">if_nameindex</span><span class="params">(<span class="keyword">void</span>)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">char</span>				*buf, *next, *lim;</span><br><span class="line">	<span class="keyword">size_t</span>				len;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">if_msghdr</span>	*<span class="title">ifm</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sockaddr</span>		*<span class="title">sa</span>, *<span class="title">rti_info</span>[<span class="title">RTAX_MAX</span>];</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sockaddr_dl</span>	*<span class="title">sdl</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">if_nameindex</span>	*<span class="title">result</span>, *<span class="title">ifptr</span>;</span></span><br><span class="line">	<span class="keyword">char</span>				*namptr;</span><br><span class="line">  <span class="comment">// 构建返回数组，确定大小</span></span><br><span class="line">	<span class="keyword">if</span> ( (buf = net_rt_iflist(<span class="number">0</span>, <span class="number">0</span>, &amp;len)) == <span class="literal">NULL</span>)</span><br><span class="line">		<span class="keyword">return</span>(<span class="literal">NULL</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> ( (result = <span class="built_in">malloc</span>(len)) == <span class="literal">NULL</span>)	<span class="comment">/* overestimate */</span></span><br><span class="line">		<span class="keyword">return</span>(<span class="literal">NULL</span>);</span><br><span class="line">	ifptr = result;</span><br><span class="line">	namptr = (<span class="keyword">char</span> *) result + len;	<span class="comment">/* names start at end of buffer */</span></span><br><span class="line"></span><br><span class="line">	lim = buf + len;</span><br><span class="line">	<span class="keyword">for</span> (next = buf; next &lt; lim; next += ifm-&gt;ifm_msglen) &#123;</span><br><span class="line">    <span class="comment">// 遍历所有消息，从中查找 RTM_IFINFO 消息以及后面的数据链路套接字地址结构。把接口名字和索引放到返回数组中</span></span><br><span class="line">		ifm = (struct if_msghdr *) next;</span><br><span class="line">		<span class="keyword">if</span> (ifm-&gt;ifm_type == RTM_IFINFO) &#123;</span><br><span class="line">			sa = (struct sockaddr *) (ifm + <span class="number">1</span>);</span><br><span class="line">			get_rtaddrs(ifm-&gt;ifm_addrs, sa, rti_info);</span><br><span class="line">			<span class="keyword">if</span> ( (sa = rti_info[RTAX_IFP]) != <span class="literal">NULL</span>) &#123;</span><br><span class="line">				<span class="keyword">if</span> (sa-&gt;sa_family == AF_LINK) &#123;</span><br><span class="line">					sdl = (struct sockaddr_dl *) sa;</span><br><span class="line">					namptr -= sdl-&gt;sdl_nlen + <span class="number">1</span>;</span><br><span class="line">					<span class="built_in">strncpy</span>(namptr, &amp;sdl-&gt;sdl_data[<span class="number">0</span>], sdl-&gt;sdl_nlen);</span><br><span class="line">					namptr[sdl-&gt;sdl_nlen] = <span class="number">0</span>;	<span class="comment">/* null terminate */</span></span><br><span class="line">					ifptr-&gt;if_name = namptr;</span><br><span class="line">					ifptr-&gt;if_index = sdl-&gt;sdl_index;</span><br><span class="line">					ifptr++;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">  <span class="comment">// 把返回数组的最后一个元素置空</span></span><br><span class="line">	ifptr-&gt;if_name = <span class="literal">NULL</span>;	<span class="comment">/* mark end of array of structs */</span></span><br><span class="line">	ifptr-&gt;if_index = <span class="number">0</span>;</span><br><span class="line">	<span class="built_in">free</span>(buf);</span><br><span class="line">	<span class="keyword">return</span>(result);			<span class="comment">/* caller must free() this when done */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="if-freenameindex-函数"><a href="#if-freenameindex-函数" class="headerlink" title="if_freenameindex 函数"></a>if_freenameindex 函数</h2><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 释放 if_nameindex 结构内存即可，因为是一整块内存，不需要遍历</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">if_freenameindex</span><span class="params">(struct if_nameindex *ptr)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="built_in">free</span>(ptr);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>&emsp;&emsp;本节所说的 sockaddr_dl 结构，是一种可变长度的数据链路套接字地址结构。以便返回接口索引、名字和硬件地址等不同信息。<br>&emsp;&emsp;进程可以写到路由套接字的消息有 5 个类型，内核通过路由套接字异步返回的消息有 15 个类型。<br>&emsp;&emsp;sysctl 函数是获取和设置操作系统参数的通用方法。我们所关注的 sysctl 操作包括：</p>
+<ul>
+<li>获取所有接口列表</li>
+<li>获取到路由表</li>
+<li>获取 ARP 高速缓存</li>
+</ul>
+<p>&emsp;&emsp;IPv6 要求套接字 API 实施的相关改动包括在接口名字和接口索引之间进行映射的 4 个函数。每个接口都有一个正值索引。系统已经把接口名字和索引值关联起来，我们可以很容易的使用 sysctl 实现接口信息相关函数</p>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/09/25/20.广播/" rel="next" title="第20章：广播">
+                  <i class="fa fa-chevron-left"></i> 第20章：广播
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2019/09/25/19.密钥管理套接字/" rel="prev" title="第19章：密钥管理套接字">
+                  第19章：密钥管理套接字 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#18-1-概述"><span class="nav-number">1.</span> <span class="nav-text">18.1 概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#18-2-数据链路套接字地址结构"><span class="nav-number">2.</span> <span class="nav-text">18.2 数据链路套接字地址结构</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#18-3-读和写"><span class="nav-number">3.</span> <span class="nav-text">18.3 读和写</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#18-4-sysct-操作"><span class="nav-number">4.</span> <span class="nav-text">18.4 sysct 操作</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#18-5-get-ifi-info-函数"><span class="nav-number">5.</span> <span class="nav-text">18.5 get_ifi_info 函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#18-6-接口名字和索引函数"><span class="nav-number">6.</span> <span class="nav-text">18.6 接口名字和索引函数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#if-nametoindex-函数"><span class="nav-number">6.1.</span> <span class="nav-text">if_nametoindex 函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#if-indextoname-函数"><span class="nav-number">6.2.</span> <span class="nav-text">if_indextoname 函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#if-nameindex-函数"><span class="nav-number">6.3.</span> <span class="nav-text">if_nameindex 函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#if-freenameindex-函数"><span class="nav-number">6.4.</span> <span class="nav-text">if_freenameindex 函数</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">7.</span> <span class="nav-text">小结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="14.1 概述&amp;emsp;&amp;emsp;本章讨论 I/O 的高级操作，首先是在 I/O 上设置超时，这里有三种方法。然后是 read 和 write 的三个变体：  recv 和 send 允许通过第四个参数从进程到内核传递标志 readv 和 writev 允许指定往其中输入数据或从其中输出数据的缓冲区向量 recvmsg 和 sendmsg 结合了其他 I/O 函数的所有特性，并具备接收和发送辅">
+<meta property="og:type" content="article">
+<meta property="og:title" content="第14章：高级IO函数">
+<meta property="og:url" content="http://yoursite.com/2019/09/25/14.高级IO函数/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="14.1 概述&amp;emsp;&amp;emsp;本章讨论 I/O 的高级操作，首先是在 I/O 上设置超时，这里有三种方法。然后是 read 和 write 的三个变体：  recv 和 send 允许通过第四个参数从进程到内核传递标志 readv 和 writev 允许指定往其中输入数据或从其中输出数据的缓冲区向量 recvmsg 和 sendmsg 结合了其他 I/O 函数的所有特性，并具备接收和发送辅">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2019-09-28T08:46:38.257Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="第14章：高级IO函数">
+<meta name="twitter:description" content="14.1 概述&amp;emsp;&amp;emsp;本章讨论 I/O 的高级操作，首先是在 I/O 上设置超时，这里有三种方法。然后是 read 和 write 的三个变体：  recv 和 send 允许通过第四个参数从进程到内核传递标志 readv 和 writev 允许指定往其中输入数据或从其中输出数据的缓冲区向量 recvmsg 和 sendmsg 结合了其他 I/O 函数的所有特性，并具备接收和发送辅">
+  <link rel="canonical" href="http://yoursite.com/2019/09/25/14.高级IO函数/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>第14章：高级IO函数 | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/14.高级IO函数/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">第14章：高级IO函数
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="14-1-概述"><a href="#14-1-概述" class="headerlink" title="14.1 概述"></a>14.1 概述</h1><p>&emsp;&emsp;本章讨论 I/O 的高级操作，首先是在 I/O 上设置超时，这里有三种方法。然后是 read 和 write 的三个变体：</p>
+<ol>
+<li>recv 和 send 允许通过第四个参数从进程到内核传递标志</li>
+<li>readv 和 writev 允许指定往其中输入数据或从其中输出数据的缓冲区向量</li>
+<li>recvmsg 和 sendmsg 结合了其他 I/O 函数的所有特性，并具备接收和发送辅助数据的新能力<a id="more"></a>
+<h1 id="14-2-套接字超时"><a href="#14-2-套接字超时" class="headerlink" title="14.2 套接字超时"></a>14.2 套接字超时</h1></li>
+</ol>
+<p>设置超时的方法有 3 种：</p>
+<ol>
+<li>调用 alarm，它在指定超时期满时产生 SIGALRM 信号。这个方法涉及信号处理，而信号处理在不同的实现上存在差异，而且可能干扰进程中现有的 alarm 调用</li>
+<li>在 select 中阻塞等待 I/O（select 有内置时间限制）以此代替直接阻塞在 read 或 write 调用上</li>
+<li>使用较新的 SO_RCVTIMEO 和 SO_SNDTIMEO 套接字选项。这个方法的问题在于并非所有实现都支持这两个套接字选项。</li>
+</ol>
+<p>&emsp;&emsp;上述三个技术都适用于输入和输出操作（例如 read，write 以及诸如 recvfrom，sendto 之类），不过我们依然期待可用于 connect 的技术，因为 TCP 内置的 connect 超时相当长。select 可用来在 connect 上设置超时的先决条件是相应套接字处于非阻塞模式，而那两个套接字选项对 connect 并不适用。我们还指出，前两个技术使用于任何描述符，而第三个技术仅仅适用于套接字描述符（因为是套接字描述符选项）</p>
+<h3 id="1-使用-SIGALRM-为-connect-设置超时"><a href="#1-使用-SIGALRM-为-connect-设置超时" class="headerlink" title="1. 使用 SIGALRM 为 connect 设置超时"></a>1. 使用 SIGALRM 为 connect 设置超时</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span>	<span class="title">connect_alarm</span><span class="params">(<span class="keyword">int</span>)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">connect_timeo</span><span class="params">(<span class="keyword">int</span> sockfd, <span class="keyword">const</span> SA *saptr, <span class="keyword">socklen_t</span> salen, <span class="keyword">int</span> nsec)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	Sigfunc	*sigfunc;</span><br><span class="line">	<span class="keyword">int</span>		n;</span><br><span class="line">    <span class="comment">// 设置 SIGALRM 信号的处理函数，并保存原有的处理函数到 sigfunc</span></span><br><span class="line">	sigfunc = Signal(SIGALRM, connect_alarm);</span><br><span class="line">    <span class="comment">// 设置报警时钟的秒数，返回值是上一次设置的剩余秒数，没有就返回 0</span></span><br><span class="line">	<span class="keyword">if</span> (alarm(nsec) != <span class="number">0</span>)</span><br><span class="line">		err_msg(<span class="string">"connect_timeo: alarm was already set"</span>);</span><br><span class="line">    <span class="comment">// 调用 connect，调用中断就设置 error 设置为 TIMEOUT，并关闭套接字，防止三路握手继续进行</span></span><br><span class="line">	<span class="keyword">if</span> ( (n = connect(sockfd, saptr, salen)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">		close(sockfd);</span><br><span class="line">		<span class="keyword">if</span> (errno == EINTR)</span><br><span class="line">			errno = ETIMEDOUT;</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="comment">// 关闭报警时钟，并恢复原处理函数</span></span><br><span class="line">	alarm(<span class="number">0</span>);					<span class="comment">/* turn off the alarm */</span></span><br><span class="line">	Signal(SIGALRM, sigfunc);	<span class="comment">/* restore previous signal handler */</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span>(n);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 信号函数仅仅返回</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">connect_alarm</span><span class="params">(<span class="keyword">int</span> signo)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span>;		<span class="comment">/* just interrupt the connect() */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>※ 本方法仅能减少 connect 的超时，但不能增加 connect 的超时设置，因为 connect 有自己的超时设置<br>※ 需要注意的是在多线程中使用信号非常困难，建议仅仅在未线程化或仅在单线程中使用本技术  </p>
+<h3 id="2-使用-SIGALRM-为-recvfrom-设置超时"><a href="#2-使用-SIGALRM-为-recvfrom-设置超时" class="headerlink" title="2. 使用 SIGALRM 为 recvfrom 设置超时"></a>2. 使用 SIGALRM 为 recvfrom 设置超时</h3><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span>	<span class="title">sig_alrm</span><span class="params">(<span class="keyword">int</span>)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">dg_cli</span><span class="params">(FILE *fp, <span class="keyword">int</span> sockfd, <span class="keyword">const</span> SA *pservaddr, <span class="keyword">socklen_t</span> servlen)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">int</span>	n;</span><br><span class="line">	<span class="keyword">char</span>	sendline[MAXLINE], recvline[MAXLINE + <span class="number">1</span>];</span><br><span class="line"></span><br><span class="line">	Signal(SIGALRM, sig_alrm);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span> (Fgets(sendline, MAXLINE, fp) != <span class="literal">NULL</span>) &#123;</span><br><span class="line"></span><br><span class="line">		Sendto(sockfd, sendline, <span class="built_in">strlen</span>(sendline), <span class="number">0</span>, pservaddr, servlen);</span><br><span class="line">        <span class="comment">// 调用 recvfrom 函数前设置了 5 秒的超时设置</span></span><br><span class="line">		alarm(<span class="number">5</span>);</span><br><span class="line">		<span class="keyword">if</span> ( (n = recvfrom(sockfd, recvline, MAXLINE, <span class="number">0</span>, <span class="literal">NULL</span>, <span class="literal">NULL</span>)) &lt; <span class="number">0</span>) &#123;</span><br><span class="line">			<span class="keyword">if</span> (errno == EINTR)</span><br><span class="line">				<span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"socket timeout\n"</span>);</span><br><span class="line">			<span class="keyword">else</span></span><br><span class="line">				err_sys(<span class="string">"recvfrom error"</span>);</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 读取数据，关闭超时处理</span></span><br><span class="line">			alarm(<span class="number">0</span>);</span><br><span class="line">			recvline[n] = <span class="number">0</span>;	<span class="comment">/* null terminate */</span></span><br><span class="line">			Fputs(recvline, <span class="built_in">stdout</span>);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 简单返回，用来中断阻塞的 ercvfrom 调用</span></span><br><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">sig_alrm</span><span class="params">(<span class="keyword">int</span> signo)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">return</span>;			<span class="comment">/* just interrupt the recvfrom() */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-使用-select-为-recvfrom-设置超时"><a href="#3-使用-select-为-recvfrom-设置超时" class="headerlink" title="3. 使用 select 为 recvfrom 设置超时"></a>3. 使用 select 为 recvfrom 设置超时</h3><p>该函数中 select 指定等待描述符的最长时间</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">readable_timeo</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">int</span> sec)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	fd_set			rset;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">timeval</span>	<span class="title">tv</span>;</span></span><br><span class="line">    <span class="comment">// 准备 select 参数</span></span><br><span class="line">	FD_ZERO(&amp;rset);</span><br><span class="line">	FD_SET(fd, &amp;rset);</span><br><span class="line"></span><br><span class="line">	tv.tv_sec = sec;</span><br><span class="line">	tv.tv_usec = <span class="number">0</span>;</span><br><span class="line">    <span class="comment">// 调用有超时的 select 函数，出错返回 -1，超时返回 0</span></span><br><span class="line">	<span class="keyword">return</span>(select(fd+<span class="number">1</span>, &amp;rset, <span class="literal">NULL</span>, <span class="literal">NULL</span>, &amp;tv));</span><br><span class="line">		<span class="comment">/* 4&gt; 0 if descriptor is readable */</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-使用-SO-RCVTIMEO-套接字选项为-recvfrom-设置超时"><a href="#4-使用-SO-RCVTIMEO-套接字选项为-recvfrom-设置超时" class="headerlink" title="4. 使用 SO_RCVTIMEO 套接字选项为 recvfrom 设置超时"></a>4. 使用 SO_RCVTIMEO 套接字选项为 recvfrom 设置超时</h3><p>&emsp;&emsp;该操作设置一次即可，与套接字的读操作绑定，前面的方法都需要循环重新设置，本套接字选项仅适用于读操作，类似的 SO_SNDTIMEO 选项对应于写操作，两者均不能用于 connect 设置超时  </p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">dg_cli</span><span class="params">(FILE *fp, <span class="keyword">int</span> sockfd, <span class="keyword">const</span> SA *pservaddr, <span class="keyword">socklen_t</span> servlen)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">int</span>				n;</span><br><span class="line">	<span class="keyword">char</span>			sendline[MAXLINE], recvline[MAXLINE + <span class="number">1</span>];</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">timeval</span>	<span class="title">tv</span>;</span></span><br><span class="line">    <span class="comment">// 指向 timeval 结构体的指针，保存的是超时的值</span></span><br><span class="line">	tv.tv_sec = <span class="number">5</span>;</span><br><span class="line">	tv.tv_usec = <span class="number">0</span>;</span><br><span class="line">	Setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &amp;tv, <span class="keyword">sizeof</span>(tv));</span><br><span class="line"></span><br><span class="line">	<span class="keyword">while</span> (Fgets(sendline, MAXLINE, fp) != <span class="literal">NULL</span>) &#123;</span><br><span class="line"></span><br><span class="line">		Sendto(sockfd, sendline, <span class="built_in">strlen</span>(sendline), <span class="number">0</span>, pservaddr, servlen);</span><br><span class="line"></span><br><span class="line">		n = recvfrom(sockfd, recvline, MAXLINE, <span class="number">0</span>, <span class="literal">NULL</span>, <span class="literal">NULL</span>);</span><br><span class="line">		<span class="keyword">if</span> (n &lt; <span class="number">0</span>) &#123;</span><br><span class="line">            <span class="comment">// I/O 超时操作，recvfrom 函数返回一个 EWOULDBLOCK 错误</span></span><br><span class="line">			<span class="keyword">if</span> (errno == EWOULDBLOCK) &#123;</span><br><span class="line">				<span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"socket timeout\n"</span>);</span><br><span class="line">				<span class="keyword">continue</span>;</span><br><span class="line">			&#125; <span class="keyword">else</span></span><br><span class="line">				err_sys(<span class="string">"recvfrom error"</span>);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		recvline[n] = <span class="number">0</span>;	<span class="comment">/* null terminate */</span></span><br><span class="line">		Fputs(recvline, <span class="built_in">stdout</span>);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="14-3-recv-和-send-函数"><a href="#14-3-recv-和-send-函数" class="headerlink" title="14.3 recv 和 send 函数"></a>14.3 recv 和 send 函数</h1><p>类似于 read 和 write 函数，不过多一个参数 flags</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="keyword">ssize_t</span> recv(<span class="keyword">int</span> sockfd, <span class="keyword">void</span>* buff, <span class="keyword">size_t</span> nbytes, <span class="keyword">int</span> flags);</span><br><span class="line"><span class="keyword">ssize_t</span> send(<span class="keyword">int</span> sockfd, <span class="keyword">const</span> <span class="keyword">void</span>* buff, <span class="keyword">size_t</span> nbytes, <span class="keyword">int</span> flags);</span><br><span class="line"><span class="comment">// 返回：成功返回读入写出的字节数，出错返回 -1</span></span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;flag 可以用来标识一些操作，绕过路由表查找、仅本操作非阻塞、发送或接受外带数据、窥看外来消息、等待所有数据。具体用法参看 UNP-14.3<br>&emsp;&emsp;flag 是值传递，并不是值-结果参数。所以它只能从进程向内核传递标志，内核不能返回标志。随着协议的增加，需要实现这个操作使用 recvmsg 和 sendmsg 中用 msghdr 来进行引用传递  </p>
+<h1 id="14-4-readv-和-writev-函数"><a href="#14-4-readv-和-writev-函数" class="headerlink" title="14.4 readv 和 writev 函数"></a>14.4 readv 和 writev 函数</h1><p>&emsp;&emsp;这两个函数类似 read 和 write，不过 readv 和 writev 允许单个系统调用读入或写出自一个或者多个缓冲区。这些操作被称为分散读和集中写，因为来自读操作的输入数据被分散到多个应用缓冲区中，而来自多个应用缓冲区的输出数据被集中提供给单个写操作。  </p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;sys/uio.h&gt;</span></span></span><br><span class="line"><span class="keyword">ssize_t</span> readv(<span class="keyword">int</span> fileds, <span class="keyword">const</span> struct iovec* iov, <span class="keyword">int</span> iovcnt);</span><br><span class="line"><span class="keyword">ssize_t</span> writev(<span class="keyword">int</span> fields, <span class="keyword">const</span> struct iovec* iov, <span class="keyword">int</span> iovcnt);</span><br><span class="line"><span class="comment">// 返回：成功返回读入或写出的字节数，出错返回 -1</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">iovec</span>&#123;</span></span><br><span class="line">    <span class="keyword">void</span> *iov_base;      <span class="comment">// buf 的开始地址</span></span><br><span class="line">    <span class="keyword">size_t</span> iov_len;      <span class="comment">// buf 的大小</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;struct iovec 结构体定义如上，函数第二个参数指向的是一个 iovec 的数组，一般系统中定义数组长度的常值为 16，最大值一般在 1024~2100<br>&emsp;&emsp;readv 和 writev 函数可用于任何描述符，不仅仅局限于套接字描述符。writev 是一个原子操作，所以对于 UDP 来说，一次 writev 仅产生一个 UDP 数据报  </p>
+<h4 id="当一个-4-字节的-write-和-396-字节的-write-调用时可能会触发-naggle-算法合并它们，解决这个问题的首选方法就是使用-writev-函数"><a href="#当一个-4-字节的-write-和-396-字节的-write-调用时可能会触发-naggle-算法合并它们，解决这个问题的首选方法就是使用-writev-函数" class="headerlink" title="当一个 4 字节的 write 和 396 字节的 write 调用时可能会触发 naggle 算法合并它们，解决这个问题的首选方法就是使用 writev 函数"></a>当一个 4 字节的 write 和 396 字节的 write 调用时可能会触发 naggle 算法合并它们，解决这个问题的首选方法就是使用 writev 函数</h4><h1 id="14-5-recvmsg-和-sendmsg-函数"><a href="#14-5-recvmsg-和-sendmsg-函数" class="headerlink" title="14.5 recvmsg 和 sendmsg 函数"></a>14.5 recvmsg 和 sendmsg 函数</h1><p>这两个函数是最通用的 I/O 函数，可以替换上面所有的读写函数  </p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;sys/socket.h&gt;</span></span></span><br><span class="line"><span class="keyword">ssize_t</span> recvmsg(<span class="keyword">int</span> sockfd, struct msghdr * msg, <span class="keyword">int</span> flags);</span><br><span class="line"><span class="keyword">ssize_t</span> sendmsg(<span class="keyword">int</span> sockfd, struct msghdr * msg, <span class="keyword">int</span> flags);</span><br><span class="line"><span class="comment">// 返回：成功读入或者写出的字节数，出错则为 -1</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">msghdr</span>&#123;</span>   <span class="comment">// 用来保存大部分参数</span></span><br><span class="line">    <span class="keyword">void</span> *mag_name;</span><br><span class="line">    <span class="keyword">socklen_t</span> msg_namelen;</span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">iovec</span> *<span class="title">msg_iov</span>;</span></span><br><span class="line">    <span class="keyword">int</span> msg_iovlen;</span><br><span class="line">    <span class="keyword">void</span> *msg_control;</span><br><span class="line">    <span class="keyword">socklen_t</span> msg_controllen;</span><br><span class="line">    <span class="keyword">int</span> msg_flags;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<ol>
+<li>mag_name 和 msg_namelen 这两个成员用于套接字未连接的场合（UDP 等），msg_name 指向一个套接字地址结构，低走用着在其中存放接受者（sendmsg）或者发送者（recvmsg）的协议地址。如果无需指明协议地址，msg_name 是空指针。msg_namelen 对于 sendmsg 是值参数，对于 recvmsg 是值-结果参数。  </li>
+<li>msg_iov 和 msg_iovlen 这两个成员指定输入或输出缓冲区数组（就是 iovec 数组）  </li>
+<li>msg_control 和 msg_controllen 这两个成员指定可选的辅助数据的位置和大小 msg_controllen 对于 recvmsg 来说是一个值-结果参数</li>
+<li>对于 recvmsg 和 sendmsg 需要区别他们的两个标志变量，一个是传递值的 flags 参数，另一个是所传递 msghdr 结构的 msg_flags 成员，传递的是引用，因为传递给函数的是地址</li>
+</ol>
+<ul>
+<li>只有 recvmsg 使用 msg_flags 参数。sendmsg 忽略该参数，相关参数设置参考 UNP-14.5  </li>
+</ul>
+<h3 id="五组-I-O-函数之间的差异"><a href="#五组-I-O-函数之间的差异" class="headerlink" title="五组 I/O 函数之间的差异"></a>五组 I/O 函数之间的差异</h3><table>
+<thead>
+<tr>
+<th>函数</th>
+<th>任何描述符</th>
+<th>仅套接字描述符</th>
+<th>单个读/写缓冲区</th>
+<th>分散/集中读/写</th>
+<th>可选标志</th>
+<th>可选对端地址</th>
+<th>可选控制信息</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>read, write</td>
+<td>√</td>
+<td></td>
+<td>√</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>readv, writev</td>
+<td>√</td>
+<td></td>
+<td></td>
+<td>√</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>recv, send</td>
+<td></td>
+<td>√</td>
+<td>√</td>
+<td></td>
+<td>√</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>recvfrom, sendto</td>
+<td></td>
+<td>√</td>
+<td>√</td>
+<td></td>
+<td>√</td>
+<td>√</td>
+<td></td>
+</tr>
+<tr>
+<td>recvmsg, sendmsg</td>
+<td></td>
+<td>√</td>
+<td></td>
+<td>√</td>
+<td>√</td>
+<td>√</td>
+<td>√</td>
+</tr>
+</tbody></table>
+<h1 id="14-6-辅助数据"><a href="#14-6-辅助数据" class="headerlink" title="14.6 辅助数据"></a>14.6 辅助数据</h1><p>&emsp;&emsp;辅助数据可通过调用 sendmsg 和 recvmsg 这两个函数，使用 msghdr 结构中的 msg_control 和 msg_controllen 这两个成员来发送和接收，也叫做控制信息。<br>&emsp;&emsp;辅助数据由一个或多个辅助数据对象构成，每个对象以一个定义在头文件&lt;sys/socket.h&gt;中的 cmsghdr 结构体</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">cmsghdr</span>&#123;</span></span><br><span class="line">	<span class="keyword">socklen_t</span> cmsg_len;</span><br><span class="line">	<span class="keyword">int</span> cmsg_level;</span><br><span class="line">	<span class="keyword">int</span> cmsg_type;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="14-7-排队的数据量"><a href="#14-7-排队的数据量" class="headerlink" title="14.7 排队的数据量"></a>14.7 排队的数据量</h1><p>&emsp;&emsp;有时候我们想要在不真正读取数据的前提下直到一个套接字上已有多少数据排队等待着读取。有三种技术可以获得一排队数据量。  </p>
+<ol>
+<li>如果获取排队数据量的目的在于避免读操作内核阻塞，呢么可以使用非阻塞式 I/O，但是不能获得数据量啊，只能直到是否有数据。</li>
+<li>如果我们既想查看数据又想数据留在接收队列中等待其余部分的读取，使用 MSG_PEEK 标志。可以使用非阻塞套接字来实现既能判断是否有数据可读，然后又可以查看数据但不读取。需要注意的是对于 TCP 连接，两次获取量的值大小可能不同，如果在两次获取之间收到了流数据。但是 UDP 仅返回第一个数据报的大小，所以即使两次之间有新的数据报，也不影响</li>
+<li>一些实现支持 ioctl 的 FIONREAD 命令。该命令的第三个 ioctl 参数是指向某个整数的一个指针，内核通过该整数返回的值就是套接字接收队列的当前字节数。该值是已排队字节的总和，对于 UDP 包括所有已排队的数据报。某些实现中，队 UDP 套接字返回的值还包括一个套接字地址结构的空间，其中含有发送者的 IP 地址和端口号</li>
+</ol>
+<h1 id="14-8-套接字和标准-I-O"><a href="#14-8-套接字和标准-I-O" class="headerlink" title="14.8 套接字和标准 I/O"></a>14.8 套接字和标准 I/O</h1><p>执行 I/O 还可以使用标准 I/O 函数库，使用标准 I/O 对套接字进行读取一般可以打开两个流，一个用来读，一个用来写。  </p>
+<h4 id="不建议在套接字上使用标准-I-O"><a href="#不建议在套接字上使用标准-I-O" class="headerlink" title="不建议在套接字上使用标准 I/O"></a>不建议在套接字上使用标准 I/O</h4><h1 id="14-9-高级轮询技术"><a href="#14-9-高级轮询技术" class="headerlink" title="14.9 高级轮询技术"></a>14.9 高级轮询技术</h1><h3 id="kqueue-接口"><a href="#kqueue-接口" class="headerlink" title="kqueue 接口"></a>kqueue 接口</h3><p>&emsp;&emsp;本接口允许进程向内核注册描述所关注的 kqueue 事件的事件过滤器。事件除了与 select 所关注类似的文件 IO 超时外，还有异步 IO、文件修改通知、进程跟踪、信号处理</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;sys/types.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;sys/event.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;sys/time.h&gt;</span></span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">kqueue</span><span class="params">(<span class="keyword">void</span>)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">kevent</span><span class="params">(<span class="keyword">int</span> kq, <span class="keyword">const</span> struct kevent * changelist, <span class="keyword">int</span> nchanges,</span></span></span><br><span class="line"><span class="function"><span class="params">			struct kevent * eventlist, <span class="keyword">int</span> nevents,</span></span></span><br><span class="line"><span class="function"><span class="params">			<span class="keyword">const</span> struct timespec * timeout)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">EV_SET</span><span class="params">(struct kevent *kev, <span class="keyword">uintptr_t</span> ident, <span class="keyword">short</span> filter, </span></span></span><br><span class="line"><span class="function"><span class="params">			u_short flags, u_int fflags, <span class="keyword">intptr_t</span> data, <span class="keyword">void</span> *udata)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">kevent</span>&#123;</span></span><br><span class="line">	<span class="keyword">uintptr_t</span> ident;</span><br><span class="line">	<span class="keyword">short</span> filter;</span><br><span class="line">	u_short flags;</span><br><span class="line">	u_int fflags;</span><br><span class="line">	<span class="keyword">intptr_t</span> data;</span><br><span class="line">	<span class="keyword">void</span> *udata;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;kqueue 函数返回一个新的 kqueue 描述符，用于后面的 kevent 调用。kevent 函数即用于注册所关注的事件，也用于确定是否有所关注事件发生。changelist 和 nchanges 这两个参数给出对所关注事件做出更改，没有的话设置为 NULL，0。关于 timeout 结构体的区别，select 是纳秒，而 kqueue 是微秒。</p>
+<h1 id="14-10-t-tcp：事务目的-tcp"><a href="#14-10-t-tcp：事务目的-tcp" class="headerlink" title="14.10 t/tcp：事务目的 tcp"></a>14.10 t/tcp：事务目的 tcp</h1><p>&emsp;&emsp;T/TCP 是对 TCP 的略微修改，避免最近通信过的主机之间再次三次握手。它能把 SYN，FIN 和数据组合到单个分节中，前提是一个分节可以存储这些数据。<br>&emsp;&emsp;T/TCP 包含所有 TCP 的特性，使得基于 TCP 的连接有了类似于 UDP 的效果，即两个主机之间频繁连接断开，但是使用 T/TCP 可以使得三次握手的消耗几乎为 0  </p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><ol>
+<li>在套接字操作上设置时间限制的方法有三个：</li>
+</ol>
+<ul>
+<li>使用 alarm 函数和 SIGALRM 信号。</li>
+<li>使用由 select 提供的时间限制</li>
+<li>使用较新的 SO_RCVTIMEO 和 SO_SNDTIMEO 套接字选项  </li>
+</ul>
+<ol start="2">
+<li>第一种方法简单易用，但是涉及信号处理，可能引发竞争条件。使用 select 会阻塞在 select 上，而不是阻塞在 read，write，connect 调用上。第三种方法不是所有系统都提供。  </li>
+<li>recvmsg 和 sendmsg 是 5 组读写函数中最通用的。它有其余读写函数的所有特性：指定 MSG_xxx，返回或指定对端的协议地址，使用多个缓冲区，还增加了两个新特性：给应用进程返回标志，接收或者发送辅助数据。  </li>
+<li>C 标准 I/O 可以用在套接字上，但是并不推荐使用。  </li>
+<li>T/TCP 是对 TCP 的简单增强版本，能够在两台主机最近通信的前提下避免三路握手，使得对端更快的做出应答。从编程角度看，客户端通过调用 sendto 而不是通常使用的 connect write shutdown 调用序列发挥 T/TCP 的优势</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/09/25/15.Unix域协议/" rel="next" title="第15章：Unix域协议">
+                  <i class="fa fa-chevron-left"></i> 第15章：Unix域协议
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2019/09/25/12.IPv4和IPv6的互操作性/" rel="prev" title="第12章：IPv4和IPv6的互操作性">
+                  第12章：IPv4和IPv6的互操作性 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#14-1-概述"><span class="nav-number">1.</span> <span class="nav-text">14.1 概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#14-2-套接字超时"><span class="nav-number">2.</span> <span class="nav-text">14.2 套接字超时</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-使用-SIGALRM-为-connect-设置超时"><span class="nav-number">2.0.1.</span> <span class="nav-text">1. 使用 SIGALRM 为 connect 设置超时</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-使用-SIGALRM-为-recvfrom-设置超时"><span class="nav-number">2.0.2.</span> <span class="nav-text">2. 使用 SIGALRM 为 recvfrom 设置超时</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-使用-select-为-recvfrom-设置超时"><span class="nav-number">2.0.3.</span> <span class="nav-text">3. 使用 select 为 recvfrom 设置超时</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-使用-SO-RCVTIMEO-套接字选项为-recvfrom-设置超时"><span class="nav-number">2.0.4.</span> <span class="nav-text">4. 使用 SO_RCVTIMEO 套接字选项为 recvfrom 设置超时</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#14-3-recv-和-send-函数"><span class="nav-number">3.</span> <span class="nav-text">14.3 recv 和 send 函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#14-4-readv-和-writev-函数"><span class="nav-number">4.</span> <span class="nav-text">14.4 readv 和 writev 函数</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#当一个-4-字节的-write-和-396-字节的-write-调用时可能会触发-naggle-算法合并它们，解决这个问题的首选方法就是使用-writev-函数"><span class="nav-number">4.0.0.1.</span> <span class="nav-text">当一个 4 字节的 write 和 396 字节的 write 调用时可能会触发 naggle 算法合并它们，解决这个问题的首选方法就是使用 writev 函数</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#14-5-recvmsg-和-sendmsg-函数"><span class="nav-number">5.</span> <span class="nav-text">14.5 recvmsg 和 sendmsg 函数</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#五组-I-O-函数之间的差异"><span class="nav-number">5.0.1.</span> <span class="nav-text">五组 I/O 函数之间的差异</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#14-6-辅助数据"><span class="nav-number">6.</span> <span class="nav-text">14.6 辅助数据</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#14-7-排队的数据量"><span class="nav-number">7.</span> <span class="nav-text">14.7 排队的数据量</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#14-8-套接字和标准-I-O"><span class="nav-number">8.</span> <span class="nav-text">14.8 套接字和标准 I/O</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#不建议在套接字上使用标准-I-O"><span class="nav-number">8.0.0.1.</span> <span class="nav-text">不建议在套接字上使用标准 I/O</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#14-9-高级轮询技术"><span class="nav-number">9.</span> <span class="nav-text">14.9 高级轮询技术</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#kqueue-接口"><span class="nav-number">9.0.1.</span> <span class="nav-text">kqueue 接口</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#14-10-t-tcp：事务目的-tcp"><span class="nav-number">10.</span> <span class="nav-text">14.10 t/tcp：事务目的 tcp</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-number">11.</span> <span class="nav-text">小结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">21</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>
