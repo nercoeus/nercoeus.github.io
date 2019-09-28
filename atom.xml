@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Hexo</title>
+  
+  
+  <link href="/atom.xml" rel="self"/>
+  
+  <link href="http://yoursite.com/"/>
+  <updated>2019-09-27T12:57:07.689Z</updated>
+  <id>http://yoursite.com/</id>
+  
+  <author>
+    <name>John Doe</name>
+    
+  </author>
+  
+  <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>新的开始</title>
+    <link href="http://yoursite.com/2019/09/27/%E6%96%B0%E7%9A%84%E5%BC%80%E5%A7%8B/"/>
+    <id>http://yoursite.com/2019/09/27/新的开始/</id>
+    <published>2019-09-27T07:03:25.000Z</published>
+    <updated>2019-09-27T12:57:07.689Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="新建了一个博客，以后争取多来写点东西"><a href="#新建了一个博客，以后争取多来写点东西" class="headerlink" title="新建了一个博客，以后争取多来写点东西"></a>新建了<a id="more"></a>一个博客，以后争取多来写点东西</h1>]]></content>
+    
+    <summary type="html">
+    
+      &lt;h1 id=&quot;新建了一个博客，以后争取多来写点东西&quot;&gt;&lt;a href=&quot;#新建了一个博客，以后争取多来写点东西&quot; class=&quot;headerlink&quot; title=&quot;新建了一个博客，以后争取多来写点东西&quot;&gt;&lt;/a&gt;新建了
+    
+    </summary>
+    
+    
+    
+  </entry>
+  
+</feed>
