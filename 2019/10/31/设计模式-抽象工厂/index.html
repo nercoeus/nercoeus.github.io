@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="1 抽象工厂模式（Abstract factory pattern）抽象工厂模式定义：提供接口，创建一系列相关或独立的对象，而不指定这些对象的具体类&amp;emsp;&amp;emsp;这里强调了抽象工厂用来创建的是一系列的对象，当一个项目需要提供不同的系列的相同对象并且每个系列之间没有关联时，使用抽象工厂可以对构建一个总接口作为所有系列的共同父亲，用父类来统一创建所有对象。这样就不需要根据不同的系列硬编码到自">
+<meta property="og:type" content="article">
+<meta property="og:title" content="设计模式-抽象工厂">
+<meta property="og:url" content="http://yoursite.com/2019/10/31/设计模式-抽象工厂/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="1 抽象工厂模式（Abstract factory pattern）抽象工厂模式定义：提供接口，创建一系列相关或独立的对象，而不指定这些对象的具体类&amp;emsp;&amp;emsp;这里强调了抽象工厂用来创建的是一系列的对象，当一个项目需要提供不同的系列的相同对象并且每个系列之间没有关联时，使用抽象工厂可以对构建一个总接口作为所有系列的共同父亲，用父类来统一创建所有对象。这样就不需要根据不同的系列硬编码到自">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2019/10/31/设计模式-抽象工厂/1.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/31/设计模式-抽象工厂/2.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/31/设计模式-抽象工厂/export.png">
+<meta property="og:updated_time" content="2019-10-31T12:50:17.611Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="设计模式-抽象工厂">
+<meta name="twitter:description" content="1 抽象工厂模式（Abstract factory pattern）抽象工厂模式定义：提供接口，创建一系列相关或独立的对象，而不指定这些对象的具体类&amp;emsp;&amp;emsp;这里强调了抽象工厂用来创建的是一系列的对象，当一个项目需要提供不同的系列的相同对象并且每个系列之间没有关联时，使用抽象工厂可以对构建一个总接口作为所有系列的共同父亲，用父类来统一创建所有对象。这样就不需要根据不同的系列硬编码到自">
+<meta name="twitter:image" content="http://yoursite.com/2019/10/31/设计模式-抽象工厂/1.png">
+  <link rel="canonical" href="http://yoursite.com/2019/10/31/设计模式-抽象工厂/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>设计模式-抽象工厂 | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/10/31/设计模式-抽象工厂/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">设计模式-抽象工厂
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2019-10-31 20:24:43 / 修改时间：20:50:17" itemprop="dateCreated datePublished" datetime="2019-10-31T20:24:43+08:00">2019-10-31</time>
+            </span>
+          
+            
+
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/设计模式/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="1-抽象工厂模式（Abstract-factory-pattern）"><a href="#1-抽象工厂模式（Abstract-factory-pattern）" class="headerlink" title="1 抽象工厂模式（Abstract factory pattern）"></a>1 抽象工厂模式（Abstract factory pattern）</h1><p><strong>抽象工厂模式定义</strong>：提供接口，创建一系列相关或独立的对象，而不指定这些对象的具体类<br>&emsp;&emsp;这里强调了抽象工厂用来创建的是一系列的对象，当一个项目需要提供不同的系列的相同对象并且每个系列之间没有关联时，使用抽象工厂可以对构建一个总接口作为所有系列的共同父亲，用父类来统一创建所有对象。这样就不需要根据不同的系列硬编码到自己的工程中，只需要在总接口处进行系列的转换即可。</p>
+<a id="more"></a>
+<h1 id="2-目标问题"><a href="#2-目标问题" class="headerlink" title="2 目标问题"></a>2 目标问题</h1><p><img src="/2019/10/31/设计模式-抽象工厂/1.png" alt="1"><br>存在一个情景：  </p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">你需要生产一系列的家具：椅子，沙发，桌子  </span><br><span class="line">分为不同形状的 3 个系列：圆形，矩形，三角形。</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;如果单纯的进行生产，就需要 9 个工厂，分别是 圆形+椅子，圆形+沙发……三角形+桌子。并且在客户需要家具的时候还需要去不同的工厂进行取货。但这样不仅很繁琐，并且用户一不注意可能会拿到不是同一个系列的家具。当需要添加新的产品或系列的时候，就会导致你的核心代码会频繁的进行修改。  </p>
+<h1 id="3-解决方法"><a href="#3-解决方法" class="headerlink" title="3 解决方法"></a>3 解决方法</h1><p>&emsp;&emsp;对每种家具构建一个接口，例如 Chair 接口，所有不同的椅子都实现这个统一的接口进行创建，所有的桌子都实现 Desktop 接口进行创建。<br>&emsp;&emsp;之后建造一个大工厂用来生产一套家具，包含所有产品（椅子，沙发，桌子）的总接口，可以让所有的系列工厂都实现这一系列接口。比如抽象工厂有 CreateChair 接口，所有系列的大工厂均有 CreateChair 接口，沙发，桌子依次类推。<br>&emsp;&emsp;现在，当客户想要购买家具时，仅需要到他需要的工厂（他喜欢系列的工厂），依次发出 CreateChair,CreateDesktop,CreateSofa 指令即可，它不需要关系这些家具是什么系列，因为他在需要购买家具选择系列的时候就进入了对应的工厂。所以客户在购买家具时仅仅需要关系的就是他需要的最基础的类型，是椅子还是桌子等。</p>
+<h1 id="4-所有类之间的关系"><a href="#4-所有类之间的关系" class="headerlink" title="4 所有类之间的关系"></a>4 所有类之间的关系</h1><p><img src="/2019/10/31/设计模式-抽象工厂/2.png" alt="2"></p>
+<h1 id="5-代码实现"><a href="#5-代码实现" class="headerlink" title="5 代码实现"></a>5 代码实现</h1><p>&emsp;&emsp;最近一直使用 GO 语言，暂时的设计模式实现也使用 Go 来进行实现，因为 GO 语言不是完全面向对象语言，没有类似 C++ 中的类，所以使用 struct，interface 来实现设计模式的代码：</p>
+<h2 id="5-1-对象的设计"><a href="#5-1-对象的设计" class="headerlink" title="5.1 对象的设计"></a>5.1 对象的设计</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 具体的不同家具的 struct</span></span><br><span class="line"><span class="keyword">type</span> Chair <span class="keyword">struct</span> &#123;   <span class="comment">// Chair</span></span><br><span class="line">	class <span class="keyword">string</span></span><br><span class="line">	name  <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">type</span> Sofa <span class="keyword">struct</span> &#123;    <span class="comment">// Sofa</span></span><br><span class="line">	class <span class="keyword">string</span></span><br><span class="line">	name  <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">type</span> Table <span class="keyword">struct</span> &#123;   <span class="comment">// Table</span></span><br><span class="line">	class <span class="keyword">string</span></span><br><span class="line">	name  <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 圆形家具工厂</span></span><br><span class="line"><span class="keyword">type</span> CircleFurnitureFactory <span class="keyword">struct</span> &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 矩形家具工厂</span></span><br><span class="line"><span class="keyword">type</span> RectangleFurnitureFactory <span class="keyword">struct</span> &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 三角形家具工厂</span></span><br><span class="line"><span class="keyword">type</span> TriangleFurnitureFactory <span class="keyword">struct</span> &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;依次设计了不同家具的 struct，这里为了不让代码太过冗长，将 Chair，Sofa，Table 都使用了一种 struct 进行表示，这里也可以将其拆分，并创建 Chair interface 等等。<br>&emsp;&emsp;还包括对应的不同系列的工厂的 struct，客户根据系统配置自行选择需要使用的对象即可</p>
+<h2 id="5-2-接口的设计"><a href="#5-2-接口的设计" class="headerlink" title="5.2 接口的设计"></a>5.2 接口的设计</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 抽象工厂类</span></span><br><span class="line"><span class="keyword">type</span> AbstractFurnitureFactory <span class="keyword">interface</span> &#123;</span><br><span class="line">	MakeChair() Chair</span><br><span class="line">	MakeSofa() Sofa</span><br><span class="line">	MakeTable() Table</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 不同工厂的家具生产过程，这里仅展示一个系列的代码</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a CircleFurnitureFactory)</span> <span class="title">MakeChair</span><span class="params">()</span> <span class="title">Chair</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> Chair&#123;</span><br><span class="line">		class: <span class="string">"Circle"</span>,</span><br><span class="line">		name:  <span class="string">"Chair"</span>,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a CircleFurnitureFactory)</span> <span class="title">MakeSofa</span><span class="params">()</span> <span class="title">Sofa</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> Sofa&#123;</span><br><span class="line">		class: <span class="string">"Circle"</span>,</span><br><span class="line">		name:  <span class="string">"Sofa"</span>,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(a CircleFurnitureFactory)</span> <span class="title">MakeTable</span><span class="params">()</span> <span class="title">Table</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> Table&#123;</span><br><span class="line">		class: <span class="string">"Circle"</span>,</span><br><span class="line">		name:  <span class="string">"Table"</span>,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;实现了抽象工厂接口，提供了三个接口用来生产不同的家具，之后所有工厂类依次实现该接口的所有方法即可进行统一的调用  </p>
+<h2 id="5-3-代码执行"><a href="#5-3-代码执行" class="headerlink" title="5.3 代码执行"></a>5.3 代码执行</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 选择自己需要的系列</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">getFurnitureFactor</span><span class="params">(class <span class="keyword">string</span>)</span> <span class="title">AbstractFurnitureFactory</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> res AbstractFurnitureFactory</span><br><span class="line">	<span class="keyword">switch</span> class &#123;</span><br><span class="line">	<span class="keyword">case</span> <span class="string">"Circle"</span>:</span><br><span class="line">		res = CircleFurnitureFactory&#123;&#125;</span><br><span class="line">		<span class="keyword">return</span> res</span><br><span class="line">	<span class="keyword">case</span> <span class="string">"Rectangle"</span>:</span><br><span class="line">		res = RectangleFurnitureFactory&#123;&#125;</span><br><span class="line">		<span class="keyword">return</span> res</span><br><span class="line">	<span class="keyword">case</span> <span class="string">"Triangle"</span>:</span><br><span class="line">		res = TriangleFurnitureFactory&#123;&#125;</span><br><span class="line">		<span class="keyword">return</span> res</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 主函数的逻辑</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	a := getFurnitureFactor(<span class="string">"Circle"</span>)</span><br><span class="line">	b := getFurnitureFactor(<span class="string">"Rectangle"</span>)</span><br><span class="line">	c := getFurnitureFactor(<span class="string">"Triangle"</span>)</span><br><span class="line">	fmt.Println(a.MakeChair())</span><br><span class="line">	fmt.Println(a.MakeSofa())</span><br><span class="line">	fmt.Println(a.MakeTable())</span><br><span class="line">	fmt.Println(b.MakeChair())</span><br><span class="line">	fmt.Println(b.MakeSofa())</span><br><span class="line">	fmt.Println(b.MakeTable())</span><br><span class="line">	fmt.Println(c.MakeChair())</span><br><span class="line">	fmt.Println(c.MakeSofa())</span><br><span class="line">	fmt.Println(c.MakeTable())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>运行结果如下：<br><img src="/2019/10/31/设计模式-抽象工厂/export.png" alt="运行结果"></p>
+<h1 id="6-应用场景"><a href="#6-应用场景" class="headerlink" title="6 应用场景"></a>6 应用场景</h1><p>以下情况可以使用<strong>抽象工厂模式</strong>：</p>
+<ul>
+<li>一个系统要独立于它的产品的创建、组合和表示</li>
+<li>一个系统要由多个产品系列中的一个来进行配置</li>
+<li>要强调一系列相关的产品对象的设计以便进行联合使用</li>
+<li>提供一个产品类库，但只想显示接口而不是实现</li>
+</ul>
+<h1 id="7-优缺点"><a href="#7-优缺点" class="headerlink" title="7 优缺点"></a>7 优缺点</h1><h2 id="7-1-优点"><a href="#7-1-优点" class="headerlink" title="7.1 优点"></a>7.1 优点</h2><ul>
+<li>它分离了具体的类：具体对象的生成被接口相对于客户隔离了开来，客户不需要关心它真是的类名等等</li>
+<li>易于交换产品系列：只需要在初始化时进行不同系列的选择即可，不需要更改过多的客户代码，可以让用户很方便的从一个系列转换为另一个系列</li>
+<li>有利于产品的一致性：当一个系列中的产品对象被设计成一起工作时，一个应用一次只能使用同一系列的对象</li>
+</ul>
+<h2 id="7-2-缺点"><a href="#7-2-缺点" class="headerlink" title="7.2 缺点"></a>7.2 缺点</h2><ul>
+<li>会让代码变得复杂：因为增加了许多接口以及新的类</li>
+<li>当需要添加新的系列时，需要对所有的已有接口进行匹配</li>
+<li>并且当需要添加一个新的种类时（eg：床），需要对所有工厂进行修改，以支持这种新产品</li>
+</ul>
+<h1 id="8-相关模式"><a href="#8-相关模式" class="headerlink" title="8 相关模式"></a>8 相关模式</h1><ul>
+<li>抽象工厂一般基于工厂方法，也可以用原型模式（prototype）实现</li>
+<li>一个具体的工厂通常是单例模式（Singletion）的</li>
+</ul>
+<h1 id="9-reference"><a href="#9-reference" class="headerlink" title="9 reference"></a>9 reference</h1><p>《设计模式》-抽象工厂<br><a href="https://refactoring.guru/design-patterns/abstract-factory" target="_blank" rel="noopener">design-patterns:Abstract Factory</a><br><a href="https://zh.wikipedia.org/wiki/%E6%8A%BD%E8%B1%A1%E5%B7%A5%E5%8E%82" target="_blank" rel="noopener">中文维基：抽象工厂</a><br><a href="https://blog.csdn.net/wangshubo1989/article/details/79270450" target="_blank" rel="noopener">Go实战–Design Patterns in Golang 之工厂模式(简单工厂、工厂方法、抽象工厂)</a>  </p>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/10/30/设计模式-开始/" rel="next" title="设计模式-简介">
+                  <i class="fa fa-chevron-left"></i> 设计模式-简介
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2019/10/31/设计模式-生成器模式/" rel="prev" title="设计模式-生成器模式">
+                  设计模式-生成器模式 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-抽象工厂模式（Abstract-factory-pattern）"><span class="nav-text">1 抽象工厂模式（Abstract factory pattern）</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-目标问题"><span class="nav-text">2 目标问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-解决方法"><span class="nav-text">3 解决方法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-所有类之间的关系"><span class="nav-text">4 所有类之间的关系</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-代码实现"><span class="nav-text">5 代码实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#5-1-对象的设计"><span class="nav-text">5.1 对象的设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-2-接口的设计"><span class="nav-text">5.2 接口的设计</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-3-代码执行"><span class="nav-text">5.3 代码执行</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#6-应用场景"><span class="nav-text">6 应用场景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#7-优缺点"><span class="nav-text">7 优缺点</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#7-1-优点"><span class="nav-text">7.1 优点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-2-缺点"><span class="nav-text">7.2 缺点</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-相关模式"><span class="nav-text">8 相关模式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#9-reference"><span class="nav-text">9 reference</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">24</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

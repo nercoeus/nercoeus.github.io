@@ -56,18 +56,18 @@
   };
 </script>
 
-  <meta name="description" content="19.1 概述&amp;emsp;&amp;emsp;随着 IP 安全体系结构的引入，私钥体系加密和认证密钥的管理越来越需要一套标准的机制。新创建了一套协议族 PF_KEY 域，在这个密钥管理域中，唯一支持的一种套接字是原始套接字。 &amp;emsp;&amp;emsp;在普通的 Unix 系统上，密钥管理套接字仅限超级用户有打开的权限。">
+  <meta name="description" content="1 生成器模式（Builder pattern）生成器模式定义：将一个复杂对象的构建和它的表示进行分离，让你可以一步步的创建对象。并且可以用相同的构建过程来创建不同的表示">
 <meta property="og:type" content="article">
-<meta property="og:title" content="第19章：密钥管理套接字">
-<meta property="og:url" content="http://yoursite.com/2019/09/25/19.密钥管理套接字/index.html">
+<meta property="og:title" content="设计模式-生成器模式">
+<meta property="og:url" content="http://yoursite.com/2019/10/31/设计模式-生成器模式/index.html">
 <meta property="og:site_name" content="nercoeus">
-<meta property="og:description" content="19.1 概述&amp;emsp;&amp;emsp;随着 IP 安全体系结构的引入，私钥体系加密和认证密钥的管理越来越需要一套标准的机制。新创建了一套协议族 PF_KEY 域，在这个密钥管理域中，唯一支持的一种套接字是原始套接字。 &amp;emsp;&amp;emsp;在普通的 Unix 系统上，密钥管理套接字仅限超级用户有打开的权限。">
+<meta property="og:description" content="1 生成器模式（Builder pattern）生成器模式定义：将一个复杂对象的构建和它的表示进行分离，让你可以一步步的创建对象。并且可以用相同的构建过程来创建不同的表示">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2019-09-28T08:46:38.258Z">
+<meta property="og:updated_time" content="2019-10-31T12:33:23.106Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="第19章：密钥管理套接字">
-<meta name="twitter:description" content="19.1 概述&amp;emsp;&amp;emsp;随着 IP 安全体系结构的引入，私钥体系加密和认证密钥的管理越来越需要一套标准的机制。新创建了一套协议族 PF_KEY 域，在这个密钥管理域中，唯一支持的一种套接字是原始套接字。 &amp;emsp;&amp;emsp;在普通的 Unix 系统上，密钥管理套接字仅限超级用户有打开的权限。">
-  <link rel="canonical" href="http://yoursite.com/2019/09/25/19.密钥管理套接字/">
+<meta name="twitter:title" content="设计模式-生成器模式">
+<meta name="twitter:description" content="1 生成器模式（Builder pattern）生成器模式定义：将一个复杂对象的构建和它的表示进行分离，让你可以一步步的创建对象。并且可以用相同的构建过程来创建不同的表示">
+  <link rel="canonical" href="http://yoursite.com/2019/10/31/设计模式-生成器模式/">
 
 
 <script id="page-configurations">
@@ -81,7 +81,7 @@
   };
 </script>
 
-  <title>第19章：密钥管理套接字 | nercoeus</title>
+  <title>设计模式-生成器模式 | nercoeus</title>
   
 
 
@@ -209,7 +209,7 @@
   
   
   <div class="post-block post">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/19.密钥管理套接字/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/10/31/设计模式-生成器模式/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="nercoeus">
@@ -221,7 +221,7 @@
       <meta itemprop="name" content="nercoeus">
     </span>
       <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">第19章：密钥管理套接字
+        <h1 class="post-title" itemprop="name headline">设计模式-生成器模式
 
           
         </h1>
@@ -237,19 +237,11 @@
                 
               
 
-              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
+              <time title="创建时间：2019-10-31 20:24:59 / 修改时间：20:33:23" itemprop="dateCreated datePublished" datetime="2019-10-31T20:24:59+08:00">2019-10-31</time>
             </span>
           
             
 
-            
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
-              </span>
             
           
             <span class="post-meta-item">
@@ -258,7 +250,7 @@
               </span>
               <span class="post-meta-item-text">分类于</span>
               
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/设计模式/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a></span>
 
                 
                 
@@ -277,10 +269,52 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h1 id="19-1-概述"><a href="#19-1-概述" class="headerlink" title="19.1 概述"></a>19.1 概述</h1><p>&emsp;&emsp;随着 IP 安全体系结构的引入，私钥体系加密和认证密钥的管理越来越需要一套标准的机制。新创建了一套协议族 PF_KEY 域，在这个密钥管理域中，唯一支持的一种套接字是原始套接字。</p>
-<p>&emsp;&emsp;在普通的 Unix 系统上，密钥管理套接字仅限超级用户有打开的权限。</p>
+        <h1 id="1-生成器模式（Builder-pattern）"><a href="#1-生成器模式（Builder-pattern）" class="headerlink" title="1 生成器模式（Builder pattern）"></a>1 生成器模式（Builder pattern）</h1><p><strong>生成器模式定义</strong>：将一个复杂对象的构建和它的表示进行分离，让你可以一步步的创建对象。并且可以用相同的构建过程来创建不同的表示  </p>
 <a id="more"></a>
-<h1 id="19-2-读和写"><a href="#19-2-读和写" class="headerlink" title="19.2 读和写"></a>19.2 读和写</h1><h1 id="19-3-倾泻安全关联数据库"><a href="#19-3-倾泻安全关联数据库" class="headerlink" title="19.3 倾泻安全关联数据库"></a>19.3 倾泻安全关联数据库</h1><h1 id="19-4-创建静态安全关联"><a href="#19-4-创建静态安全关联" class="headerlink" title="19.4 创建静态安全关联"></a>19.4 创建静态安全关联</h1><h1 id="19-5-动态维护安全关联"><a href="#19-5-动态维护安全关联" class="headerlink" title="19.5 动态维护安全关联"></a>19.5 动态维护安全关联</h1><h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1>
+<h1 id="2-目标问题"><a href="#2-目标问题" class="headerlink" title="2 目标问题"></a>2 目标问题</h1><p>当你要创建一个复杂对象，有多个小部分祖成。例如房子=四面墙+门+窗子+房顶。一个房子也可以包含一些额外的部件，例如：车库，游泳池，花园等等。如果我们需要创建一个房子，代码的初始化部分会变得过于臃肿，需要多所有额外部件进行设置。可能需要游泳池不需要花园，也可能需要车库不需要泳池，也可能全部都需要。虽然大多数情况泳池，花园都是不必要的。<br>虽然一个巨大的构造函数消除了对子类的需求，但是它实在是太过于不方便，所以可以使用 Builder pattern 解决这个问题。</p>
+<h1 id="3-解决方法"><a href="#3-解决方法" class="headerlink" title="3 解决方法"></a>3 解决方法</h1><p>新建一个类用来建造房子，即类似于施工队（GoF：ConcreteBuilder）的作用，将原来对象中用来构建的代码移动到该对象中进行管理。如果要创建对象的某一部分，直接在该管理对象中进行调用即可。这样做也可以让你构建不同表示的对象（eg：石头房子或是木头房子），石头房子用石头施工队，木头房子用木头施工队即可。虽然他们建造的对象相同，但是表示方式完全不同，即虽然都是房子，但是确实不同材质的房子。<br>为了实现一条流水线的操作，你还可以创建一个监督者（GoF：Director）用来使用 ConcreteBuilder 完成一系列操作，并将结果返回给你。虽然没有监督者客户也可以自己进行监督，即执行一些列的 build_XXX_Part 函数，但是创建一个监督者可以供代码复用，并将客户和 builder 分离开来。也是个不错的方式  </p>
+<h1 id="4-所有类之间的关系"><a href="#4-所有类之间的关系" class="headerlink" title="4 所有类之间的关系"></a>4 所有类之间的关系</h1><ul>
+<li>Builder 接口<ul>
+<li>为创造一个对象（Product）而设计的一系列方法的接口</li>
+</ul>
+</li>
+<li>ConcreteBuilder 类：<ul>
+<li>实现 Builder 的接口来构造 Product 的各个部分</li>
+<li>定义并跟踪它所长创建的表示</li>
+<li>提供一个检索产品的接口（GetProduct）</li>
+</ul>
+</li>
+<li>Director 类：<ul>
+<li>构造一个使用 builder 接口的对象</li>
+</ul>
+</li>
+<li>Product 类：<ul>
+<li>表示被构造的复杂对象。ConcreteBuilder 创建该 Product 的内部表示并定义其 builde 过程</li>
+</ul>
+</li>
+</ul>
+<h1 id="5-代码实现"><a href="#5-代码实现" class="headerlink" title="5 代码实现"></a>5 代码实现</h1><p>接下来使用 GO 代码来进行 Builder pattern 的实现，</p>
+<h1 id="6-应用场景"><a href="#6-应用场景" class="headerlink" title="6 应用场景"></a>6 应用场景</h1><p>以下情况可以使用<strong>生成器模式</strong>：</p>
+<ul>
+<li>当创建复杂对象的算法应该独立于该对象的组成部分以及它们的装配方式时。</li>
+<li>当构造过程必须允许被构造的对象有不同而表示时。</li>
+<li>使用 Builder 来构造复合对象或其他的复杂对象时。</li>
+</ul>
+<h1 id="7-优缺点"><a href="#7-优缺点" class="headerlink" title="7 优缺点"></a>7 优缺点</h1><h2 id="7-1-优点"><a href="#7-1-优点" class="headerlink" title="7.1 优点"></a>7.1 优点</h2><ul>
+<li>可以逐步构造对象，推迟构造过程或递归运行构造过程。即对构造过程提供更加精确的控制</li>
+<li>可以改变一个 Product 的内部表示，即使用相同的构造代码获取不同表示的 Product</li>
+<li>将构造代码和 Product 的业务逻辑代码进行隔离</li>
+</ul>
+<h2 id="7-2-缺点"><a href="#7-2-缺点" class="headerlink" title="7.2 缺点"></a>7.2 缺点</h2><ul>
+<li>会让代码变得复杂：因为增加了许多接口以及新的类（貌似大多数模式都有这个😓。。。）</li>
+</ul>
+<h1 id="8-相关模式"><a href="#8-相关模式" class="headerlink" title="8 相关模式"></a>8 相关模式</h1><ul>
+<li>很明显可以看出和 Factory 系列的模式类似，区别仅仅是，Builder 注重构造单个对象的过程，而 Factory 注重构造不同系列的对象。</li>
+<li>Builder 也可以实现为单例模式。</li>
+<li>创建复杂的 Composite 通常使用 Builder 进行递归创建。</li>
+</ul>
+<h1 id="9-reference"><a href="#9-reference" class="headerlink" title="9 reference"></a>9 reference</h1><p>《设计模式》-生成器模式<br><a href="https://refactoring.guru/design-patterns/builder" target="_blank" rel="noopener">design-patterns:Builder</a><br><a href="https://zh.wikipedia.org/wiki/%E7%94%9F%E6%88%90%E5%99%A8%E6%A8%A1%E5%BC%8F" target="_blank" rel="noopener">中文维基：生成器模式</a>  </p>
+
     </div>
 
     
@@ -296,8 +330,8 @@
           <div class="post-nav">
             <div class="post-nav-next post-nav-item">
               
-                <a href="/2019/09/25/20.广播/" rel="next" title="第20章：广播">
-                  <i class="fa fa-chevron-left"></i> 第20章：广播
+                <a href="/2019/10/31/设计模式-抽象工厂/" rel="next" title="设计模式-抽象工厂">
+                  <i class="fa fa-chevron-left"></i> 设计模式-抽象工厂
                 </a>
               
             </div>
@@ -305,10 +339,6 @@
             <span class="post-nav-divider"></span>
 
             <div class="post-nav-prev post-nav-item">
-              
-                <a href="/2019/09/25/21.组播/" rel="prev" title="第21章：组播">
-                  第21章：组播 <i class="fa fa-chevron-right"></i>
-                </a>
               
             </div>
           </div>
@@ -357,7 +387,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#19-1-概述"><span class="nav-text">19.1 概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#19-2-读和写"><span class="nav-text">19.2 读和写</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#19-3-倾泻安全关联数据库"><span class="nav-text">19.3 倾泻安全关联数据库</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#19-4-创建静态安全关联"><span class="nav-text">19.4 创建静态安全关联</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#19-5-动态维护安全关联"><span class="nav-text">19.5 动态维护安全关联</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-text">小结</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-生成器模式（Builder-pattern）"><span class="nav-text">1 生成器模式（Builder pattern）</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-目标问题"><span class="nav-text">2 目标问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-解决方法"><span class="nav-text">3 解决方法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-所有类之间的关系"><span class="nav-text">4 所有类之间的关系</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-代码实现"><span class="nav-text">5 代码实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#6-应用场景"><span class="nav-text">6 应用场景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#7-优缺点"><span class="nav-text">7 优缺点</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#7-1-优点"><span class="nav-text">7.1 优点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-2-缺点"><span class="nav-text">7.2 缺点</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-相关模式"><span class="nav-text">8 相关模式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#9-reference"><span class="nav-text">9 reference</span></a></li></ol></div>
         
       </div>
       <!--/noindex-->
