@@ -66,7 +66,7 @@
 <meta property="og:image" content="http://yoursite.com/2019/10/31/设计模式-抽象工厂/1.png">
 <meta property="og:image" content="http://yoursite.com/2019/10/31/设计模式-抽象工厂/2.png">
 <meta property="og:image" content="http://yoursite.com/2019/10/31/设计模式-抽象工厂/export.png">
-<meta property="og:updated_time" content="2019-10-31T12:50:17.611Z">
+<meta property="og:updated_time" content="2019-10-31T13:12:55.235Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="设计模式-抽象工厂">
 <meta name="twitter:description" content="1 抽象工厂模式（Abstract factory pattern）抽象工厂模式定义：提供接口，创建一系列相关或独立的对象，而不指定这些对象的具体类&amp;emsp;&amp;emsp;这里强调了抽象工厂用来创建的是一系列的对象，当一个项目需要提供不同的系列的相同对象并且每个系列之间没有关联时，使用抽象工厂可以对构建一个总接口作为所有系列的共同父亲，用父类来统一创建所有对象。这样就不需要根据不同的系列硬编码到自">
@@ -241,7 +241,7 @@
                 
               
 
-              <time title="创建时间：2019-10-31 20:24:43 / 修改时间：20:50:17" itemprop="dateCreated datePublished" datetime="2019-10-31T20:24:43+08:00">2019-10-31</time>
+              <time title="创建时间：2019-10-31 20:24:43 / 修改时间：21:12:55" itemprop="dateCreated datePublished" datetime="2019-10-31T20:24:43+08:00">2019-10-31</time>
             </span>
           
             
@@ -275,7 +275,7 @@
       
         <h1 id="1-抽象工厂模式（Abstract-factory-pattern）"><a href="#1-抽象工厂模式（Abstract-factory-pattern）" class="headerlink" title="1 抽象工厂模式（Abstract factory pattern）"></a>1 抽象工厂模式（Abstract factory pattern）</h1><p><strong>抽象工厂模式定义</strong>：提供接口，创建一系列相关或独立的对象，而不指定这些对象的具体类<br>&emsp;&emsp;这里强调了抽象工厂用来创建的是一系列的对象，当一个项目需要提供不同的系列的相同对象并且每个系列之间没有关联时，使用抽象工厂可以对构建一个总接口作为所有系列的共同父亲，用父类来统一创建所有对象。这样就不需要根据不同的系列硬编码到自己的工程中，只需要在总接口处进行系列的转换即可。</p>
 <a id="more"></a>
-<h1 id="2-目标问题"><a href="#2-目标问题" class="headerlink" title="2 目标问题"></a>2 目标问题</h1><p><img src="/2019/10/31/设计模式-抽象工厂/1.png" alt="1"><br>存在一个情景：  </p>
+<h1 id="2-目标问题"><a href="#2-目标问题" class="headerlink" title="2 目标问题"></a>2 目标问题</h1><p><img src="/2019/10/31/设计模式-抽象工厂/1.png" alt><br>存在一个情景：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">你需要生产一系列的家具：椅子，沙发，桌子  </span><br><span class="line">分为不同形状的 3 个系列：圆形，矩形，三角形。</span><br></pre></td></tr></table></figure>
 
 <p>&emsp;&emsp;如果单纯的进行生产，就需要 9 个工厂，分别是 圆形+椅子，圆形+沙发……三角形+桌子。并且在客户需要家具的时候还需要去不同的工厂进行取货。但这样不仅很繁琐，并且用户一不注意可能会拿到不是同一个系列的家具。当需要添加新的产品或系列的时候，就会导致你的核心代码会频繁的进行修改。  </p>
