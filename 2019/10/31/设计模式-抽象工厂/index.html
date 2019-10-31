@@ -63,14 +63,14 @@
 <meta property="og:site_name" content="nercoeus">
 <meta property="og:description" content="1 抽象工厂模式（Abstract factory pattern）抽象工厂模式定义：提供接口，创建一系列相关或独立的对象，而不指定这些对象的具体类&amp;emsp;&amp;emsp;这里强调了抽象工厂用来创建的是一系列的对象，当一个项目需要提供不同的系列的相同对象并且每个系列之间没有关联时，使用抽象工厂可以对构建一个总接口作为所有系列的共同父亲，用父类来统一创建所有对象。这样就不需要根据不同的系列硬编码到自">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="http://yoursite.com/2019/10/31/设计模式-抽象工厂/1.png">
-<meta property="og:image" content="http://yoursite.com/2019/10/31/设计模式-抽象工厂/2.png">
-<meta property="og:image" content="http://yoursite.com/2019/10/31/设计模式-抽象工厂/export.png">
-<meta property="og:updated_time" content="2019-10-31T13:12:55.235Z">
+<meta property="og:image" content="http://yoursite.com/2019/10/31/设计模式-抽象工厂/_/1.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/31/设计模式-抽象工厂/_/structure-indexed.png">
+<meta property="og:image" content="http://yoursite.com/2019/10/31/设计模式-抽象工厂/_/export.png">
+<meta property="og:updated_time" content="2019-10-31T13:49:30.165Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="设计模式-抽象工厂">
 <meta name="twitter:description" content="1 抽象工厂模式（Abstract factory pattern）抽象工厂模式定义：提供接口，创建一系列相关或独立的对象，而不指定这些对象的具体类&amp;emsp;&amp;emsp;这里强调了抽象工厂用来创建的是一系列的对象，当一个项目需要提供不同的系列的相同对象并且每个系列之间没有关联时，使用抽象工厂可以对构建一个总接口作为所有系列的共同父亲，用父类来统一创建所有对象。这样就不需要根据不同的系列硬编码到自">
-<meta name="twitter:image" content="http://yoursite.com/2019/10/31/设计模式-抽象工厂/1.png">
+<meta name="twitter:image" content="http://yoursite.com/2019/10/31/设计模式-抽象工厂/_/1.png">
   <link rel="canonical" href="http://yoursite.com/2019/10/31/设计模式-抽象工厂/">
 
 
@@ -241,7 +241,7 @@
                 
               
 
-              <time title="创建时间：2019-10-31 20:24:43 / 修改时间：21:12:55" itemprop="dateCreated datePublished" datetime="2019-10-31T20:24:43+08:00">2019-10-31</time>
+              <time title="创建时间：2019-10-31 20:24:43 / 修改时间：21:49:30" itemprop="dateCreated datePublished" datetime="2019-10-31T20:24:43+08:00">2019-10-31</time>
             </span>
           
             
@@ -275,12 +275,19 @@
       
         <h1 id="1-抽象工厂模式（Abstract-factory-pattern）"><a href="#1-抽象工厂模式（Abstract-factory-pattern）" class="headerlink" title="1 抽象工厂模式（Abstract factory pattern）"></a>1 抽象工厂模式（Abstract factory pattern）</h1><p><strong>抽象工厂模式定义</strong>：提供接口，创建一系列相关或独立的对象，而不指定这些对象的具体类<br>&emsp;&emsp;这里强调了抽象工厂用来创建的是一系列的对象，当一个项目需要提供不同的系列的相同对象并且每个系列之间没有关联时，使用抽象工厂可以对构建一个总接口作为所有系列的共同父亲，用父类来统一创建所有对象。这样就不需要根据不同的系列硬编码到自己的工程中，只需要在总接口处进行系列的转换即可。</p>
 <a id="more"></a>
-<h1 id="2-目标问题"><a href="#2-目标问题" class="headerlink" title="2 目标问题"></a>2 目标问题</h1><p><img src="/2019/10/31/设计模式-抽象工厂/1.png" alt><br>存在一个情景：</p>
+<h1 id="2-目标问题"><a href="#2-目标问题" class="headerlink" title="2 目标问题"></a>2 目标问题</h1><p><img src="_/1.png" alt><br>存在一个情景：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">你需要生产一系列的家具：椅子，沙发，桌子  </span><br><span class="line">分为不同形状的 3 个系列：圆形，矩形，三角形。</span><br></pre></td></tr></table></figure>
 
 <p>&emsp;&emsp;如果单纯的进行生产，就需要 9 个工厂，分别是 圆形+椅子，圆形+沙发……三角形+桌子。并且在客户需要家具的时候还需要去不同的工厂进行取货。但这样不仅很繁琐，并且用户一不注意可能会拿到不是同一个系列的家具。当需要添加新的产品或系列的时候，就会导致你的核心代码会频繁的进行修改。  </p>
 <h1 id="3-解决方法"><a href="#3-解决方法" class="headerlink" title="3 解决方法"></a>3 解决方法</h1><p>&emsp;&emsp;对每种家具构建一个接口，例如 Chair 接口，所有不同的椅子都实现这个统一的接口进行创建，所有的桌子都实现 Desktop 接口进行创建。<br>&emsp;&emsp;之后建造一个大工厂用来生产一套家具，包含所有产品（椅子，沙发，桌子）的总接口，可以让所有的系列工厂都实现这一系列接口。比如抽象工厂有 CreateChair 接口，所有系列的大工厂均有 CreateChair 接口，沙发，桌子依次类推。<br>&emsp;&emsp;现在，当客户想要购买家具时，仅需要到他需要的工厂（他喜欢系列的工厂），依次发出 CreateChair,CreateDesktop,CreateSofa 指令即可，它不需要关系这些家具是什么系列，因为他在需要购买家具选择系列的时候就进入了对应的工厂。所以客户在购买家具时仅仅需要关系的就是他需要的最基础的类型，是椅子还是桌子等。</p>
-<h1 id="4-所有类之间的关系"><a href="#4-所有类之间的关系" class="headerlink" title="4 所有类之间的关系"></a>4 所有类之间的关系</h1><p><img src="/2019/10/31/设计模式-抽象工厂/2.png" alt="2"></p>
+<h1 id="4-所有类之间的关系"><a href="#4-所有类之间的关系" class="headerlink" title="4 所有类之间的关系"></a>4 所有类之间的关系</h1><p><img src="_/structure-indexed.png" alt="structure-indexed"></p>
+<ol>
+<li>抽象产品(AbstractProduct):为一类产品对象声明一个接口(eg:椅子)</li>
+<li>具体产品(ConcreteProduct):创建一个具体产品的对象(eg:圆形椅子)</li>
+<li>抽象工厂(AbstractFactory):一个抽象工厂的接口,用来创建抽象接口</li>
+<li>具体工厂(ConcreteFactory):用来生产一个系列的各种对象</li>
+<li>客户(Client):获取特定的 ConcreteFactory 来创建同一系列的 Product.仅仅使用 AbstractFactory 定义的接口</li>
+</ol>
 <h1 id="5-代码实现"><a href="#5-代码实现" class="headerlink" title="5 代码实现"></a>5 代码实现</h1><p>&emsp;&emsp;最近一直使用 GO 语言，暂时的设计模式实现也使用 Go 来进行实现，因为 GO 语言不是完全面向对象语言，没有类似 C++ 中的类，所以使用 struct，interface 来实现设计模式的代码：</p>
 <h2 id="5-1-对象的设计"><a href="#5-1-对象的设计" class="headerlink" title="5.1 对象的设计"></a>5.1 对象的设计</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 具体的不同家具的 struct</span></span><br><span class="line"><span class="keyword">type</span> Chair <span class="keyword">struct</span> &#123;   <span class="comment">// Chair</span></span><br><span class="line">	class <span class="keyword">string</span></span><br><span class="line">	name  <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">type</span> Sofa <span class="keyword">struct</span> &#123;    <span class="comment">// Sofa</span></span><br><span class="line">	class <span class="keyword">string</span></span><br><span class="line">	name  <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">type</span> Table <span class="keyword">struct</span> &#123;   <span class="comment">// Table</span></span><br><span class="line">	class <span class="keyword">string</span></span><br><span class="line">	name  <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 圆形家具工厂</span></span><br><span class="line"><span class="keyword">type</span> CircleFurnitureFactory <span class="keyword">struct</span> &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 矩形家具工厂</span></span><br><span class="line"><span class="keyword">type</span> RectangleFurnitureFactory <span class="keyword">struct</span> &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 三角形家具工厂</span></span><br><span class="line"><span class="keyword">type</span> TriangleFurnitureFactory <span class="keyword">struct</span> &#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
@@ -290,7 +297,7 @@
 <p>&emsp;&emsp;实现了抽象工厂接口，提供了三个接口用来生产不同的家具，之后所有工厂类依次实现该接口的所有方法即可进行统一的调用  </p>
 <h2 id="5-3-代码执行"><a href="#5-3-代码执行" class="headerlink" title="5.3 代码执行"></a>5.3 代码执行</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 选择自己需要的系列</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">getFurnitureFactor</span><span class="params">(class <span class="keyword">string</span>)</span> <span class="title">AbstractFurnitureFactory</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> res AbstractFurnitureFactory</span><br><span class="line">	<span class="keyword">switch</span> class &#123;</span><br><span class="line">	<span class="keyword">case</span> <span class="string">"Circle"</span>:</span><br><span class="line">		res = CircleFurnitureFactory&#123;&#125;</span><br><span class="line">		<span class="keyword">return</span> res</span><br><span class="line">	<span class="keyword">case</span> <span class="string">"Rectangle"</span>:</span><br><span class="line">		res = RectangleFurnitureFactory&#123;&#125;</span><br><span class="line">		<span class="keyword">return</span> res</span><br><span class="line">	<span class="keyword">case</span> <span class="string">"Triangle"</span>:</span><br><span class="line">		res = TriangleFurnitureFactory&#123;&#125;</span><br><span class="line">		<span class="keyword">return</span> res</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 主函数的逻辑</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	a := getFurnitureFactor(<span class="string">"Circle"</span>)</span><br><span class="line">	b := getFurnitureFactor(<span class="string">"Rectangle"</span>)</span><br><span class="line">	c := getFurnitureFactor(<span class="string">"Triangle"</span>)</span><br><span class="line">	fmt.Println(a.MakeChair())</span><br><span class="line">	fmt.Println(a.MakeSofa())</span><br><span class="line">	fmt.Println(a.MakeTable())</span><br><span class="line">	fmt.Println(b.MakeChair())</span><br><span class="line">	fmt.Println(b.MakeSofa())</span><br><span class="line">	fmt.Println(b.MakeTable())</span><br><span class="line">	fmt.Println(c.MakeChair())</span><br><span class="line">	fmt.Println(c.MakeSofa())</span><br><span class="line">	fmt.Println(c.MakeTable())</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>运行结果如下：<br><img src="/2019/10/31/设计模式-抽象工厂/export.png" alt="运行结果"></p>
+<p>运行结果如下：<br><img src="_/export.png" alt="export"></p>
 <h1 id="6-应用场景"><a href="#6-应用场景" class="headerlink" title="6 应用场景"></a>6 应用场景</h1><p>以下情况可以使用<strong>抽象工厂模式</strong>：</p>
 <ul>
 <li>一个系统要独立于它的产品的创建、组合和表示</li>
@@ -312,7 +319,12 @@
 <li>抽象工厂一般基于工厂方法，也可以用原型模式（prototype）实现</li>
 <li>一个具体的工厂通常是单例模式（Singletion）的</li>
 </ul>
-<h1 id="9-reference"><a href="#9-reference" class="headerlink" title="9 reference"></a>9 reference</h1><p>《设计模式》-抽象工厂<br><a href="https://refactoring.guru/design-patterns/abstract-factory" target="_blank" rel="noopener">design-patterns:Abstract Factory</a><br><a href="https://zh.wikipedia.org/wiki/%E6%8A%BD%E8%B1%A1%E5%B7%A5%E5%8E%82" target="_blank" rel="noopener">中文维基：抽象工厂</a><br><a href="https://blog.csdn.net/wangshubo1989/article/details/79270450" target="_blank" rel="noopener">Go实战–Design Patterns in Golang 之工厂模式(简单工厂、工厂方法、抽象工厂)</a>  </p>
+<h1 id="9-reference"><a href="#9-reference" class="headerlink" title="9 reference"></a>9 reference</h1><ol>
+<li>《设计模式》-抽象工厂  </li>
+<li><a href="https://refactoring.guru/design-patterns/abstract-factory" target="_blank" rel="noopener">design-patterns:Abstract Factory</a>  </li>
+<li><a href="https://zh.wikipedia.org/wiki/%E6%8A%BD%E8%B1%A1%E5%B7%A5%E5%8E%82" target="_blank" rel="noopener">中文维基：抽象工厂</a>  </li>
+<li><a href="https://blog.csdn.net/wangshubo1989/article/details/79270450" target="_blank" rel="noopener">Go实战–Design Patterns in Golang 之工厂模式(简单工厂、工厂方法、抽象工厂)</a>  </li>
+</ol>
 
     </div>
 
