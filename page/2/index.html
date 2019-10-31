@@ -204,7 +204,7 @@
   
   
   <div class="post-block home">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/19.密钥管理套接字/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/20.广播/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="nercoeus">
@@ -218,7 +218,7 @@
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
             
-            <a href="/2019/09/25/19.密钥管理套接字/" class="post-title-link" itemprop="url">第19章：密钥管理套接字</a>
+            <a href="/2019/09/25/20.广播/" class="post-title-link" itemprop="url">第20章：广播</a>
           
         </h1>
 
@@ -273,12 +273,72 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h1 id="19-1-概述"><a href="#19-1-概述" class="headerlink" title="19.1 概述"></a>19.1 概述</h1><p>&emsp;&emsp;随着 IP 安全体系结构的引入，私钥体系加密和认证密钥的管理越来越需要一套标准的机制。新创建了一套协议族 PF_KEY 域，在这个密钥管理域中，唯一支持的一种套接字是原始套接字。</p>
-<p>&emsp;&emsp;在普通的 Unix 系统上，密钥管理套接字仅限超级用户有打开的权限。</p>
+          <h1 id="20-1-概述"><a href="#20-1-概述" class="headerlink" title="20.1 概述"></a>20.1 概述</h1><h3 id="emsp-emsp-emsp-emsp-emsp-emsp-emsp-emsp-emsp-不同类型的寻址方式"><a href="#emsp-emsp-emsp-emsp-emsp-emsp-emsp-emsp-emsp-不同类型的寻址方式" class="headerlink" title="&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;不同类型的寻址方式"></a>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;不同类型的寻址方式</h3><table>
+<thead>
+<tr>
+<th>类型</th>
+<th>IPv4</th>
+<th>IPv6</th>
+<th>TCP</th>
+<th>UDP</th>
+<th>所标识接口数</th>
+<th>递送到接口数</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>单播</td>
+<td>√</td>
+<td>√</td>
+<td>√</td>
+<td>√</td>
+<td>一个</td>
+<td>一个</td>
+</tr>
+<tr>
+<td>任播</td>
+<td></td>
+<td>√</td>
+<td>尚没有</td>
+<td>√</td>
+<td>一组</td>
+<td>一组中的一个</td>
+</tr>
+<tr>
+<td>组播</td>
+<td>可选</td>
+<td>√</td>
+<td></td>
+<td>√</td>
+<td>全体</td>
+<td>一组中的全体</td>
+</tr>
+<tr>
+<td>广播</td>
+<td>√</td>
+<td></td>
+<td></td>
+<td>√</td>
+<td>全体</td>
+<td>全体</td>
+</tr>
+</tbody></table>
+<ul>
+<li>组播支持在 IPv4 中是可选的，在 IPv6 中却是必须的</li>
+<li>IPv6 不支持广播。任何使用 IPv4 编写的广播程序，在移植到 IPV6 上要换成组播</li>
+<li>广播和组播要求用于 UDP 或原始 IP，他们不能用于 TCP</li>
+</ul>
+<p>&emsp;&emsp;IPv6 往寻址体系结构中增加了任播方式。任播允许从一组通常提供相同服务的主机中选择一个（一般是最近的一个）通过适当的配置路由，并在多个位置往路由协议中注入同一个地址，多个 IPv4 或 IPv6 主机可以提供该地址的任播服务，任播还在逐步地完善中。<br>&emsp;&emsp;广播的用途之一是在本地子网定位一个服务器主机，前提是已经知道这台服务器主机位于本地子网，但并不知道具体的单播地址。这种操作也称为 <strong>资源发现</strong> 。另一个用途是在有多个客户端与单个服务器主机通信的局域网环境中尽量减少分组流通。处于这个目的使用广播的因特网应用有多个例子：</p>
+<ul>
+<li>ARP：ARP 并不是一个用户应用，而是 IPv4 的基本组成之一。ARP 在本地子网上广播一个请获取想要的硬件地址。ARP 使用在链路层不是 IP 层</li>
+<li>DHCP：在认定本地子网存在一个 DHCP 服务器主机的前提下，DCHP 客户主机向广播地址（通常是 255.255.255.255）发送自己的请求</li>
+<li>NTP：NTR 的一种常见使用情形是客户主机配置上待使用的一个或多个服务器主机的 IP 地址，然后以某个频度轮询这些服务器主机。根据由服务器返回的当前时间和到达服务器的 RTT，客户使用更精妙的算法更新本地时钟</li>
+<li>路由守护进程：route 是最早实现且常用的路由守护进程之一，它在一个局域网上广播自己的路由表。这样一来该局域网所有路由器都可以接受这些路由通告，而无须事先为每个路由器配置其邻居路由的 IP 地址</li>
+</ul>
+<p><strong>组播可以代替广播的这两个用途（资源发现、减少网络分组流通）广播有一定的问题</strong></p>
           <!--noindex-->
           
             <div class="post-button text-center">
-              <a class="btn" href="/2019/09/25/19.密钥管理套接字/#more" rel="contents">
+              <a class="btn" href="/2019/09/25/20.广播/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -512,108 +572,6 @@
   
   
   <div class="post-block home">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/13.守护进程和inetd超级服务器/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="nercoeus">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="nercoeus">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-            
-            <a href="/2019/09/25/13.守护进程和inetd超级服务器/" class="post-title-link" itemprop="url">第13章：守护进程和inetd超级服务器</a>
-          
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              
-                
-              
-
-              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
-            </span>
-          
-            
-
-            
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
-              </span>
-            
-          
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
-
-                
-                
-              
-            </span>
-          
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="13-1-概述"><a href="#13-1-概述" class="headerlink" title="13.1 概述"></a>13.1 概述</h1><p>&emsp;&emsp;<strong>守护进程</strong>：是在后台运行且不与任何控制终端关联的进程。Unix 系统通常有很多守护进程在后台运行（20~50）执行不同的管理任务<br>&emsp;&emsp;守护进程没有终端，通常是因为他们由开机时的脚本进行启动。但是守护进程也可能从某个终端由用户在 shell 提示符下键入命令行进行启动，这样的守护进程必须亲自脱离与控制终端的关联，从而避免与作业控制，终端会话管理，终端产生信号等发生不希望的交互,也防止后台的守护进程输出到终端  </p>
-          <!--noindex-->
-          
-            <div class="post-button text-center">
-              <a class="btn" href="/2019/09/25/13.守护进程和inetd超级服务器/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-          <div class="post-eof"></div>
-        
-      </footer>
-  </div>
-  
-  
-  
-  </article>
-
-    
-        <article itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block home">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/12.IPv4和IPv6的互操作性/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -814,6 +772,108 @@
           
             <div class="post-button text-center">
               <a class="btn" href="/2019/09/25/14.高级IO函数/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+          <div class="post-eof"></div>
+        
+      </footer>
+  </div>
+  
+  
+  
+  </article>
+
+    
+        <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block home">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/13.守护进程和inetd超级服务器/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+            
+            <a href="/2019/09/25/13.守护进程和inetd超级服务器/" class="post-title-link" itemprop="url">第13章：守护进程和inetd超级服务器</a>
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="13-1-概述"><a href="#13-1-概述" class="headerlink" title="13.1 概述"></a>13.1 概述</h1><p>&emsp;&emsp;<strong>守护进程</strong>：是在后台运行且不与任何控制终端关联的进程。Unix 系统通常有很多守护进程在后台运行（20~50）执行不同的管理任务<br>&emsp;&emsp;守护进程没有终端，通常是因为他们由开机时的脚本进行启动。但是守护进程也可能从某个终端由用户在 shell 提示符下键入命令行进行启动，这样的守护进程必须亲自脱离与控制终端的关联，从而避免与作业控制，终端会话管理，终端产生信号等发生不希望的交互,也防止后台的守护进程输出到终端  </p>
+          <!--noindex-->
+          
+            <div class="post-button text-center">
+              <a class="btn" href="/2019/09/25/13.守护进程和inetd超级服务器/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
