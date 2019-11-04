@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="1 外观模式（Facade pattern）外观模式定义：（结构型模式）为子系统中一组接口提供一个一致的界面，Facade 模式定义了一个高层接口，这一接口使得子系统更加容易地进行使用。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="设计模式-外观模式">
+<meta property="og:url" content="http://yoursite.com/2019/11/04/设计模式-外观模式/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="1 外观模式（Facade pattern）外观模式定义：（结构型模式）为子系统中一组接口提供一个一致的界面，Facade 模式定义了一个高层接口，这一接口使得子系统更加容易地进行使用。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2019/11/04/设计模式-外观模式/1.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/04/设计模式-外观模式/2.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/04/设计模式-外观模式/3.png">
+<meta property="og:updated_time" content="2019-11-04T14:06:39.396Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="设计模式-外观模式">
+<meta name="twitter:description" content="1 外观模式（Facade pattern）外观模式定义：（结构型模式）为子系统中一组接口提供一个一致的界面，Facade 模式定义了一个高层接口，这一接口使得子系统更加容易地进行使用。">
+<meta name="twitter:image" content="http://yoursite.com/2019/11/04/设计模式-外观模式/1.png">
+  <link rel="canonical" href="http://yoursite.com/2019/11/04/设计模式-外观模式/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>设计模式-外观模式 | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/04/设计模式-外观模式/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">设计模式-外观模式
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2019-11-04 22:05:09 / 修改时间：22:06:39" itemprop="dateCreated datePublished" datetime="2019-11-04T22:05:09+08:00">2019-11-04</time>
+            </span>
+          
+            
+
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/设计模式/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="1-外观模式（Facade-pattern）"><a href="#1-外观模式（Facade-pattern）" class="headerlink" title="1 外观模式（Facade pattern）"></a>1 外观模式（Facade pattern）</h1><p><strong>外观模式定义</strong>：（结构型模式）为子系统中一组接口提供一个一致的界面，Facade 模式定义了一个高层接口，这一接口使得子系统更加容易地进行使用。</p>
+<a id="more"></a>
+<p><img src="/2019/11/04/设计模式-外观模式/1.png" alt></p>
+<h1 id="2-目标问题"><a href="#2-目标问题" class="headerlink" title="2 目标问题"></a>2 目标问题</h1><p>&emsp;&emsp;加入你要在一个巨大的框架上进行开发。很显然，如果直接使用框架层的对象以及方法是很不明智地。一般大家都会对其进行封装来进行使用，简化它的接口。用来将业务逻辑和框架代码分离开来，会让开发和维护更加容易。</p>
+<h1 id="3-解决方法"><a href="#3-解决方法" class="headerlink" title="3 解决方法"></a>3 解决方法</h1><p>&emsp;&emsp;创建一个类使用外观模式，用来为子系统提供简单易用的接口。一直接使用子系统相比，虽然这个类并没有新的方法，但是它会很好的简化用户对子系统的使用难度。</p>
+<h1 id="4-所有类之间的关系"><a href="#4-所有类之间的关系" class="headerlink" title="4 所有类之间的关系"></a>4 所有类之间的关系</h1><p><img src="/2019/11/04/设计模式-外观模式/2.png" alt></p>
+<ol>
+<li>Facade 接口：知道那些子系统负责处理请求，将客户的请求代理交给适当的子系统对象</li>
+<li>Additional Facade：其他外观用来特化外观的功能，可以对多个子系统进行更好的区分管理</li>
+<li>Complex Subsystem class<ul>
+<li>实现子系统的功能</li>
+<li>处理由 Facade 对象指派的任务</li>
+<li>没有 Facade 的任何相关信息，既没有指向 Facade 的指针</li>
+</ul>
+</li>
+</ol>
+<h1 id="5-代码实现"><a href="#5-代码实现" class="headerlink" title="5 代码实现"></a>5 代码实现</h1><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建新的 facade 层</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">FacadeAPI</span><span class="params">()</span> <span class="title">API</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;FacadeAPIImpl&#123;</span><br><span class="line">		a: NewAClass(),</span><br><span class="line">		b: NewBClass(),</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Facade 提供的 API</span></span><br><span class="line"><span class="keyword">type</span> API <span class="keyword">interface</span> &#123;</span><br><span class="line">	FacadeOutput() <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// Facade 层</span></span><br><span class="line"><span class="keyword">type</span> FacadeAPIImpl <span class="keyword">struct</span> &#123;</span><br><span class="line">	a APIclassA</span><br><span class="line">	b APIclassB</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 实现 Facade 的接口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(f *FacadeAPIImpl)</span> <span class="title">FacadeOutput</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	res1 := f.a.AOutput()</span><br><span class="line">	res2 := f.b.BOutput()</span><br><span class="line">	<span class="keyword">return</span> fmt.Sprintf(<span class="string">"%s\n%s"</span>, res1, res2)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 创建子系统（class A）的对象</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewAClass</span><span class="params">()</span> <span class="title">APIclassA</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;classA&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// class A 的 API</span></span><br><span class="line"><span class="keyword">type</span> APIclassA <span class="keyword">interface</span> &#123;</span><br><span class="line">	AOutput() <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 子系统 A</span></span><br><span class="line"><span class="keyword">type</span> classA <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*classA)</span> <span class="title">AOutput</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="string">"class A output"</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 创建子系统（class B）的对象</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewBClass</span><span class="params">()</span> <span class="title">APIclassB</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;classB&#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// class B 的 API</span></span><br><span class="line"><span class="keyword">type</span> APIclassB <span class="keyword">interface</span> &#123;</span><br><span class="line">	BOutput() <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 子系统 B</span></span><br><span class="line"><span class="keyword">type</span> classB <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*classB)</span> <span class="title">BOutput</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="string">"class B output"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面代码通过 Facade 将 class A 和 class B 进行封装使用</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 客户端逻辑，分别通过 Facade 和直接使用两个子系统来进行调用</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	facadeAPI := FacadeAPI()</span><br><span class="line">	facadeRes := facadeAPI.FacadeOutput()</span><br><span class="line">	a := NewAClass()</span><br><span class="line">	b := NewBClass()</span><br><span class="line">	normalRes := a.AOutput() + <span class="string">"\n"</span> + b.BOutput()</span><br><span class="line">	fmt.Println(<span class="string">"--- facade output ---"</span>)</span><br><span class="line">	fmt.Println(facadeRes)</span><br><span class="line">	fmt.Println(<span class="string">"--- normal output ---"</span>)</span><br><span class="line">	fmt.Println(normalRes)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;运行结果如下，可以看出两种方式的运行结果是相同的,这也表示 Facade 仅仅提供了一层对子系统的封装：<br><img src="/2019/11/04/设计模式-外观模式/3.png" alt></p>
+<h1 id="6-应用场景"><a href="#6-应用场景" class="headerlink" title="6 应用场景"></a>6 应用场景</h1><ul>
+<li>当你要为一个复杂的子系统提供一个简单的接口时。子系统往往因为不断演化而变得越来越复杂，大多数模式使用时都会产生更小的类。这使得子系统更加具有可复用性，更容易对子系统进行定制，但也为那些不需要定制的用户带来困难。Facade 提供一个简易的视图，对大多数用户已经足够，如果需要更细的使用力度越过 Facade 层即可。</li>
+<li>客户程序与抽象类的实现部分之间存在很大的依赖性。引入 Facade 将这个子系统与客户以及其他的子系统进行分离，可以提高系统的独立性和可移植性。</li>
+<li>当您要将子系统构建为多层时，使用外观模式减少各层之间的耦合程度。</li>
+</ul>
+<h1 id="7-优缺点"><a href="#7-优缺点" class="headerlink" title="7 优缺点"></a>7 优缺点</h1><h2 id="7-1-优点"><a href="#7-1-优点" class="headerlink" title="7.1 优点"></a>7.1 优点</h2><ul>
+<li>可以将代码与子系统的复杂性隔离，屏蔽了子系统的组件。使子系统使用起来更加简单</li>
+<li>它实现了用户与子系统的松耦合关系。而子系统内部的功能组件往往是紧耦合的，这使得子系统内部进行改变并不会影响用户逻辑代码</li>
+<li>如果用户需要，并不会限制他们使用子系统类。因此你可以根据自己的需要判断是否需要越过 Facade 层<h2 id="7-2-缺点"><a href="#7-2-缺点" class="headerlink" title="7.2 缺点"></a>7.2 缺点</h2></li>
+<li>不能很好地限制客户使用子系统类，如果对客户访问子系统类做太多的限制则减少了可变性和灵活性</li>
+<li>在不引入抽象外观类的情况下，增加新的子系统可能需要修改外观类或客户端的源代码，违背了“开闭原则”</li>
+</ul>
+<h1 id="8-相关模式"><a href="#8-相关模式" class="headerlink" title="8 相关模式"></a>8 相关模式</h1><ul>
+<li>抽象工厂可以和外观模式一起使用，提供一个接口，用来创建用户所需的对象。</li>
+<li>通常 Facade 是单例模式的</li>
+</ul>
+<h1 id="9-reference"><a href="#9-reference" class="headerlink" title="9 reference"></a>9 reference</h1><p>《设计模式》-外观模式<br><a href="https://refactoring.guru/design-patterns/facade" target="_blank" rel="noopener">design-patterns:Facade pattern</a></p>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/11/04/设计模式-装饰模式/" rel="next" title="设计模式-装饰模式">
+                  <i class="fa fa-chevron-left"></i> 设计模式-装饰模式
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-外观模式（Facade-pattern）"><span class="nav-text">1 外观模式（Facade pattern）</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-目标问题"><span class="nav-text">2 目标问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-解决方法"><span class="nav-text">3 解决方法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-所有类之间的关系"><span class="nav-text">4 所有类之间的关系</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-代码实现"><span class="nav-text">5 代码实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#6-应用场景"><span class="nav-text">6 应用场景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#7-优缺点"><span class="nav-text">7 优缺点</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#7-1-优点"><span class="nav-text">7.1 优点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-2-缺点"><span class="nav-text">7.2 缺点</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-相关模式"><span class="nav-text">8 相关模式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#9-reference"><span class="nav-text">9 reference</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">32</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

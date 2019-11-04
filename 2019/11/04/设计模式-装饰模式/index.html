@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="1 装饰模式（Decorator pattern）装饰模式定义：（结构型模式）动态的给一个对象添加一些额外的职责。虽然和使用子类来增加功能类似，但是使用装饰模式更加的灵活。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="设计模式-装饰模式">
+<meta property="og:url" content="http://yoursite.com/2019/11/04/设计模式-装饰模式/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="1 装饰模式（Decorator pattern）装饰模式定义：（结构型模式）动态的给一个对象添加一些额外的职责。虽然和使用子类来增加功能类似，但是使用装饰模式更加的灵活。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2019/11/04/设计模式-装饰模式/1.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/04/设计模式-装饰模式/2.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/04/设计模式-装饰模式/3.png">
+<meta property="og:updated_time" content="2019-11-04T14:04:45.741Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="设计模式-装饰模式">
+<meta name="twitter:description" content="1 装饰模式（Decorator pattern）装饰模式定义：（结构型模式）动态的给一个对象添加一些额外的职责。虽然和使用子类来增加功能类似，但是使用装饰模式更加的灵活。">
+<meta name="twitter:image" content="http://yoursite.com/2019/11/04/设计模式-装饰模式/1.png">
+  <link rel="canonical" href="http://yoursite.com/2019/11/04/设计模式-装饰模式/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>设计模式-装饰模式 | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/04/设计模式-装饰模式/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">设计模式-装饰模式
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2019-11-04 22:03:26 / 修改时间：22:04:45" itemprop="dateCreated datePublished" datetime="2019-11-04T22:03:26+08:00">2019-11-04</time>
+            </span>
+          
+            
+
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/设计模式/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="1-装饰模式（Decorator-pattern）"><a href="#1-装饰模式（Decorator-pattern）" class="headerlink" title="1 装饰模式（Decorator pattern）"></a>1 装饰模式（Decorator pattern）</h1><p><strong>装饰模式定义</strong>：（结构型模式）动态的给一个对象添加一些额外的职责。虽然和使用子类来增加功能类似，但是使用装饰模式更加的灵活。</p>
+<a id="more"></a>
+<p><img src="/2019/11/04/设计模式-装饰模式/1.png" alt></p>
+<h1 id="2-目标问题"><a href="#2-目标问题" class="headerlink" title="2 目标问题"></a>2 目标问题</h1><p>&emsp;&emsp;有时我们希望给某一个对象添加一些功能。例如，一个用户图形界面工具箱可以让你对任意用户界面组件添加一些特性（例如目录，滑动条等），或是一些行为（窗口滑动等）。<br>&emsp;&emsp;使用继承是添加功能的一种方式，但这种方法并不够灵活，因为附加组件是静态的并不是由用户控制的，我们希望用户可以自由选择添加特性或行为的时机和方式。</p>
+<h1 id="3-解决方法"><a href="#3-解决方法" class="headerlink" title="3 解决方法"></a>3 解决方法</h1><p>&emsp;&emsp;将组件嵌入到另一个对象之中，有这个对象进行特性和行为的添加控制。这个用来添加的对象就是装饰（Decorator）这个装饰和它所包含的接口一致，因此它对使用该组件的客户来说是透明的。它除了对特性和行为的控制之外，要做的仅仅是把客户的调用传递给这个组件即可。可以了解，因为装饰对用户来说是透明的，所以我们可以添加任意多的装饰。</p>
+<h1 id="4-所有类之间的关系"><a href="#4-所有类之间的关系" class="headerlink" title="4 所有类之间的关系"></a>4 所有类之间的关系</h1><p><img src="/2019/11/04/设计模式-装饰模式/2.png" alt></p>
+<ol>
+<li>Component 接口：定义一个对象接口，可以给这些对象动态的添加特性和行为</li>
+<li>Concrete Component 类：定义一个对象，可以给这个对象添加一些特性和行为</li>
+<li>Base Decorator：维持一个指向 Component 对象的指针，并定义一个与 Component 接口一致的接口</li>
+<li>Concrete Decorator：接口的具体实现。可以实现多个，并进行嵌套。用来动态的给对象添加特性和行为</li>
+</ol>
+<h1 id="5-代码实现"><a href="#5-代码实现" class="headerlink" title="5 代码实现"></a>5 代码实现</h1><p>&emsp;&emsp;在 Go 中通过使用非入侵式接口和匿名组合可以很简单的就实现装饰模式，框架如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Component 对象接口定义，装饰层和对象层都需要实现该接口</span></span><br><span class="line"><span class="keyword">type</span> Component <span class="keyword">interface</span> &#123;</span><br><span class="line">	Output() <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 装饰的对象</span></span><br><span class="line"><span class="keyword">type</span> ConcreteComponent <span class="keyword">struct</span> &#123;</span><br><span class="line">	base <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 对象实现 Component 接口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *ConcreteComponent)</span> <span class="title">Output</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> c.base</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 装饰层 A</span></span><br><span class="line"><span class="keyword">type</span> BaseDecoratorA <span class="keyword">struct</span> &#123;</span><br><span class="line">	Component</span><br><span class="line">	S <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 运行时用来给对象添加特性和行为</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">AddDecoratorA</span><span class="params">(c Component, s <span class="keyword">string</span>)</span> <span class="title">Component</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;BaseDecoratorA&#123;</span><br><span class="line">		Component: c,</span><br><span class="line">		S:         s,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 装饰层实现对象接口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *BaseDecoratorA)</span> <span class="title">Output</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> d.Component.Output() + <span class="string">"\n"</span> + d.S</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 装饰层 B</span></span><br><span class="line"><span class="keyword">type</span> BaseDecoratorB <span class="keyword">struct</span> &#123;</span><br><span class="line">	Component</span><br><span class="line">	S <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 运行时用来给对象添加特性和行为</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">AddDecoratorB</span><span class="params">(c Component, s <span class="keyword">string</span>)</span> <span class="title">Component</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;BaseDecoratorB&#123;</span><br><span class="line">		Component: c,</span><br><span class="line">		S:         s,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 装饰层实现对象接口</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *BaseDecoratorB)</span> <span class="title">Output</span><span class="params">()</span> <span class="title">string</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> d.Component.Output() + <span class="string">"\n"</span> + d.S</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 用户逻辑代码，动态添加两层装饰</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> c Component = &amp;ConcreteComponent&#123;</span><br><span class="line">		base: <span class="string">"base part"</span>,</span><br><span class="line">	&#125;</span><br><span class="line">	c = AddDecoratorA(c, <span class="string">"Add Decorator A"</span>)</span><br><span class="line">	c = AddDecoratorB(c, <span class="string">"Add Decorator B"</span>)</span><br><span class="line">	s := c.Output()</span><br><span class="line">	fmt.Println(s)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>运行结果如下：<br><img src="/2019/11/04/设计模式-装饰模式/3.png" alt></p>
+<h1 id="6-应用场景"><a href="#6-应用场景" class="headerlink" title="6 应用场景"></a>6 应用场景</h1><ul>
+<li>在不影响其他对象的情况下，以动态、透明的方式给单个对象添加特性和行为</li>
+<li>需要动态地给一个对象增加特性和行为，这些功能也可以动态地被撤销</li>
+</ul>
+<h1 id="7-优缺点"><a href="#7-优缺点" class="headerlink" title="7 优缺点"></a>7 优缺点</h1><h2 id="7-1-优点"><a href="#7-1-优点" class="headerlink" title="7.1 优点"></a>7.1 优点</h2><ul>
+<li>装饰模式与继承关系的目的都是要扩展目标对象的功能，但是装饰模式可以在不创建新的子类的前提下完成，拥有更大的灵活性</li>
+<li>可以在运行时从对象添加或者删除职责</li>
+<li>通过使用不同的具体装饰类以及这些装饰类的排列组合，可以创造出很多不同行为的组合。可以使用多个具体装饰类来装饰同一对象，得到功能更为强大的对象</li>
+<li>具体构件类与具体装饰类可以独立变化，用户可以根据需要增加新的具体构件类和具体装饰类，在使用时再对其进行组合，原有代码无须改变，符合“开放/封闭原则”</li>
+</ul>
+<h2 id="7-2-缺点"><a href="#7-2-缺点" class="headerlink" title="7.2 缺点"></a>7.2 缺点</h2><ul>
+<li>使用装饰模式进行系统设计时将产生很多小对象，这些对象的区别在于它们之间相互连接的方式有所不同，而不是它们的类或者属性值有所不同，同时还将产生很多具体装饰类。这些装饰类和小对象的产生将增加系统的复杂度，加大学习与理解的难度</li>
+<li>这种比继承更加灵活机动的特性，也同时意味着装饰模式比继承更加易于出错，排错也很困难，对于多次装饰的对象，调试时寻找错误可能需要逐级排查，较为烦琐</li>
+</ul>
+<h1 id="8-相关模式"><a href="#8-相关模式" class="headerlink" title="8 相关模式"></a>8 相关模式</h1><ul>
+<li>相比于适配器模式：装饰模式提供新的功能，适配器模式则是实现了完全不同的接口</li>
+<li>可以将装饰模式看作仅有一个组件的组合模式。但是装饰模式和组合模式还是有本质区别的，装饰模式目的是给对象添加特性和方法，而组合模式是为了聚合组件</li>
+</ul>
+<h1 id="9-reference"><a href="#9-reference" class="headerlink" title="9 reference"></a>9 reference</h1><p>《设计模式》-装饰模式<br><a href="https://refactoring.guru/design-patterns/decorator" target="_blank" rel="noopener">design-patterns:Decorator pattern</a><br><a href="https://design-patterns.readthedocs.io/zh_CN/latest/structural_patterns/decorator.html" target="_blank" rel="noopener">关于装饰模式的总结部分很不错</a></p>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/11/04/设计模式-组合模式/" rel="next" title="设计模式-组合模式">
+                  <i class="fa fa-chevron-left"></i> 设计模式-组合模式
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2019/11/04/设计模式-外观模式/" rel="prev" title="设计模式-外观模式">
+                  设计模式-外观模式 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-装饰模式（Decorator-pattern）"><span class="nav-text">1 装饰模式（Decorator pattern）</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-目标问题"><span class="nav-text">2 目标问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-解决方法"><span class="nav-text">3 解决方法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-所有类之间的关系"><span class="nav-text">4 所有类之间的关系</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-代码实现"><span class="nav-text">5 代码实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#6-应用场景"><span class="nav-text">6 应用场景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#7-优缺点"><span class="nav-text">7 优缺点</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#7-1-优点"><span class="nav-text">7.1 优点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-2-缺点"><span class="nav-text">7.2 缺点</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-相关模式"><span class="nav-text">8 相关模式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#9-reference"><span class="nav-text">9 reference</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">32</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>
