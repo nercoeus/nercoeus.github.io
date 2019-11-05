@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="1 职责链模式（Chain of Responsibility pattern）职责链模式定义：（对象行为型模式）使多个对象都有机会处理请求，从而避免请求的发送者和接收者之间的耦合关系。将这些对象连成一条链，并沿着这条链传递该请求，直到有一个对象处理它为止. 职责链要点如下：  有多个对象共同对一个任务进行处理 所有对象呈现链状进行连接起来 一个对象处理一个任务的一部分，或者全部执行完 客户端负责">
+<meta property="og:type" content="article">
+<meta property="og:title" content="设计模式-职责链模式">
+<meta property="og:url" content="http://yoursite.com/2019/11/05/设计模式-职责链模式/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="1 职责链模式（Chain of Responsibility pattern）职责链模式定义：（对象行为型模式）使多个对象都有机会处理请求，从而避免请求的发送者和接收者之间的耦合关系。将这些对象连成一条链，并沿着这条链传递该请求，直到有一个对象处理它为止. 职责链要点如下：  有多个对象共同对一个任务进行处理 所有对象呈现链状进行连接起来 一个对象处理一个任务的一部分，或者全部执行完 客户端负责">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2019/11/05/设计模式-职责链模式/1.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/05/设计模式-职责链模式/2.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/05/设计模式-职责链模式/3.png">
+<meta property="og:updated_time" content="2019-11-05T12:35:58.419Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="设计模式-职责链模式">
+<meta name="twitter:description" content="1 职责链模式（Chain of Responsibility pattern）职责链模式定义：（对象行为型模式）使多个对象都有机会处理请求，从而避免请求的发送者和接收者之间的耦合关系。将这些对象连成一条链，并沿着这条链传递该请求，直到有一个对象处理它为止. 职责链要点如下：  有多个对象共同对一个任务进行处理 所有对象呈现链状进行连接起来 一个对象处理一个任务的一部分，或者全部执行完 客户端负责">
+<meta name="twitter:image" content="http://yoursite.com/2019/11/05/设计模式-职责链模式/1.png">
+  <link rel="canonical" href="http://yoursite.com/2019/11/05/设计模式-职责链模式/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>设计模式-职责链模式 | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/05/设计模式-职责链模式/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">设计模式-职责链模式
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2019-11-05 20:29:09 / 修改时间：20:35:58" itemprop="dateCreated datePublished" datetime="2019-11-05T20:29:09+08:00">2019-11-05</time>
+            </span>
+          
+            
+
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/设计模式/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="1-职责链模式（Chain-of-Responsibility-pattern）"><a href="#1-职责链模式（Chain-of-Responsibility-pattern）" class="headerlink" title="1 职责链模式（Chain of Responsibility pattern）"></a>1 职责链模式（Chain of Responsibility pattern）</h1><p><strong>职责链模式定义</strong>：（对象行为型模式）使多个对象都有机会处理请求，从而避免请求的发送者和接收者之间的耦合关系。将这些对象连成一条链，并沿着这条链传递该请求，直到有一个对象处理它为止.</p>
+<p>职责链要点如下：</p>
+<ul>
+<li>有多个对象共同对一个任务进行处理</li>
+<li>所有对象呈现链状进行连接起来</li>
+<li>一个对象处理一个任务的一部分，或者全部执行完</li>
+<li>客户端负责这个链状结构的构建，但是客户端并不关心任务的交给那个服务端进行处理<a id="more"></a>
+<img src="/2019/11/05/设计模式-职责链模式/1.png" alt></li>
+</ul>
+<h1 id="2-目标问题"><a href="#2-目标问题" class="headerlink" title="2 目标问题"></a>2 目标问题</h1><p>&emsp;&emsp;当一个工程中处理一项任务的流程过于繁琐，随着功能的堆砌产生了大量复杂混乱的逻辑，这个时候需要通过一种结构来梳理整个任务的处理流程。</p>
+<h1 id="3-解决方法"><a href="#3-解决方法" class="headerlink" title="3 解决方法"></a>3 解决方法</h1><p>&emsp;&emsp;使用职责链模式创建一系列处理任务的节点。可以类似于流水线的操作，也可以类似于多个 if else 串联起来的操作均可，可以很好的将整个任务分类细化并进行处理。</p>
+<h1 id="4-所有类之间的关系"><a href="#4-所有类之间的关系" class="headerlink" title="4 所有类之间的关系"></a>4 所有类之间的关系</h1><p><img src="/2019/11/05/设计模式-职责链模式/2.png" alt></p>
+<ol>
+<li>Handler 接口：<ul>
+<li>所有处理任务节点遵循的接口</li>
+<li>通常包含当前节点处理任务的方法，可能还存在一个方法用来设置下一个处理程序</li>
+</ul>
+</li>
+<li>BaseHandle 类：<ul>
+<li>可选的通用处理节点类</li>
+</ul>
+</li>
+<li>ConcreteHandlers 类：<ul>
+<li>包含用来处理任务的实际代码。收到请求之后，每个处理程序都必须决定是否对其进行处理，并且判断是沿着链进行传递</li>
+</ul>
+</li>
+<li>Client：用户逻辑<ul>
+<li>由用户进行任务处理链表的组装</li>
+</ul>
+</li>
+</ol>
+<h1 id="5-代码实现"><a href="#5-代码实现" class="headerlink" title="5 代码实现"></a>5 代码实现</h1><p>&emsp;&emsp;下面这个例子构建了三个执行节点，分别是 ProjectManager，DepManager，GeneralManager。通过链表串联起来，接下来层层执行，再根据对应的判断标准，给出答复。</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 所以节点遵循的接口</span></span><br><span class="line"><span class="keyword">type</span> Manager <span class="keyword">interface</span> &#123;</span><br><span class="line">	HaveRight(money <span class="keyword">int</span>) <span class="keyword">bool</span></span><br><span class="line">	HandleFeeRequest(name <span class="keyword">string</span>, money <span class="keyword">int</span>) <span class="keyword">bool</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 链表节点类</span></span><br><span class="line"><span class="keyword">type</span> RequestChain <span class="keyword">struct</span> &#123;</span><br><span class="line">	Manager</span><br><span class="line">	successor *RequestChain</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 设置下一节点</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *RequestChain)</span> <span class="title">SetSuccessor</span><span class="params">(m *RequestChain)</span></span> &#123;</span><br><span class="line">	r.successor = m</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 处理当前节点判断逻辑</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *RequestChain)</span> <span class="title">HandleFeeRequest</span><span class="params">(name <span class="keyword">string</span>, money <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> r.Manager.HaveRight(money) &#123;</span><br><span class="line">		<span class="keyword">return</span> r.Manager.HandleFeeRequest(name, money)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> r.successor != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> r.successor.HandleFeeRequest(name, money)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 默认是否可以进入下一节点</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(r *RequestChain)</span> <span class="title">HaveRight</span><span class="params">(money <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 第一种节点</span></span><br><span class="line"><span class="keyword">type</span> ProjectManager <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"><span class="comment">// 创建第一种节点的工厂函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewProjectManagerChain</span><span class="params">()</span> *<span class="title">RequestChain</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;RequestChain&#123;</span><br><span class="line">		Manager: &amp;ProjectManager&#123;&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 通过条件</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*ProjectManager)</span> <span class="title">HaveRight</span><span class="params">(money <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> money &lt; <span class="number">500</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 在该节点进行处理</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*ProjectManager)</span> <span class="title">HandleFeeRequest</span><span class="params">(name <span class="keyword">string</span>, money <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> name == <span class="string">"bob"</span> &#123;</span><br><span class="line">		fmt.Printf(<span class="string">"Project manager permit %s %d fee request\n"</span>, name, money)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Printf(<span class="string">"Project manager don't permit %s %d fee request\n"</span>, name, money)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 第二种节点</span></span><br><span class="line"><span class="keyword">type</span> DepManager <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"><span class="comment">// 创建第二种节点的工厂函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewDepManagerChain</span><span class="params">()</span> *<span class="title">RequestChain</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;RequestChain&#123;</span><br><span class="line">		Manager: &amp;DepManager&#123;&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 通过条件</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*DepManager)</span> <span class="title">HaveRight</span><span class="params">(money <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> money &lt; <span class="number">5000</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 在该节点进行处理</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*DepManager)</span> <span class="title">HandleFeeRequest</span><span class="params">(name <span class="keyword">string</span>, money <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> name == <span class="string">"tom"</span> &#123;</span><br><span class="line">		fmt.Printf(<span class="string">"Dep manager permit %s %d fee request\n"</span>, name, money)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Printf(<span class="string">"Dep manager don't permit %s %d fee request\n"</span>, name, money)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 第三种节点</span></span><br><span class="line"><span class="keyword">type</span> GeneralManager <span class="keyword">struct</span>&#123;&#125;</span><br><span class="line"><span class="comment">// 创建第三种节点的工厂函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewGeneralManagerChain</span><span class="params">()</span> *<span class="title">RequestChain</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> &amp;RequestChain&#123;</span><br><span class="line">		Manager: &amp;GeneralManager&#123;&#125;,</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 通过条件</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*GeneralManager)</span> <span class="title">HaveRight</span><span class="params">(money <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 在该节点进行处理</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*GeneralManager)</span> <span class="title">HandleFeeRequest</span><span class="params">(name <span class="keyword">string</span>, money <span class="keyword">int</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> name == <span class="string">"ada"</span> &#123;</span><br><span class="line">		fmt.Printf(<span class="string">"General manager permit %s %d fee request\n"</span>, name, money)</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">true</span></span><br><span class="line">	&#125;</span><br><span class="line">	fmt.Printf(<span class="string">"General manager don't permit %s %d fee request\n"</span>, name, money)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 用户进行链表的创建，但是并不关系在链表中的执行流程，仅仅获取执行的结果即可</span></span><br><span class="line"><span class="comment">// 这里构建了 ProjectManager -&gt; DepManager -&gt; GeneralManager 的执行链表</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">    <span class="comment">// 创建职责链的各个节点</span></span><br><span class="line">	c1 := NewProjectManagerChain()</span><br><span class="line">	c2 := NewDepManagerChain()</span><br><span class="line">	c3 := NewGeneralManagerChain()</span><br><span class="line">    <span class="comment">// 将整个链表连接起来</span></span><br><span class="line">	c1.SetSuccessor(c2)</span><br><span class="line">	c2.SetSuccessor(c3)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> c Manager = c1</span><br><span class="line">    <span class="comment">// 从链表开始进行任务的处理</span></span><br><span class="line">	c.HandleFeeRequest(<span class="string">"bob"</span>, <span class="number">400</span>)</span><br><span class="line">	c.HandleFeeRequest(<span class="string">"tom"</span>, <span class="number">1400</span>)</span><br><span class="line">	c.HandleFeeRequest(<span class="string">"ada"</span>, <span class="number">10000</span>)</span><br><span class="line">	c.HandleFeeRequest(<span class="string">"floar"</span>, <span class="number">400</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>运行结果如下：<br><img src="/2019/11/05/设计模式-职责链模式/3.png" alt></p>
+<h1 id="6-应用场景"><a href="#6-应用场景" class="headerlink" title="6 应用场景"></a>6 应用场景</h1><ul>
+<li>当期望程序以各种方式处理不同类型的请求时，请使用职责链模式，但是确切的请求类型及其顺序事先未知</li>
+<li>当必须按特定顺序执行多个处理程序时，使用职责链模式</li>
+<li>当用户想在运行时更改一组处理程序及其顺序时，使用职责链模式</li>
+</ul>
+<h1 id="7-优缺点"><a href="#7-优缺点" class="headerlink" title="7 优缺点"></a>7 优缺点</h1><h2 id="7-1-优点"><a href="#7-1-优点" class="headerlink" title="7.1 优点"></a>7.1 优点</h2><ul>
+<li>用户可以自行控制请求处理的顺序</li>
+<li>单一责任原则。用户可以将调用操作的类与执行操作的类分离</li>
+<li>开放/封闭原则。用户可以在不破坏现有客户端代码的情况下向应用程序引入新的处理程序（链表节点）</li>
+</ul>
+<h2 id="7-2-缺点"><a href="#7-2-缺点" class="headerlink" title="7.2 缺点"></a>7.2 缺点</h2><ul>
+<li>会产生很多细粒度的对象，因为将一个任务的处理步骤进行了细化，各个对象功能较为单一</li>
+<li>某些请求可能最终无法处理。即可能整个链表不存在处理某一任务的情况。这需要注意提供 default 处理</li>
+</ul>
+<h1 id="8-相关模式"><a href="#8-相关模式" class="headerlink" title="8 相关模式"></a>8 相关模式</h1><ul>
+<li>责任链通常与组合模式结合使用。这种情况下，当叶组件获得请求时，它可以将其通过所有父组件链向下一直传递到对象树的根进行处理</li>
+<li>责任链中的处理程序可以实现为命令。这种情况下，可以在由请求表示的同一上下文对象上执行许多不同的操作</li>
+</ul>
+<h1 id="9-reference"><a href="#9-reference" class="headerlink" title="9 reference"></a>9 reference</h1><ol>
+<li>《设计模式》-职责链模</li>
+<li><a href="https://refactoring.guru/design-patterns/chain-of-responsibility" target="_blank" rel="noopener">design-patterns:chain-of-responsibility pattern</a></li>
+<li><a href="https://github.com/senghoo/golang-design-pattern/tree/master/21_chain_of_responsibility" target="_blank" rel="noopener">本节例子来源</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2019/11/05/设计模式-代理模式/" rel="next" title="设计模式-代理模式">
+                  <i class="fa fa-chevron-left"></i> 设计模式-代理模式
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2019/11/05/设计模式-命令模式/" rel="prev" title="设计模式-命令模式">
+                  设计模式-命令模式 <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-职责链模式（Chain-of-Responsibility-pattern）"><span class="nav-text">1 职责链模式（Chain of Responsibility pattern）</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-目标问题"><span class="nav-text">2 目标问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-解决方法"><span class="nav-text">3 解决方法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-所有类之间的关系"><span class="nav-text">4 所有类之间的关系</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-代码实现"><span class="nav-text">5 代码实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#6-应用场景"><span class="nav-text">6 应用场景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#7-优缺点"><span class="nav-text">7 优缺点</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#7-1-优点"><span class="nav-text">7.1 优点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-2-缺点"><span class="nav-text">7.2 缺点</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-相关模式"><span class="nav-text">8 相关模式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#9-reference"><span class="nav-text">9 reference</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">36</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>
