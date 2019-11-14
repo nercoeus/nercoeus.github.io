@@ -56,20 +56,20 @@
   };
 </script>
 
-  <meta name="description" content="1 模板方法模式（Tempplate Method pattern）模板方法模式定义：（对象行为型模式）定义一个操作中的算法的骨架，而将一些步骤延迟到子类中去。模板方法模式使得子类可以不改变一个算法的结构图即可重定义该算法的某些特定步骤。">
+  <meta name="description" content="1 模板方法模式（Template Method pattern）模板方法模式定义：（对象行为型模式）定义一个操作中的算法的骨架，而将一些步骤延迟到子类中去。模板方法模式使得子类可以不改变一个算法的结构图即可重定义该算法的某些特定步骤。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="设计模式-模板方法模式">
 <meta property="og:url" content="http://yoursite.com/2019/11/14/设计模式-模板方法模式/index.html">
 <meta property="og:site_name" content="nercoeus">
-<meta property="og:description" content="1 模板方法模式（Tempplate Method pattern）模板方法模式定义：（对象行为型模式）定义一个操作中的算法的骨架，而将一些步骤延迟到子类中去。模板方法模式使得子类可以不改变一个算法的结构图即可重定义该算法的某些特定步骤。">
+<meta property="og:description" content="1 模板方法模式（Template Method pattern）模板方法模式定义：（对象行为型模式）定义一个操作中的算法的骨架，而将一些步骤延迟到子类中去。模板方法模式使得子类可以不改变一个算法的结构图即可重定义该算法的某些特定步骤。">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2019/11/14/设计模式-模板方法模式/1.png">
 <meta property="og:image" content="http://yoursite.com/2019/11/14/设计模式-模板方法模式/2.png">
 <meta property="og:image" content="http://yoursite.com/2019/11/14/设计模式-模板方法模式/3.png">
-<meta property="og:updated_time" content="2019-11-14T13:23:12.709Z">
+<meta property="og:updated_time" content="2019-11-14T13:29:05.450Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="设计模式-模板方法模式">
-<meta name="twitter:description" content="1 模板方法模式（Tempplate Method pattern）模板方法模式定义：（对象行为型模式）定义一个操作中的算法的骨架，而将一些步骤延迟到子类中去。模板方法模式使得子类可以不改变一个算法的结构图即可重定义该算法的某些特定步骤。">
+<meta name="twitter:description" content="1 模板方法模式（Template Method pattern）模板方法模式定义：（对象行为型模式）定义一个操作中的算法的骨架，而将一些步骤延迟到子类中去。模板方法模式使得子类可以不改变一个算法的结构图即可重定义该算法的某些特定步骤。">
 <meta name="twitter:image" content="http://yoursite.com/2019/11/14/设计模式-模板方法模式/1.png">
   <link rel="canonical" href="http://yoursite.com/2019/11/14/设计模式-模板方法模式/">
 
@@ -241,7 +241,7 @@
                 
               
 
-              <time title="创建时间：2019-11-14 21:09:42 / 修改时间：21:23:12" itemprop="dateCreated datePublished" datetime="2019-11-14T21:09:42+08:00">2019-11-14</time>
+              <time title="创建时间：2019-11-14 21:09:42 / 修改时间：21:29:05" itemprop="dateCreated datePublished" datetime="2019-11-14T21:09:42+08:00">2019-11-14</time>
             </span>
           
             
@@ -273,7 +273,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h1 id="1-模板方法模式（Tempplate-Method-pattern）"><a href="#1-模板方法模式（Tempplate-Method-pattern）" class="headerlink" title="1 模板方法模式（Tempplate Method pattern）"></a>1 模板方法模式（Tempplate Method pattern）</h1><p><strong>模板方法模式定义</strong>：（对象行为型模式）定义一个操作中的算法的骨架，而将一些步骤延迟到子类中去。模板方法模式使得子类可以不改变一个算法的结构图即可重定义该算法的某些特定步骤。</p>
+        <h1 id="1-模板方法模式（Template-Method-pattern）"><a href="#1-模板方法模式（Template-Method-pattern）" class="headerlink" title="1 模板方法模式（Template Method pattern）"></a>1 模板方法模式（Template Method pattern）</h1><p><strong>模板方法模式定义</strong>：（对象行为型模式）定义一个操作中的算法的骨架，而将一些步骤延迟到子类中去。模板方法模式使得子类可以不改变一个算法的结构图即可重定义该算法的某些特定步骤。</p>
 <a id="more"></a>
 <p><img src="/2019/11/14/设计模式-模板方法模式/1.png" alt></p>
 <h1 id="2-目标问题"><a href="#2-目标问题" class="headerlink" title="2 目标问题"></a>2 目标问题</h1><p>&emsp;&emsp;你需要构建一个分析各种文档的程序，文档的种类包括：word、txt、pdf、markdown 等等。你需要从各种文档中提取出有价值的数据，并进行处理。<br>&emsp;&emsp;首先你先完成了对 word 文档的处理，包括文件的解析，数据的读取，数据的提取，数据的分析，分析结果的记录。接下来你有依次为这个程序添加了其余几种格式的支持。<br>&emsp;&emsp;等到系统完成就会发现其实不同的格式之间存在许多的相似代码。尽管在所有类中用于处理各种数据格式的代码完全不同，但是用于数据处理和分析的代码几乎完全相同。我们可以把整个算法的逻辑独立出来，可以防止代码变得过于繁杂。</p>
@@ -389,7 +389,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-模板方法模式（Tempplate-Method-pattern）"><span class="nav-text">1 模板方法模式（Tempplate Method pattern）</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-目标问题"><span class="nav-text">2 目标问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-解决方法"><span class="nav-text">3 解决方法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-所有类之间的关系"><span class="nav-text">4 所有类之间的关系</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-代码实现"><span class="nav-text">5 代码实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#6-应用场景"><span class="nav-text">6 应用场景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#7-优缺点"><span class="nav-text">7 优缺点</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#7-1-优点"><span class="nav-text">7.1 优点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-2-缺点"><span class="nav-text">7.2 缺点</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-相关模式"><span class="nav-text">8 相关模式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#9-reference"><span class="nav-text">9 reference</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-模板方法模式（Template-Method-pattern）"><span class="nav-text">1 模板方法模式（Template Method pattern）</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-目标问题"><span class="nav-text">2 目标问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-解决方法"><span class="nav-text">3 解决方法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-所有类之间的关系"><span class="nav-text">4 所有类之间的关系</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-代码实现"><span class="nav-text">5 代码实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#6-应用场景"><span class="nav-text">6 应用场景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#7-优缺点"><span class="nav-text">7 优缺点</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#7-1-优点"><span class="nav-text">7.1 优点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-2-缺点"><span class="nav-text">7.2 缺点</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-相关模式"><span class="nav-text">8 相关模式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#9-reference"><span class="nav-text">9 reference</span></a></li></ol></div>
         
       </div>
       <!--/noindex-->
