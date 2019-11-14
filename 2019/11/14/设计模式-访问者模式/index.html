@@ -56,18 +56,22 @@
   };
 </script>
 
-  <meta name="description" content="19.1 概述&amp;emsp;&amp;emsp;随着 IP 安全体系结构的引入，私钥体系加密和认证密钥的管理越来越需要一套标准的机制。新创建了一套协议族 PF_KEY 域，在这个密钥管理域中，唯一支持的一种套接字是原始套接字。 &amp;emsp;&amp;emsp;在普通的 Unix 系统上，密钥管理套接字仅限超级用户有打开的权限。">
+  <meta name="description" content="1 访问者模式（Visitor pattern）访问者模式定义：（对象行为型模式）表示一个作用域某对象的结构中的各元素的操作。他是你可以在不改变各元素的类的前提下定义作用于这些元素的新操作。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="第19章：密钥管理套接字">
-<meta property="og:url" content="http://yoursite.com/2019/09/25/19.密钥管理套接字/index.html">
+<meta property="og:title" content="设计模式-访问者模式">
+<meta property="og:url" content="http://yoursite.com/2019/11/14/设计模式-访问者模式/index.html">
 <meta property="og:site_name" content="nercoeus">
-<meta property="og:description" content="19.1 概述&amp;emsp;&amp;emsp;随着 IP 安全体系结构的引入，私钥体系加密和认证密钥的管理越来越需要一套标准的机制。新创建了一套协议族 PF_KEY 域，在这个密钥管理域中，唯一支持的一种套接字是原始套接字。 &amp;emsp;&amp;emsp;在普通的 Unix 系统上，密钥管理套接字仅限超级用户有打开的权限。">
+<meta property="og:description" content="1 访问者模式（Visitor pattern）访问者模式定义：（对象行为型模式）表示一个作用域某对象的结构中的各元素的操作。他是你可以在不改变各元素的类的前提下定义作用于这些元素的新操作。">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2019-09-28T08:46:38.258Z">
+<meta property="og:image" content="http://yoursite.com/2019/11/14/设计模式-访问者模式/1.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/14/设计模式-访问者模式/2.png">
+<meta property="og:image" content="http://yoursite.com/2019/11/14/设计模式-访问者模式/3.png">
+<meta property="og:updated_time" content="2019-11-14T14:45:47.872Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="第19章：密钥管理套接字">
-<meta name="twitter:description" content="19.1 概述&amp;emsp;&amp;emsp;随着 IP 安全体系结构的引入，私钥体系加密和认证密钥的管理越来越需要一套标准的机制。新创建了一套协议族 PF_KEY 域，在这个密钥管理域中，唯一支持的一种套接字是原始套接字。 &amp;emsp;&amp;emsp;在普通的 Unix 系统上，密钥管理套接字仅限超级用户有打开的权限。">
-  <link rel="canonical" href="http://yoursite.com/2019/09/25/19.密钥管理套接字/">
+<meta name="twitter:title" content="设计模式-访问者模式">
+<meta name="twitter:description" content="1 访问者模式（Visitor pattern）访问者模式定义：（对象行为型模式）表示一个作用域某对象的结构中的各元素的操作。他是你可以在不改变各元素的类的前提下定义作用于这些元素的新操作。">
+<meta name="twitter:image" content="http://yoursite.com/2019/11/14/设计模式-访问者模式/1.png">
+  <link rel="canonical" href="http://yoursite.com/2019/11/14/设计模式-访问者模式/">
 
 
 <script id="page-configurations">
@@ -81,7 +85,7 @@
   };
 </script>
 
-  <title>第19章：密钥管理套接字 | nercoeus</title>
+  <title>设计模式-访问者模式 | nercoeus</title>
   
 
 
@@ -209,7 +213,7 @@
   
   
   <div class="post-block post">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/19.密钥管理套接字/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/11/14/设计模式-访问者模式/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="nercoeus">
@@ -221,7 +225,7 @@
       <meta itemprop="name" content="nercoeus">
     </span>
       <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">第19章：密钥管理套接字
+        <h1 class="post-title" itemprop="name headline">设计模式-访问者模式
 
           
         </h1>
@@ -237,19 +241,11 @@
                 
               
 
-              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
+              <time title="创建时间：2019-11-14 22:19:44 / 修改时间：22:45:47" itemprop="dateCreated datePublished" datetime="2019-11-14T22:19:44+08:00">2019-11-14</time>
             </span>
           
             
 
-            
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
-              </span>
             
           
             <span class="post-meta-item">
@@ -258,7 +254,7 @@
               </span>
               <span class="post-meta-item-text">分类于</span>
               
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/设计模式/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a></span>
 
                 
                 
@@ -277,10 +273,54 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h1 id="19-1-概述"><a href="#19-1-概述" class="headerlink" title="19.1 概述"></a>19.1 概述</h1><p>&emsp;&emsp;随着 IP 安全体系结构的引入，私钥体系加密和认证密钥的管理越来越需要一套标准的机制。新创建了一套协议族 PF_KEY 域，在这个密钥管理域中，唯一支持的一种套接字是原始套接字。</p>
-<p>&emsp;&emsp;在普通的 Unix 系统上，密钥管理套接字仅限超级用户有打开的权限。</p>
+        <h1 id="1-访问者模式（Visitor-pattern）"><a href="#1-访问者模式（Visitor-pattern）" class="headerlink" title="1 访问者模式（Visitor pattern）"></a>1 访问者模式（Visitor pattern）</h1><p><strong>访问者模式定义</strong>：（对象行为型模式）表示一个作用域某对象的结构中的各元素的操作。他是你可以在不改变各元素的类的前提下定义作用于这些元素的新操作。</p>
 <a id="more"></a>
-<h1 id="19-2-读和写"><a href="#19-2-读和写" class="headerlink" title="19.2 读和写"></a>19.2 读和写</h1><h1 id="19-3-倾泻安全关联数据库"><a href="#19-3-倾泻安全关联数据库" class="headerlink" title="19.3 倾泻安全关联数据库"></a>19.3 倾泻安全关联数据库</h1><h1 id="19-4-创建静态安全关联"><a href="#19-4-创建静态安全关联" class="headerlink" title="19.4 创建静态安全关联"></a>19.4 创建静态安全关联</h1><h1 id="19-5-动态维护安全关联"><a href="#19-5-动态维护安全关联" class="headerlink" title="19.5 动态维护安全关联"></a>19.5 动态维护安全关联</h1><h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1>
+<p><img src="/2019/11/14/设计模式-访问者模式/1.png" alt></p>
+<h1 id="2-目标问题"><a href="#2-目标问题" class="headerlink" title="2 目标问题"></a>2 目标问题</h1><p>&emsp;&emsp;</p>
+<h1 id="3-解决方法"><a href="#3-解决方法" class="headerlink" title="3 解决方法"></a>3 解决方法</h1><p>&emsp;&emsp;</p>
+<h1 id="4-所有类之间的关系"><a href="#4-所有类之间的关系" class="headerlink" title="4 所有类之间的关系"></a>4 所有类之间的关系</h1><p><img src="/2019/11/14/设计模式-访问者模式/2.png" alt></p>
+<ol>
+<li>Visitor 接口:为该对象结构中 ConcreteElement 的每一个类声明一个 Visit 操作.</li>
+<li>ConcreteVisitor 具体访问者:<ul>
+<li>实现每一个由 Visitor 声明的操作.每个操作实现算法的一部分,而该算法片段是对应于结构中对象的类.</li>
+<li>ConcreteVisitor 为该算法提供上下文并存储他的局部状态.</li>
+</ul>
+</li>
+<li>Element 元素接口:<ul>
+<li>定义一个 Accept 操作,它以一个访问者为参数</li>
+</ul>
+</li>
+<li>ConcreteElement 具体元素:<ul>
+<li>实现 Accept 操作,该操作以一个访问者为参数</li>
+</ul>
+</li>
+<li>Client 用户:<ul>
+<li>代表一个集合或一些其它复杂的元素.通常,用户并不了解具体的元素类,因为它们通过某个抽象接口使用该集合中的对象</li>
+</ul>
+</li>
+</ol>
+<h1 id="5-代码实现"><a href="#5-代码实现" class="headerlink" title="5 代码实现"></a>5 代码实现</h1><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>打印结果如下：<br><img src="/2019/11/14/设计模式-访问者模式/3.png" alt></p>
+<h1 id="6-应用场景"><a href="#6-应用场景" class="headerlink" title="6 应用场景"></a>6 应用场景</h1><ul>
+<li>一个对象结构包含很多类对象，它们有不同的接口，而你相对这些对象实施一些依赖于其具体类的操作</li>
+<li>需要对一个对象结构中的对象进行很多不同并且不相关的操作，而你想避免让这些操作“污染”这些对象的类。访问者模式可以让你将相关操作集中起来定义在一个类中</li>
+<li>定义对象结构的类很少改变，但经常需要在此结构上定义新的操作。改变对象结构类需要重新定义对所有访问者的接口，这可能需要很大的代价。如果对象结构类经常改变，那么可能还是在这些类中定义这些操作比较好</li>
+</ul>
+<h1 id="7-优缺点"><a href="#7-优缺点" class="headerlink" title="7 优缺点"></a>7 优缺点</h1><h2 id="7-1-优点"><a href="#7-1-优点" class="headerlink" title="7.1 优点"></a>7.1 优点</h2><ul>
+<li>通过访问者模式可以很容易的增加新的操作:仅需增加一个新的访问者即可在一个对象结构上定义一个新的操作.如果功能分散在多个类上的话,定义新操作就需要修改每一个类</li>
+<li>访问者集中相关操作而分离无关的操作:相关的行为不是分不在定义在该对象结构的每个类上,而是集中在一个访问者上.无关行为被分别放在各自的访问者子类中</li>
+</ul>
+<h2 id="7-2-缺点"><a href="#7-2-缺点" class="headerlink" title="7.2 缺点"></a>7.2 缺点</h2><ul>
+<li>每次将类添加到元素层次结构或从元素层次结构中删除时,都需要更新所有访问者</li>
+<li>访问者可能无法访问他们应该使用的元素的私有字段和方法</li>
+</ul>
+<h1 id="8-相关模式"><a href="#8-相关模式" class="headerlink" title="8 相关模式"></a>8 相关模式</h1><ul>
+<li>访问者可以用于一个由组合模式定义的对象结构进行操作</li>
+<li>访问者可以和解释器模型一起使用</li>
+</ul>
+<h1 id="9-reference"><a href="#9-reference" class="headerlink" title="9 reference"></a>9 reference</h1><p>《设计模式》-访问者模式<br><a href="https://refactoring.guru/design-patterns/visitor" target="_blank" rel="noopener">design-patterns:visitor pattern</a></p>
+
     </div>
 
     
@@ -296,8 +336,8 @@
           <div class="post-nav">
             <div class="post-nav-next post-nav-item">
               
-                <a href="/2019/09/25/21.组播/" rel="next" title="第21章：组播">
-                  <i class="fa fa-chevron-left"></i> 第21章：组播
+                <a href="/2019/11/14/设计模式-模板方法模式/" rel="next" title="设计模式-模板方法模式">
+                  <i class="fa fa-chevron-left"></i> 设计模式-模板方法模式
                 </a>
               
             </div>
@@ -305,10 +345,6 @@
             <span class="post-nav-divider"></span>
 
             <div class="post-nav-prev post-nav-item">
-              
-                <a href="/2019/09/25/18.路由套接字/" rel="prev" title="第18章：路由套接字">
-                  第18章：路由套接字 <i class="fa fa-chevron-right"></i>
-                </a>
               
             </div>
           </div>
@@ -357,7 +393,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#19-1-概述"><span class="nav-text">19.1 概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#19-2-读和写"><span class="nav-text">19.2 读和写</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#19-3-倾泻安全关联数据库"><span class="nav-text">19.3 倾泻安全关联数据库</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#19-4-创建静态安全关联"><span class="nav-text">19.4 创建静态安全关联</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#19-5-动态维护安全关联"><span class="nav-text">19.5 动态维护安全关联</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-text">小结</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-访问者模式（Visitor-pattern）"><span class="nav-text">1 访问者模式（Visitor pattern）</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-目标问题"><span class="nav-text">2 目标问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-解决方法"><span class="nav-text">3 解决方法</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-所有类之间的关系"><span class="nav-text">4 所有类之间的关系</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-代码实现"><span class="nav-text">5 代码实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#6-应用场景"><span class="nav-text">6 应用场景</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#7-优缺点"><span class="nav-text">7 优缺点</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#7-1-优点"><span class="nav-text">7.1 优点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#7-2-缺点"><span class="nav-text">7.2 缺点</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-相关模式"><span class="nav-text">8 相关模式</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#9-reference"><span class="nav-text">9 reference</span></a></li></ol></div>
         
       </div>
       <!--/noindex-->
