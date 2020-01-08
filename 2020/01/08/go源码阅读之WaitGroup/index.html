@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="&amp;emsp;&amp;emsp;在 go 中,当我们需要等待一组 goroutine 完成再退出,可以使用 waitgroup 来进行阻塞等待进程的完成.通过在每个 goroutine 前将等待计数加一,并在 goroutine 执行完时将计数器减一,这样我们可以在需要等待的 goroutine 中使用 Wait() 等待所有的 goroutine 执行完毕后再继续执行或退出.&amp;emsp;&amp;emsp;这样">
+<meta property="og:type" content="article">
+<meta property="og:title" content="go源码阅读之WaitGroup">
+<meta property="og:url" content="http://yoursite.com/2020/01/08/go源码阅读之WaitGroup/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="&amp;emsp;&amp;emsp;在 go 中,当我们需要等待一组 goroutine 完成再退出,可以使用 waitgroup 来进行阻塞等待进程的完成.通过在每个 goroutine 前将等待计数加一,并在 goroutine 执行完时将计数器减一,这样我们可以在需要等待的 goroutine 中使用 Wait() 等待所有的 goroutine 执行完毕后再继续执行或退出.&amp;emsp;&amp;emsp;这样">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2020/01/08/go源码阅读之WaitGroup/waitgroup.png">
+<meta property="og:image" content="http://yoursite.com/2020/01/08/go源码阅读之WaitGroup/waitgroup2.png">
+<meta property="og:updated_time" content="2020-01-08T03:58:35.813Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="go源码阅读之WaitGroup">
+<meta name="twitter:description" content="&amp;emsp;&amp;emsp;在 go 中,当我们需要等待一组 goroutine 完成再退出,可以使用 waitgroup 来进行阻塞等待进程的完成.通过在每个 goroutine 前将等待计数加一,并在 goroutine 执行完时将计数器减一,这样我们可以在需要等待的 goroutine 中使用 Wait() 等待所有的 goroutine 执行完毕后再继续执行或退出.&amp;emsp;&amp;emsp;这样">
+<meta name="twitter:image" content="http://yoursite.com/2020/01/08/go源码阅读之WaitGroup/waitgroup.png">
+  <link rel="canonical" href="http://yoursite.com/2020/01/08/go源码阅读之WaitGroup/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>go源码阅读之WaitGroup | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/01/08/go源码阅读之WaitGroup/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">go源码阅读之WaitGroup
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2020-01-08 11:53:57 / 修改时间：11:58:35" itemprop="dateCreated datePublished" datetime="2020-01-08T11:53:57+08:00">2020-01-08</time>
+            </span>
+          
+            
+
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/go源码/" itemprop="url" rel="index"><span itemprop="name">go源码</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>&emsp;&emsp;在 go 中,当我们需要等待一组 goroutine 完成再退出,可以使用 waitgroup 来进行阻塞等待进程的完成.通过在每个 goroutine 前将等待计数加一,并在 goroutine 执行完时将计数器减一,这样我们可以在需要等待的 goroutine 中使用 Wait() 等待所有的 goroutine 执行完毕后再继续执行或退出.<br>&emsp;&emsp;这样做的主要原因时因为在 go 中,主协程退出后,所有子协程会立即终止,这样就需要 waitgroup 来保证子协程的运行.和主协程不同的是,在子协程中创建新的子子协程的话,当子协程退出后并不会立即终止其创建的子子协程,但在某些情况下,WaitGroup 还可以用来等待一系列操作的完成.</p>
+<a id="more"></a>
+
+<h1 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h1><p>WaitGroup 的源码十分简洁,主要通过三个部分来进行解析:</p>
+<h2 id="WaitGroup-结构体"><a href="#WaitGroup-结构体" class="headerlink" title="WaitGroup 结构体"></a>WaitGroup 结构体</h2><p>waitgroup 中包含 noCopy 和 state1.<br>&emsp;&emsp;前者主要为了防止 WaitGroup 被拷贝,该字段在编译期间进行使用,在编译期间如果代码中的拷贝变量包含 noCopy 就会报错.<br>&emsp;&emsp;后者是一个 12 字节的数组,用来存储计数,等待计数,以及存储原语,并且根据 32 位和 64 位操作系统有所不同<br><img src="/2020/01/08/go源码阅读之WaitGroup/waitgroup.png" alt></p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> WaitGroup <span class="keyword">struct</span> &#123;</span><br><span class="line">	noCopy noCopy</span><br><span class="line"></span><br><span class="line">	state1 [<span class="number">3</span>]<span class="keyword">uint32</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 通过 state 返回存储在 state1 中的计数器和信号量</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(wg *WaitGroup)</span> <span class="title">state</span><span class="params">()</span> <span class="params">(statep *<span class="keyword">uint64</span>, semap *<span class="keyword">uint32</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">if</span> <span class="keyword">uintptr</span>(unsafe.Pointer(&amp;wg.state1))%<span class="number">8</span> == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// 64 位机器</span></span><br><span class="line">		<span class="keyword">return</span> (*<span class="keyword">uint64</span>)(unsafe.Pointer(&amp;wg.state1)), &amp;wg.state1[<span class="number">2</span>]</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		<span class="comment">// 32 位机器</span></span><br><span class="line">		<span class="keyword">return</span> (*<span class="keyword">uint64</span>)(unsafe.Pointer(&amp;wg.state1[<span class="number">1</span>])), &amp;wg.state1[<span class="number">0</span>]</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Add-和-Done-操作"><a href="#Add-和-Done-操作" class="headerlink" title="Add 和 Done 操作"></a>Add 和 Done 操作</h2><p>WaitGroup 通过 Add()和 Done()来将等待计数器进行增减</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Done 是通过调用 Add(-1) 来实现的操作,并没有特殊的地方</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(wg *WaitGroup)</span> <span class="title">Done</span><span class="params">()</span></span> &#123;</span><br><span class="line">	wg.Add(<span class="number">-1</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 将 delta(可能为负数)添加到 WaitGroup 的计数器上</span></span><br><span class="line"><span class="comment">// 计数器为 0 时释放等待的 goroutine,计数器为负数时 panic</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(wg *WaitGroup)</span> <span class="title">Add</span><span class="params">(delta <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 获取存储状态和信号量</span></span><br><span class="line">	statep, semap := wg.state()</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 将 delta 加到 statep 的高 32 位上(计数器)</span></span><br><span class="line">	state := atomic.AddUint64(statep, <span class="keyword">uint64</span>(delta)&lt;&lt;<span class="number">32</span>)</span><br><span class="line">	<span class="comment">// 计数器的值</span></span><br><span class="line">	v := <span class="keyword">int32</span>(state &gt;&gt; <span class="number">32</span>)</span><br><span class="line">	<span class="comment">// 等待器的值</span></span><br><span class="line">	w := <span class="keyword">uint32</span>(state)</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 如果计算后的计数为负则直接 panic,不允许存在负数的计数值</span></span><br><span class="line">	<span class="keyword">if</span> v &lt; <span class="number">0</span> &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"sync: negative WaitGroup counter"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 如果等待器不为零,且增加了计数器的值,并且计数器的值和 delta 的值相同也直接 panic</span></span><br><span class="line">	<span class="comment">// 这是因为 Add 和 Wait 并发调用了</span></span><br><span class="line">	<span class="keyword">if</span> w != <span class="number">0</span> &amp;&amp; delta &gt; <span class="number">0</span> &amp;&amp; v == <span class="keyword">int32</span>(delta) &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"sync: WaitGroup misuse: Add called concurrently with Wait"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 如果计数器 &gt; 0 或者等待器为 0 直接返回即可</span></span><br><span class="line">	<span class="keyword">if</span> v &gt; <span class="number">0</span> || w == <span class="number">0</span> &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 运行到这里只有一种情况 v == 0 &amp;&amp; w != 0</span></span><br><span class="line">	<span class="comment">// 这个时候不允许出现因为并发导致的状态变化</span></span><br><span class="line">	<span class="comment">// - Add 不能与 Wait 并发调用</span></span><br><span class="line">	<span class="comment">// - Wait 在计数器已经归零的情况下，不能再继续增加等待器了</span></span><br><span class="line">	<span class="comment">// 仍然检查来保证 WaitGroup 不会被滥用</span></span><br><span class="line">	<span class="keyword">if</span> *statep != state &#123;</span><br><span class="line">		<span class="built_in">panic</span>(<span class="string">"sync: WaitGroup misuse: Add called concurrently with Wait"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 重置等待计数为 0(因为执行到这里计数器肯定为 0)</span></span><br><span class="line">	*statep = <span class="number">0</span></span><br><span class="line">	<span class="comment">// 使用 runtime_Semrelease 唤醒所有处于等待的 goroutine</span></span><br><span class="line">	<span class="keyword">for</span> ; w != <span class="number">0</span>; w-- &#123;</span><br><span class="line">		runtime_Semrelease(semap, <span class="literal">false</span>, <span class="number">0</span>)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Wait-操作"><a href="#Wait-操作" class="headerlink" title="Wait 操作"></a>Wait 操作</h2><p>使用 Wait 进入睡眠状态来等待所有的 goroutine 结束.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 等待阻塞,直到 waitgroup 计数器清 0</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(wg *WaitGroup)</span> <span class="title">Wait</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// 首先获取存储计数和信号量指针</span></span><br><span class="line">	statep, semap := wg.state()</span><br><span class="line">	</span><br><span class="line">	<span class="comment">// 一个 for 循环来不断的进行判断</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="comment">// 原子操作获取当前的计数器和等待计数</span></span><br><span class="line">		state := atomic.LoadUint64(statep)</span><br><span class="line">		<span class="comment">// 获取计数器</span></span><br><span class="line">		v := <span class="keyword">int32</span>(state &gt;&gt; <span class="number">32</span>)</span><br><span class="line">		<span class="comment">// 获取等待计数</span></span><br><span class="line">		w := <span class="keyword">uint32</span>(state)</span><br><span class="line">		<span class="keyword">if</span> v == <span class="number">0</span> &#123;</span><br><span class="line">		</span><br><span class="line">			...</span><br><span class="line">			<span class="comment">// 计数器为空,直接返回即可</span></span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 增加等待计数,比较 statep 和 state 的值,相同则等待计数加一</span></span><br><span class="line">		<span class="comment">// 这里主要是防止并发修改了计数器的值,如果不相等的话再进行一轮 for 循环即可</span></span><br><span class="line">		<span class="keyword">if</span> atomic.CompareAndSwapUint64(statep, state, state+<span class="number">1</span>) &#123;</span><br><span class="line">			<span class="comment">// 让等待 goroutine 进入睡眠状态</span></span><br><span class="line">			<span class="comment">// 通过其余 goroutine 执行 Done 操作,最终会调用 runtime_Semrelease 唤醒该 goroutine</span></span><br><span class="line">			runtime_Semacquire(semap)</span><br><span class="line">			<span class="comment">// 如果 *semap 不等于 0,失误直接 panic</span></span><br><span class="line">			<span class="keyword">if</span> *statep != <span class="number">0</span> &#123;</span><br><span class="line">				<span class="built_in">panic</span>(<span class="string">"sync: WaitGroup is reused before previous Wait has returned"</span>)</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 所有 goroutine 运行结束,wait 返回</span></span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="WaitGroup-的使用"><a href="#WaitGroup-的使用" class="headerlink" title="WaitGroup 的使用"></a>WaitGroup 的使用</h1><p>&emsp;&emsp;一般使用 WaitGroup 进行批量的操作,例如批量进行用户身份验证,批量验证一类操作等等.<br>拿用户身份验证例子来说:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">	users := <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">struct</span>&#123;&#125;)</span><br><span class="line">	<span class="keyword">var</span> wg sync.WaitGroup</span><br><span class="line">	wg.Add(<span class="built_in">len</span>(users))</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> u := <span class="keyword">range</span> users &#123;</span><br><span class="line">		<span class="keyword">go</span> <span class="function"><span class="keyword">func</span><span class="params">(user <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">			<span class="keyword">defer</span> wg.Done()</span><br><span class="line">			<span class="comment">// dosomething...</span></span><br><span class="line">		&#125;(u)</span><br><span class="line">	&#125;</span><br><span class="line">	time.Sleep(time.Millisecond)</span><br><span class="line">	wg.Wait()</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>&emsp;&emsp;使用 WaitGroup 是为了让一个 goroutine 等待其它多个 goroutine 执行完毕。<br>但是存在许多需要注意的地方:</p>
+<ol>
+<li>不可以拷贝 WaitGroup</li>
+<li>不可以并发调用 Add 和 Wait,一旦出现会导致 panic</li>
+<li>不可以在 Wait 没有返回时重用 WaitGroup</li>
+<li>虽然 Add()可以接受负数,但是尽量不要这样使用</li>
+<li>当多个 goroutine 一起阻塞在同一个 WaitGroup 的 Wait()上,那么他们会被一起唤醒</li>
+</ol>
+<p>&emsp;&emsp;整个使用流程有着严格的流程控制:同一个 goroutine 的 Add 必须在 Done 之前,同一个 WaitGroup 上的 Add 操作必须在 Wait()前或后执行,不可以在 Wait 阻塞中进行执行,但是 Done 可以在 Wait 前以及 Wait 的过程中进行调用.<br><img src="/2020/01/08/go源码阅读之WaitGroup/waitgroup2.png" alt></p>
+<p>✨Tip:调用 WaitGroup 会将 goroutine 阻塞住,所以如果不希望程序在这个 goroutine 上阻塞过久,需要注意代码逻辑</p>
+<h1 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h1><ol>
+<li><a href="https://changkun.de/golang/zh-cn/part4lib/ch16sync/waitgroup/" target="_blank" rel="noopener">Go Under The Hood:16.4 sync.WaitGroup</a></li>
+<li><a href="https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-sync-primitives/" target="_blank" rel="noopener">Draveness 大佬的博客</a></li>
+<li><a href="https://stackoverflow.com/questions/36056615/what-is-the-advantage-of-sync-waitgroup-over-channels" target="_blank" rel="noopener">What is the Advantage of sync.WaitGroup over Channels?推荐看看</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2020/01/05/go源码阅读之timer/" rel="next" title="go源码阅读之timer">
+                  <i class="fa fa-chevron-left"></i> go源码阅读之timer
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#源码分析"><span class="nav-text">源码分析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#WaitGroup-结构体"><span class="nav-text">WaitGroup 结构体</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Add-和-Done-操作"><span class="nav-text">Add 和 Done 操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Wait-操作"><span class="nav-text">Wait 操作</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#WaitGroup-的使用"><span class="nav-text">WaitGroup 的使用</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-text">小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#reference"><span class="nav-text">reference</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">47</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>
