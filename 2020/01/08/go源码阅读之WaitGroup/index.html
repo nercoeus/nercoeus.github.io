@@ -65,7 +65,7 @@
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="http://yoursite.com/2020/01/08/go源码阅读之WaitGroup/waitgroup.png">
 <meta property="og:image" content="http://yoursite.com/2020/01/08/go源码阅读之WaitGroup/waitgroup2.png">
-<meta property="og:updated_time" content="2020-01-08T03:58:35.813Z">
+<meta property="og:updated_time" content="2020-01-08T05:28:41.740Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="go源码阅读之WaitGroup">
 <meta name="twitter:description" content="&amp;emsp;&amp;emsp;在 go 中,当我们需要等待一组 goroutine 完成再退出,可以使用 waitgroup 来进行阻塞等待进程的完成.通过在每个 goroutine 前将等待计数加一,并在 goroutine 执行完时将计数器减一,这样我们可以在需要等待的 goroutine 中使用 Wait() 等待所有的 goroutine 执行完毕后再继续执行或退出.&amp;emsp;&amp;emsp;这样">
@@ -240,7 +240,7 @@
                 
               
 
-              <time title="创建时间：2020-01-08 11:53:57 / 修改时间：11:58:35" itemprop="dateCreated datePublished" datetime="2020-01-08T11:53:57+08:00">2020-01-08</time>
+              <time title="创建时间：2020-01-08 11:53:57 / 修改时间：13:28:41" itemprop="dateCreated datePublished" datetime="2020-01-08T11:53:57+08:00">2020-01-08</time>
             </span>
           
             
@@ -301,7 +301,6 @@
 <h1 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h1><ol>
 <li><a href="https://changkun.de/golang/zh-cn/part4lib/ch16sync/waitgroup/" target="_blank" rel="noopener">Go Under The Hood:16.4 sync.WaitGroup</a></li>
 <li><a href="https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-sync-primitives/" target="_blank" rel="noopener">Draveness 大佬的博客</a></li>
-<li><a href="https://stackoverflow.com/questions/36056615/what-is-the-advantage-of-sync-waitgroup-over-channels" target="_blank" rel="noopener">What is the Advantage of sync.WaitGroup over Channels?推荐看看</a></li>
 </ol>
 
     </div>
@@ -328,6 +327,10 @@
             <span class="post-nav-divider"></span>
 
             <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2020/01/08/go源码阅读之Mutex/" rel="prev" title="go源码阅读之Mutex">
+                  go源码阅读之Mutex <i class="fa fa-chevron-right"></i>
+                </a>
               
             </div>
           </div>
@@ -391,7 +394,7 @@
         
           <a href="/archives/">
         
-          <span class="site-state-item-count">47</span>
+          <span class="site-state-item-count">48</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
