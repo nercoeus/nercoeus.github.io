@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="&amp;emsp;&amp;emsp;上一篇刚看了 Channel 的实现,现在趁热打铁,把 Select 一起看了,在 go 中 select 的使用离不开 channel.channel 之于 select.就好像 c 中 fd 之于 select.功能也基本相似.在 go 中,select 关键词会在编译时期转换为 selectgo()函数的调用&amp;emsp;&amp;emsp;虽然 select 表面上和 swi">
+<meta property="og:type" content="article">
+<meta property="og:title" content="go源码阅读之Select">
+<meta property="og:url" content="http://yoursite.com/2020/01/13/go源码阅读之Select/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="&amp;emsp;&amp;emsp;上一篇刚看了 Channel 的实现,现在趁热打铁,把 Select 一起看了,在 go 中 select 的使用离不开 channel.channel 之于 select.就好像 c 中 fd 之于 select.功能也基本相似.在 go 中,select 关键词会在编译时期转换为 selectgo()函数的调用&amp;emsp;&amp;emsp;虽然 select 表面上和 swi">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2020-01-13T14:44:52.875Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="go源码阅读之Select">
+<meta name="twitter:description" content="&amp;emsp;&amp;emsp;上一篇刚看了 Channel 的实现,现在趁热打铁,把 Select 一起看了,在 go 中 select 的使用离不开 channel.channel 之于 select.就好像 c 中 fd 之于 select.功能也基本相似.在 go 中,select 关键词会在编译时期转换为 selectgo()函数的调用&amp;emsp;&amp;emsp;虽然 select 表面上和 swi">
+  <link rel="canonical" href="http://yoursite.com/2020/01/13/go源码阅读之Select/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>go源码阅读之Select | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/01/13/go源码阅读之Select/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">go源码阅读之Select
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2020-01-13 19:47:32 / 修改时间：22:44:52" itemprop="dateCreated datePublished" datetime="2020-01-13T19:47:32+08:00">2020-01-13</time>
+            </span>
+          
+            
+
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/go源码/" itemprop="url" rel="index"><span itemprop="name">go源码</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>&emsp;&emsp;上一篇刚看了 Channel 的实现,现在趁热打铁,把 Select 一起看了,在 go 中 select 的使用离不开 channel.channel 之于 select.就好像 c 中 fd 之于 select.功能也基本相似.在 go 中,select 关键词会在编译时期转换为 selectgo()函数的调用<br>&emsp;&emsp;虽然 select 表面上和 switch 有着相同的使用结构,但是其中一个不同之处在于,switch 中是按照 case 顺序进行比较执行,而 select 中同一时间多个 channel 触发并不会按照顺序,而是会提前进行随机排序然后按照这个随机顺序依次进行判断是否触发.</p>
+<a id="more"></a>
+
+<p>select 源码位于 go/src/runtime/select.go 中,下面开始进行分析吧</p>
+<h1 id="Select-源码阅读"><a href="#Select-源码阅读" class="headerlink" title="Select 源码阅读"></a>Select 源码阅读</h1><h2 id="select-struct"><a href="#select-struct" class="headerlink" title="select struct"></a>select struct</h2><p>select 其实并不存在结构一说,但是需要注意的是 select 中的 case 确实有结构的,如下:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 用来描述 case 的结构体</span></span><br><span class="line"><span class="comment">// 编译器可见</span></span><br><span class="line"><span class="keyword">type</span> scase <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// 用来记录需要观察的 channel</span></span><br><span class="line">	c           *hchan</span><br><span class="line">	<span class="comment">// 接受或发送数据的变量地址</span></span><br><span class="line">	elem        unsafe.Pointer</span><br><span class="line">	<span class="comment">// 当前 case 的种类,总共有四种</span></span><br><span class="line">	kind        <span class="keyword">uint16</span></span><br><span class="line">	pc          <span class="keyword">uintptr</span></span><br><span class="line">	releasetime <span class="keyword">int64</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// case 的类型</span></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	caseNil = <span class="literal">iota</span>  <span class="comment">// 空 case</span></span><br><span class="line">	caseRecv        <span class="comment">// 接收 case,读 channel</span></span><br><span class="line">	caseSend        <span class="comment">// 发送 case,写 channel</span></span><br><span class="line">	caseDefault     <span class="comment">// default</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<p>select 在编译阶段进行了优化,总共有四种情况:<br>1: 空结构体 select{} 会直接阻塞 goroutine : waitReasonSelectNoCases<br>2: 只包含一个 case,会将 select 转化为 if 语句<br>3: 包含两个 case,其中一个是 default,会转化成 if{}else{}结构<br>4: 只有正常的 select 逻辑,会将其中所有 case 转化为 scase 结构体,调用运行时函数 selectgo 选取触发的 scase 结构体.通过 for 循环生成一组 if 语句,来判断是否选中 case</p>
+<h2 id="selectgo-操作"><a href="#selectgo-操作" class="headerlink" title="selectgo 操作"></a>selectgo 操作</h2><p>了解了 select 的结构,下面直接看看 selectgo 的代码</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">selectgo</span><span class="params">(cas0 *scase, order0 *<span class="keyword">uint16</span>, ncases <span class="keyword">int</span>)</span> <span class="params">(<span class="keyword">int</span>, <span class="keyword">bool</span>)</span></span></span><br></pre></td></tr></table></figure>
+
+<p>先来看看 selectgo 的参数:</p>
+<ul>
+<li>cas0 指向的是 [ncases]scase 类型的数组,里面是所有的 case 对应的 scase 类型(如果有的话)</li>
+<li>order0 指向的是 [2*ncases]uint16 类型的数组,前一半是 poll order,后一半用来 lock order</li>
+<li>ncases 就是 cas0 指向数组的长度</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 假装 cas0 是一个 65535 大小的 scase 数组,这也就说明,最多支持 65535 个 case</span></span><br><span class="line">cas1 := (*[<span class="number">1</span> &lt;&lt; <span class="number">16</span>]scase)(unsafe.Pointer(cas0))</span><br><span class="line"><span class="comment">// </span></span><br><span class="line">order1 := (*[<span class="number">1</span> &lt;&lt; <span class="number">17</span>]<span class="keyword">uint16</span>)(unsafe.Pointer(order0))</span><br><span class="line"><span class="comment">// 获取真正的 scases</span></span><br><span class="line">scases := cas1[:ncases:ncases]</span><br><span class="line"><span class="comment">// 切分 poll order 用来确定执行顺序</span></span><br><span class="line">pollorder := order1[:ncases:ncases]</span><br><span class="line"><span class="comment">// 切分 lock order 用来确定加锁顺序</span></span><br><span class="line">lockorder := order1[ncases:][:ncases:ncases]</span><br><span class="line"></span><br><span class="line"><span class="comment">// 用空的 nil scase 代替关闭的 channel </span></span><br><span class="line"><span class="keyword">for</span> i := <span class="keyword">range</span> scases &#123;</span><br><span class="line">	cas := &amp;scases[i]</span><br><span class="line">	<span class="keyword">if</span> cas.c == <span class="literal">nil</span> &amp;&amp; cas.kind != caseDefault &#123;</span><br><span class="line">		*cas = scase&#123;&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="comment">// 生成随机的顺序</span></span><br><span class="line"><span class="keyword">for</span> i := <span class="number">1</span>; i &lt; ncases; i++ &#123;</span><br><span class="line">	j := fastrandn(<span class="keyword">uint32</span>(i + <span class="number">1</span>))</span><br><span class="line">	pollorder[i] = pollorder[j]</span><br><span class="line">	pollorder[j] = <span class="keyword">uint16</span>(i)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 根据 channel 地址进行排序,决定获取锁的顺序</span></span><br><span class="line"><span class="keyword">for</span> i := <span class="number">0</span>; i &lt; ncases; i++ &#123;</span><br><span class="line">	j := i</span><br><span class="line">	<span class="comment">// </span></span><br><span class="line">	c := scases[pollorder[i]].c</span><br><span class="line">	<span class="keyword">for</span> j &gt; <span class="number">0</span> &amp;&amp; scases[lockorder[(j<span class="number">-1</span>)/<span class="number">2</span>]].c.sortkey() &lt; c.sortkey() &#123;</span><br><span class="line">		k := (j - <span class="number">1</span>) / <span class="number">2</span></span><br><span class="line">		lockorder[j] = lockorder[k]</span><br><span class="line">		j = k</span><br><span class="line">	&#125;</span><br><span class="line">	lockorder[j] = pollorder[i]</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 锁定所有选中的频道</span></span><br><span class="line">sellock(scases, lockorder)</span><br></pre></td></tr></table></figure>
+
+<p>上面的代码确定了 scase 的判断顺序,以及加锁顺序,然后对所有 channel 加锁</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line">loop:</span><br><span class="line">	<span class="comment">// 第一步:遍历所有 scase,确定已经准备好的 scase</span></span><br><span class="line">	<span class="keyword">var</span> dfli <span class="keyword">int</span></span><br><span class="line">	<span class="keyword">var</span> dfl *scase</span><br><span class="line">	<span class="keyword">var</span> casi <span class="keyword">int</span></span><br><span class="line">	<span class="keyword">var</span> cas *scase</span><br><span class="line">	<span class="keyword">var</span> recvOK <span class="keyword">bool</span></span><br><span class="line">	<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; ncases; i++ &#123;</span><br><span class="line">		<span class="comment">// 按照排序顺序判断 scase</span></span><br><span class="line">		casi = <span class="keyword">int</span>(pollorder[i])</span><br><span class="line">		cas = &amp;scases[casi]</span><br><span class="line">		<span class="comment">// 对应的 channel</span></span><br><span class="line">		c = cas.c</span><br><span class="line"></span><br><span class="line">		<span class="keyword">switch</span> cas.kind &#123;</span><br><span class="line">		<span class="comment">// 1. 空 nil 直接跳过</span></span><br><span class="line">		<span class="keyword">case</span> caseNil:</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		<span class="comment">// 2. 接收数据</span></span><br><span class="line">		<span class="keyword">case</span> caseRecv:</span><br><span class="line">			<span class="comment">// 2.1 有 goroutine 等待发送数据</span></span><br><span class="line">			sg = c.sendq.dequeue()</span><br><span class="line">			<span class="keyword">if</span> sg != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">goto</span> recv</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 2.2 缓冲区中有数据</span></span><br><span class="line">			<span class="keyword">if</span> c.qcount &gt; <span class="number">0</span> &#123;</span><br><span class="line">				<span class="keyword">goto</span> bufrecv</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 2.3 通道关闭</span></span><br><span class="line">			<span class="keyword">if</span> c.closed != <span class="number">0</span> &#123;</span><br><span class="line">				<span class="keyword">goto</span> rclose</span><br><span class="line">			&#125;</span><br><span class="line">		<span class="comment">// 3. 发送数据</span></span><br><span class="line">		<span class="keyword">case</span> caseSend:</span><br><span class="line">			...</span><br><span class="line">			<span class="comment">// 3.1 先判断通道关闭情况</span></span><br><span class="line">			<span class="keyword">if</span> c.closed != <span class="number">0</span> &#123;</span><br><span class="line">				<span class="keyword">goto</span> sclose</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 3.2 接收等待队列有 goroutine</span></span><br><span class="line">			sg = c.recvq.dequeue()</span><br><span class="line">			<span class="keyword">if</span> sg != <span class="literal">nil</span> &#123;</span><br><span class="line">				<span class="keyword">goto</span> send</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 缓冲区有空位置</span></span><br><span class="line">			<span class="keyword">if</span> c.qcount &lt; c.dataqsiz &#123;</span><br><span class="line">				<span class="keyword">goto</span> bufsend</span><br><span class="line">			&#125;</span><br><span class="line">		<span class="comment">// 默认 case</span></span><br><span class="line">		<span class="keyword">case</span> caseDefault:</span><br><span class="line">			dfli = casi</span><br><span class="line">			dfl = cas</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 已经遍历完所有 scase,还是没有 case 触发</span></span><br><span class="line">	<span class="comment">// 存在默认 case</span></span><br><span class="line">	<span class="keyword">if</span> dfl != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// 解锁所有 channel</span></span><br><span class="line">		selunlock(scases, lockorder)</span><br><span class="line">		casi = dfli</span><br><span class="line">		cas = dfl</span><br><span class="line">		<span class="comment">// 执行默认 case 并退出</span></span><br><span class="line">		<span class="keyword">goto</span> retc</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;需要注意的是,可以向关闭的通道读数据,但是不可以向关闭的通道写数据.如果所有的 case 都没有触发,并且还没有 default 的情况下,需要继续执行</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 第二步:让所有 channel 进队,等待处理</span></span><br><span class="line">gp = getg()</span><br><span class="line"><span class="keyword">if</span> gp.waiting != <span class="literal">nil</span> &#123;</span><br><span class="line">	throw(<span class="string">"gp.waiting != nil"</span>)</span><br><span class="line">&#125;</span><br><span class="line">nextp = &amp;gp.waiting</span><br><span class="line"><span class="keyword">for</span> _, casei := <span class="keyword">range</span> lockorder &#123;</span><br><span class="line">	casi = <span class="keyword">int</span>(casei)</span><br><span class="line">	<span class="comment">// 获取一个 scase</span></span><br><span class="line">	cas = &amp;scases[casi]</span><br><span class="line">	<span class="comment">// 空的忽略</span></span><br><span class="line">	<span class="keyword">if</span> cas.kind == caseNil &#123;</span><br><span class="line">		<span class="keyword">continue</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 监听的 channel</span></span><br><span class="line">	c = cas.c</span><br><span class="line">	<span class="comment">// 整一个 sudog,并阻塞在 channel 的等待队列(发送/接收)中</span></span><br><span class="line">	<span class="comment">// 代码没啥说的,和 channle 中的几乎相同</span></span><br><span class="line">	sg := acquireSudog()</span><br><span class="line">	sg.g = gp</span><br><span class="line">	sg.isSelect = <span class="literal">true</span></span><br><span class="line">	<span class="comment">// No stack splits between assigning elem and enqueuing</span></span><br><span class="line">	<span class="comment">// sg on gp.waiting where copystack can find it.</span></span><br><span class="line">	sg.elem = cas.elem</span><br><span class="line">	sg.releasetime = <span class="number">0</span></span><br><span class="line">	<span class="keyword">if</span> t0 != <span class="number">0</span> &#123;</span><br><span class="line">		sg.releasetime = <span class="number">-1</span></span><br><span class="line">	&#125;</span><br><span class="line">	sg.c = c</span><br><span class="line">	<span class="comment">// Construct waiting list in lock order.</span></span><br><span class="line">	*nextp = sg</span><br><span class="line">	nextp = &amp;sg.waitlink</span><br><span class="line"></span><br><span class="line">	<span class="keyword">switch</span> cas.kind &#123;</span><br><span class="line">	<span class="keyword">case</span> caseRecv:</span><br><span class="line">		c.recvq.enqueue(sg)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">case</span> caseSend:</span><br><span class="line">		c.sendq.enqueue(sg)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// goroutine 陷入睡眠,等待某一个 channel 唤醒 gooutine</span></span><br><span class="line">gp.param = <span class="literal">nil</span></span><br><span class="line">gopark(selparkcommit, <span class="literal">nil</span>, waitReasonSelect, traceEvGoBlockSelect, <span class="number">1</span>)</span><br><span class="line"><span class="comment">// 到这里被唤醒了</span></span><br><span class="line">sellock(scases, lockorder)</span><br><span class="line"></span><br><span class="line">gp.selectDone = <span class="number">0</span></span><br><span class="line">sg = (*sudog)(gp.param)</span><br><span class="line">gp.param = <span class="literal">nil</span></span><br></pre></td></tr></table></figure>
+
+<p>唤醒后执行下面的代码 </p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 第三部:删除队列中没有触发的 channels</span></span><br><span class="line"><span class="comment">// 如果不删除的话,他们会触发 channel.我们按锁的顺序单向链接 sudog</span></span><br><span class="line">casi = <span class="number">-1</span></span><br><span class="line">cas = <span class="literal">nil</span></span><br><span class="line"><span class="comment">// 阻塞后的 list</span></span><br><span class="line">sglist = gp.waiting</span><br><span class="line"><span class="comment">// 从 gp.waiting 取消链接之前清除所有的 elem</span></span><br><span class="line"><span class="keyword">for</span> sg1 := gp.waiting; sg1 != <span class="literal">nil</span>; sg1 = sg1.waitlink &#123;</span><br><span class="line">	sg1.isSelect = <span class="literal">false</span></span><br><span class="line">	sg1.elem = <span class="literal">nil</span></span><br><span class="line">	sg1.c = <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line">gp.waiting = <span class="literal">nil</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> _, casei := <span class="keyword">range</span> lockorder &#123;</span><br><span class="line">	k = &amp;scases[casei]</span><br><span class="line">	<span class="keyword">if</span> k.kind == caseNil &#123;</span><br><span class="line">		<span class="keyword">continue</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> sglist.releasetime &gt; <span class="number">0</span> &#123;</span><br><span class="line">		k.releasetime = sglist.releasetime</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> sg == sglist &#123;</span><br><span class="line">		<span class="comment">// sg 已经被唤醒我们的 G 出队了</span></span><br><span class="line">		casi = <span class="keyword">int</span>(casei)</span><br><span class="line">		cas = k</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		c = k.c</span><br><span class="line">		<span class="keyword">if</span> k.kind == caseSend &#123;</span><br><span class="line">			c.sendq.dequeueSudoG(sglist)</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			c.recvq.dequeueSudoG(sglist)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	sgnext = sglist.waitlink</span><br><span class="line">	sglist.waitlink = <span class="literal">nil</span></span><br><span class="line">	releaseSudog(sglist)</span><br><span class="line">	sglist = sgnext</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> cas == <span class="literal">nil</span> &#123;</span><br><span class="line">	<span class="comment">// 当一个参与在 select 语句中的 channel 被关闭时，我们可以在 gp.param == nil 时进行唤醒(所以 cas == nil)</span></span><br><span class="line">	<span class="comment">// 最简单的方法就是循环并重新运行该操作，然后就能看到它现在已经被关闭了</span></span><br><span class="line">	<span class="comment">// 也许未来我们可以显式的发送关闭信号，</span></span><br><span class="line">	<span class="comment">// 但我们就必须区分在接收方上关闭和在发送方上关闭这两种情况了</span></span><br><span class="line">	<span class="comment">// 最简单的方法是不复制代码并重新检查上面的代码。</span></span><br><span class="line">	<span class="comment">// 我们知道某些 channel 被关闭了，也知道某些可能永远不会被重新打开，因此我们不会再次阻塞</span></span><br><span class="line">	<span class="keyword">goto</span> loop</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">c = cas.c</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> cas.kind == caseRecv &#123;</span><br><span class="line">	recvOK = <span class="literal">true</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="keyword">if</span> msanenabled &#123;</span><br><span class="line">	<span class="keyword">if</span> cas.kind == caseRecv &amp;&amp; cas.elem != <span class="literal">nil</span> &#123;</span><br><span class="line">		msanwrite(cas.elem, c.elemtype.size)</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> cas.kind == caseSend &#123;</span><br><span class="line">		msanread(cas.elem, c.elemtype.size)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">selunlock(scases, lockorder)</span><br><span class="line"><span class="keyword">goto</span> retc</span><br></pre></td></tr></table></figure>
+
+<p>1.从 buffer 中获取元素</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">bufrecv:</span><br><span class="line">	...</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">if</span> msanenabled &amp;&amp; cas.elem != <span class="literal">nil</span> &#123;</span><br><span class="line">		msanwrite(cas.elem, c.elemtype.size)</span><br><span class="line">	&#125;</span><br><span class="line">	recvOK = <span class="literal">true</span></span><br><span class="line">	<span class="comment">// 获取 buf 中的元素</span></span><br><span class="line">	qp = chanbuf(c, c.recvx)</span><br><span class="line">	<span class="comment">// 将元素拷贝到 case 接收的地址</span></span><br><span class="line">	<span class="keyword">if</span> cas.elem != <span class="literal">nil</span> &#123;</span><br><span class="line">		typedmemmove(c.elemtype, cas.elem, qp)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 清空缓冲区对应槽位的元素</span></span><br><span class="line">	typedmemclr(c.elemtype, qp)</span><br><span class="line">	c.recvx++</span><br><span class="line">	<span class="keyword">if</span> c.recvx == c.dataqsiz &#123;</span><br><span class="line">		c.recvx = <span class="number">0</span></span><br><span class="line">	&#125;</span><br><span class="line">	c.qcount--</span><br><span class="line">	<span class="comment">// 解锁所有 channel,并进入 retc</span></span><br><span class="line">	selunlock(scases, lockorder)</span><br><span class="line">	<span class="keyword">goto</span> retc</span><br></pre></td></tr></table></figure>
+
+<p>2.向 buf 中发送数据</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">bufsend:</span><br><span class="line">	...</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">if</span> msanenabled &#123;</span><br><span class="line">		msanread(cas.elem, c.elemtype.size)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 把待发送的元素放到缓冲区中</span></span><br><span class="line">	typedmemmove(c.elemtype, chanbuf(c, c.sendx), cas.elem)</span><br><span class="line">	c.sendx++</span><br><span class="line">	<span class="keyword">if</span> c.sendx == c.dataqsiz &#123;</span><br><span class="line">		c.sendx = <span class="number">0</span></span><br><span class="line">	&#125;</span><br><span class="line">	c.qcount++</span><br><span class="line">	<span class="comment">// 解锁所有 channel 并运行 retc</span></span><br><span class="line">	selunlock(scases, lockorder)</span><br><span class="line">	<span class="keyword">goto</span> retc</span><br></pre></td></tr></table></figure>
+
+<p>3.可以从一个阻塞的发送者处获取数据</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">recv:</span><br><span class="line">	<span class="comment">// 调用的是 channel 中的 recv 函数,直接看 channel 部分源码解析即可</span></span><br><span class="line">	recv(c, sg, cas.elem, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; selunlock(scases, lockorder) &#125;, <span class="number">2</span>)</span><br><span class="line">	...</span><br><span class="line">	</span><br><span class="line">	recvOK = <span class="literal">true</span></span><br><span class="line">	<span class="keyword">goto</span> retc</span><br></pre></td></tr></table></figure>
+
+<p>4.可以向一个阻塞的接收者发送数据</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">send:</span><br><span class="line">	...</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">if</span> msanenabled &#123;</span><br><span class="line">		msanread(cas.elem, c.elemtype.size)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 同样直接调用 channel 中的 send 函数</span></span><br><span class="line">	send(c, sg, cas.elem, <span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; selunlock(scases, lockorder) &#125;, <span class="number">2</span>)</span><br><span class="line">	<span class="keyword">if</span> debugSelect &#123;</span><br><span class="line">		<span class="built_in">print</span>(<span class="string">"syncsend: cas0="</span>, cas0, <span class="string">" c="</span>, c, <span class="string">"\n"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">goto</span> retc</span><br></pre></td></tr></table></figure>
+
+<p>5.读通道关闭:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">rclose:</span><br><span class="line">	<span class="comment">// 从关闭的 channel 读数据,什么都读不出来,读出的是默认值</span></span><br><span class="line">	selunlock(scases, lockorder)</span><br><span class="line">	recvOK = <span class="literal">false</span></span><br><span class="line">	<span class="keyword">if</span> cas.elem != <span class="literal">nil</span> &#123;</span><br><span class="line">		typedmemclr(c.elemtype, cas.elem)</span><br><span class="line">	&#125;</span><br><span class="line">	...</span><br><span class="line">	<span class="keyword">goto</span> retc</span><br></pre></td></tr></table></figure>
+
+<p>6.写通道关闭:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">sclose:</span><br><span class="line">	<span class="comment">// 向关闭的 channel 写数据直接 panic</span></span><br><span class="line">	selunlock(scases, lockorder)</span><br><span class="line">	<span class="built_in">panic</span>(plainError(<span class="string">"send on closed channel"</span>))</span><br></pre></td></tr></table></figure>
+
+<p>7.收尾部分:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">retc:</span><br><span class="line">	<span class="keyword">if</span> cas.releasetime &gt; <span class="number">0</span> &#123;</span><br><span class="line">		blockevent(cas.releasetime-t0, <span class="number">1</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 返回触发的是第几个 case,以及读数据是否成功,从 channel 中接收数据需要多使用一个返回值来表示是否获取成功,因为可以从关闭的 channel 中读数据,从关闭的通道读返回 false</span></span><br><span class="line">	<span class="keyword">return</span> casi, recvOK</span><br></pre></td></tr></table></figure>
+
+<h2 id="辅助操作"><a href="#辅助操作" class="headerlink" title="辅助操作"></a>辅助操作</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 按照 lockorder 的顺序对 scases 中的函数进行加锁</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">sellock</span><span class="params">(scases []scase, lockorder []<span class="keyword">uint16</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> c *hchan</span><br><span class="line">	<span class="comment">// 遍历 lockorder</span></span><br><span class="line">	<span class="keyword">for</span> _, o := <span class="keyword">range</span> lockorder &#123;</span><br><span class="line">	<span class="comment">// 找到对应的 channel</span></span><br><span class="line">		c0 := scases[o].c</span><br><span class="line">		<span class="comment">// 不为空且不相等,加锁</span></span><br><span class="line">		<span class="keyword">if</span> c0 != <span class="literal">nil</span> &amp;&amp; c0 != c &#123;</span><br><span class="line">			c = c0</span><br><span class="line">			lock(&amp;c.lock)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 对所有 channel 解锁</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">selunlock</span><span class="params">(scases []scase, lockorder []<span class="keyword">uint16</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> i := <span class="built_in">len</span>(scases) - <span class="number">1</span>; i &gt;= <span class="number">0</span>; i-- &#123;</span><br><span class="line">		c := scases[lockorder[i]].c</span><br><span class="line">		<span class="keyword">if</span> c == <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> i &gt; <span class="number">0</span> &amp;&amp; c == scases[lockorder[i<span class="number">-1</span>]].c &#123;</span><br><span class="line">			<span class="keyword">continue</span> <span class="comment">// 下一次迭代解锁,这是阻塞在同一个 channel 的情况</span></span><br><span class="line">		&#125;</span><br><span class="line">		unlock(&amp;c.lock)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>&emsp;&emsp;整个 selectgo 函数有 380 行,即使把后面的不同情况的处理部分,仅就前面 select 的处理也有 280 行,想要让整个流程了然于胸还是有些困难的,下面就对 select 进行一个流程总结:</p>
+<ol>
+<li>首先现随机生成所有 case 的遍历顺序,以及加锁顺序,初始化完毕</li>
+<li>遍历所有 channel,如果可以立即出发就根据对应的情况跳转到后面对应的执行情况中执行并返回即可</li>
+<li>所有 case 都没有执行,且存在 default,默认返回并触发 default</li>
+<li>将 goroutine 阻塞在所有的 channel 的(接收队列或发送队列)中,并陷入睡眠等待触发</li>
+<li>唤醒后,继续加锁遍历所有 case,选择触发的 sudog 并返回对应的索引</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2020/01/13/go源码阅读之Channel/" rel="next" title="go源码阅读之Channel">
+                  <i class="fa fa-chevron-left"></i> go源码阅读之Channel
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Select-源码阅读"><span class="nav-text">Select 源码阅读</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#select-struct"><span class="nav-text">select struct</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#selectgo-操作"><span class="nav-text">selectgo 操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#辅助操作"><span class="nav-text">辅助操作</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-text">小结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">54</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>
