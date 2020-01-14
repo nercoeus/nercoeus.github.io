@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="nsqd.Channel 解析&amp;emsp;&amp;emsp;Channel 是消费者订阅特定 Topic 的一种抽象.对于发往 Topic 的消息,nsqd 向该 Topic 下的所有 Channel 投递消息,而同一个 Channel 只投递一次,Channel 下如果存在多个消费者,则随机选择一个消费者做投递.这种投递方式可以被用作消费者负载均衡. &amp;emsp;&amp;emsp;Channel 从属于特定">
+<meta property="og:type" content="article">
+<meta property="og:title" content="nsqd解析:nsqd_channel">
+<meta property="og:url" content="http://yoursite.com/2020/01/14/nsqd解析-nsqd-channel/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="nsqd.Channel 解析&amp;emsp;&amp;emsp;Channel 是消费者订阅特定 Topic 的一种抽象.对于发往 Topic 的消息,nsqd 向该 Topic 下的所有 Channel 投递消息,而同一个 Channel 只投递一次,Channel 下如果存在多个消费者,则随机选择一个消费者做投递.这种投递方式可以被用作消费者负载均衡. &amp;emsp;&amp;emsp;Channel 从属于特定">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2020-01-14T17:46:22.622Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="nsqd解析:nsqd_channel">
+<meta name="twitter:description" content="nsqd.Channel 解析&amp;emsp;&amp;emsp;Channel 是消费者订阅特定 Topic 的一种抽象.对于发往 Topic 的消息,nsqd 向该 Topic 下的所有 Channel 投递消息,而同一个 Channel 只投递一次,Channel 下如果存在多个消费者,则随机选择一个消费者做投递.这种投递方式可以被用作消费者负载均衡. &amp;emsp;&amp;emsp;Channel 从属于特定">
+  <link rel="canonical" href="http://yoursite.com/2020/01/14/nsqd解析-nsqd-channel/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>nsqd解析:nsqd_channel | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/01/14/nsqd解析-nsqd-channel/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">nsqd解析:nsqd_channel
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2020-01-14 20:09:16" itemprop="dateCreated datePublished" datetime="2020-01-14T20:09:16+08:00">2020-01-14</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-01-15 01:46:22" itemprop="dateModified" datetime="2020-01-15T01:46:22+08:00">2020-01-15</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/nsq解析/" itemprop="url" rel="index"><span itemprop="name">nsq解析</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="nsqd-Channel-解析"><a href="#nsqd-Channel-解析" class="headerlink" title="nsqd.Channel 解析"></a>nsqd.Channel 解析</h1><p>&emsp;&emsp;Channel 是消费者订阅特定 Topic 的一种抽象.对于发往 Topic 的消息,nsqd 向该 Topic 下的所有 Channel 投递消息,而同一个 Channel 只投递一次,Channel 下如果存在多个消费者,则随机选择一个消费者做投递.这种投递方式可以被用作消费者负载均衡.</p>
+<p>&emsp;&emsp;Channel 从属于特定 Topic,可以认为是 Topic 的下一级.在同一个 Topic 之下可以有零个或多个 Channel.和 Topic 一样,Channel 同样有永久和临时之分,永久的 Channel 只能通过显式删除销毁,临时的Channel 在最后一个消费者断开连接的时候被销毁.</p>
+<p>&emsp;&emsp;与服务于生产者的 Topic 不同,Channel 直接面向消费者</p>
+<a id="more"></a>
+<h2 id="channel-struct"><a href="#channel-struct" class="headerlink" title="channel struct"></a>channel struct</h2><p>先看看 channel 的内部结构</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> Channel <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// 放在前面保证 32 位系统对其</span></span><br><span class="line">	requeueCount <span class="keyword">uint64</span> <span class="comment">// 重新投递消息数</span></span><br><span class="line">	messageCount <span class="keyword">uint64</span> <span class="comment">// topic 发送过来消息数</span></span><br><span class="line">	timeoutCount <span class="keyword">uint64</span> <span class="comment">// 超时数</span></span><br><span class="line"></span><br><span class="line">	sync.RWMutex</span><br><span class="line"></span><br><span class="line">	topicName <span class="keyword">string</span>   <span class="comment">// topic name</span></span><br><span class="line">	name      <span class="keyword">string</span>   <span class="comment">// channel name</span></span><br><span class="line">	ctx       *context <span class="comment">// 上下文</span></span><br><span class="line"></span><br><span class="line">	backend BackendQueue <span class="comment">// 存盘机制</span></span><br><span class="line"></span><br><span class="line">	memoryMsgChan <span class="keyword">chan</span> *Message <span class="comment">// 消息队列</span></span><br><span class="line">	exitFlag      <span class="keyword">int32</span>         <span class="comment">// 是否退出</span></span><br><span class="line">	exitMutex     sync.RWMutex  <span class="comment">// 用来对 exitFlag 加锁</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// state tracking</span></span><br><span class="line">	clients        <span class="keyword">map</span>[<span class="keyword">int64</span>]Consumer <span class="comment">// 所有客户端</span></span><br><span class="line">	paused         <span class="keyword">int32</span>              <span class="comment">// 是否暂停</span></span><br><span class="line">	ephemeral      <span class="keyword">bool</span>               <span class="comment">// 是否是临时 channel</span></span><br><span class="line">	deleteCallback <span class="function"><span class="keyword">func</span><span class="params">(*Channel)</span>     // 删除回调函数</span></span><br><span class="line"><span class="function">	<span class="title">deleter</span>        <span class="title">sync</span>.<span class="title">Once</span>          // 保证删除回调函数仅执行一次</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">	// <span class="title">Stats</span> <span class="title">tracking</span></span></span><br><span class="line"><span class="function">	<span class="title">e2eProcessingLatencyStream</span> *<span class="title">quantile</span>.<span class="title">Quantile</span></span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">	// 延迟队列相关的三个字段</span></span><br><span class="line"><span class="function">	<span class="title">deferredMessages</span> <span class="title">map</span>[<span class="title">MessageID</span>]*<span class="title">pqueue</span>.<span class="title">Item</span></span></span><br><span class="line"><span class="function">	<span class="title">deferredPQ</span>       <span class="title">pqueue</span>.<span class="title">PriorityQueue</span></span></span><br><span class="line"><span class="function">	<span class="title">deferredMutex</span>    <span class="title">sync</span>.<span class="title">Mutex</span></span></span><br><span class="line"><span class="function">	// 待确认队列相关的三个字段</span></span><br><span class="line"><span class="function">	<span class="title">inFlightMessages</span> <span class="title">map</span>[<span class="title">MessageID</span>]*<span class="title">Message</span></span></span><br><span class="line"><span class="function">	<span class="title">inFlightPQ</span>       <span class="title">inFlightPqueue</span></span></span><br><span class="line"><span class="function">	<span class="title">inFlightMutex</span>    <span class="title">sync</span>.<span class="title">Mutex</span></span></span><br><span class="line"><span class="function">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;在 channel 中存在两个优先队列,一个待确认队列,一个延迟队列.每个队列均由一个 Mutex,一个优先队列,一个 map 组成.其中 Mutex 保护 map 的读写,优先队列进行排序,排队的 key 分别是待确认过期时间以及延迟发送时间,map 则用来根据优先队列获取的节点来快速获取 map 信息.</p>
+<h2 id="NewChannel-操作"><a href="#NewChannel-操作" class="headerlink" title="NewChannel 操作"></a>NewChannel 操作</h2><p>创建 channel 的函数,调用 initPQ 初始化两个队列:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 创建一个 channel 并返回对应指针</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewChannel</span><span class="params">(topicName <span class="keyword">string</span>, channelName <span class="keyword">string</span>, ctx *context,</span></span></span><br><span class="line"><span class="function"><span class="params">	deleteCallback <span class="keyword">func</span>(*Channel)</span>) *<span class="title">Channel</span></span> &#123;</span><br><span class="line"></span><br><span class="line">	c := &amp;Channel&#123;</span><br><span class="line">		topicName:      topicName,</span><br><span class="line">		name:           channelName,</span><br><span class="line">		memoryMsgChan:  <span class="literal">nil</span>,</span><br><span class="line">		clients:        <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">int64</span>]Consumer),</span><br><span class="line">		deleteCallback: deleteCallback,</span><br><span class="line">		ctx:            ctx,</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 消息队列,默认 10000</span></span><br><span class="line">	<span class="keyword">if</span> ctx.nsqd.getOpts().MemQueueSize &gt; <span class="number">0</span> &#123;</span><br><span class="line">		c.memoryMsgChan = <span class="built_in">make</span>(<span class="keyword">chan</span> *Message, ctx.nsqd.getOpts().MemQueueSize)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// TODO</span></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(ctx.nsqd.getOpts().E2EProcessingLatencyPercentiles) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		c.e2eProcessingLatencyStream = quantile.New(</span><br><span class="line">			ctx.nsqd.getOpts().E2EProcessingLatencyWindowTime,</span><br><span class="line">			ctx.nsqd.getOpts().E2EProcessingLatencyPercentiles,</span><br><span class="line">		)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 初始化延迟队列和待确认队列</span></span><br><span class="line">	c.initPQ()</span><br><span class="line">	<span class="comment">// 判断是不是暂时 channel,选择消息存盘方式</span></span><br><span class="line">	<span class="keyword">if</span> strings.HasSuffix(channelName, <span class="string">"#ephemeral"</span>) &#123;</span><br><span class="line">		c.ephemeral = <span class="literal">true</span></span><br><span class="line">		c.backend = newDummyBackendQueue()</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		dqLogf := <span class="function"><span class="keyword">func</span><span class="params">(level diskqueue.LogLevel, f <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">			opts := ctx.nsqd.getOpts()</span><br><span class="line">			lg.Logf(opts.Logger, opts.LogLevel, lg.LogLevel(level), f, args...)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// backend names, for uniqueness, automatically include the topic...</span></span><br><span class="line">		backendName := getBackendName(topicName, channelName)</span><br><span class="line">		c.backend = diskqueue.New(</span><br><span class="line">			backendName,</span><br><span class="line">			ctx.nsqd.getOpts().DataPath,</span><br><span class="line">			ctx.nsqd.getOpts().MaxBytesPerFile,</span><br><span class="line">			<span class="keyword">int32</span>(minValidMsgLength),</span><br><span class="line">			<span class="keyword">int32</span>(ctx.nsqd.getOpts().MaxMsgSize)+minValidMsgLength,</span><br><span class="line">			ctx.nsqd.getOpts().SyncEvery,</span><br><span class="line">			ctx.nsqd.getOpts().SyncTimeout,</span><br><span class="line">			dqLogf,</span><br><span class="line">		)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 通知 lookupd 创建了 channel</span></span><br><span class="line">	c.ctx.nsqd.Notify(c)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> c</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;整个看下来,channel 好像和 topic 创建十分类似,区别仅仅就只有 E2EProcessingLatencyPercentiles 参数的处理和 c.initPQ(),前者暂时不看,先看看后者:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 初始化两个队列,均使用优先队列</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">initPQ</span><span class="params">()</span></span> &#123;</span><br><span class="line">	pqSize := <span class="keyword">int</span>(math.Max(<span class="number">1</span>, <span class="keyword">float64</span>(c.ctx.nsqd.getOpts().MemQueueSize)/<span class="number">10</span>))</span><br><span class="line">	c.inFlightMutex.Lock()</span><br><span class="line">	<span class="comment">// 代表正在投递但是还没有投递成功的消息</span></span><br><span class="line">	c.inFlightMessages = <span class="built_in">make</span>(<span class="keyword">map</span>[MessageID]*Message)</span><br><span class="line">	c.inFlightPQ = newInFlightPqueue(pqSize)</span><br><span class="line">	c.inFlightMutex.Unlock()</span><br><span class="line"></span><br><span class="line">	c.deferredMutex.Lock()</span><br><span class="line">	<span class="comment">// 延迟消息和投递失败的消息</span></span><br><span class="line">	c.deferredMessages = <span class="built_in">make</span>(<span class="keyword">map</span>[MessageID]*pqueue.Item)</span><br><span class="line">	c.deferredPQ = pqueue.New(pqSize)</span><br><span class="line">	c.deferredMutex.Unlock()</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 消息定义</span></span><br><span class="line"><span class="keyword">const</span> (</span><br><span class="line">	MsgIDLength       = <span class="number">16</span>    <span class="comment">// ID 长度</span></span><br><span class="line">	minValidMsgLength = MsgIDLength + <span class="number">8</span> + <span class="number">2</span> <span class="comment">// Timestamp + Attempts</span></span><br><span class="line">)</span><br><span class="line"><span class="keyword">type</span> MessageID [MsgIDLength]<span class="keyword">byte</span></span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;每个 channel 维持两个队列,一个发送待确认队列,一个延迟发送队列.二者均使用优先队列进行实现,且存储消息使用的 map 以 msgID 作为 key.二者的实现也不一样,后面慢慢讲</p>
+<h2 id="channel-的删除和关闭"><a href="#channel-的删除和关闭" class="headerlink" title="channel 的删除和关闭"></a>channel 的删除和关闭</h2><p>和 topic 基本类似,没啥好说的,注意一下队列的清除即可.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 删除 chanel</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">Delete</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> c.exit(<span class="literal">true</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 关闭 channel</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">Close</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> c.exit(<span class="literal">false</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 删除或关闭 channel</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">exit</span><span class="params">(deleted <span class="keyword">bool</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	c.exitMutex.Lock()</span><br><span class="line">	<span class="keyword">defer</span> c.exitMutex.Unlock()</span><br><span class="line">	<span class="comment">// 设置不可用状态</span></span><br><span class="line">	<span class="keyword">if</span> !atomic.CompareAndSwapInt32(&amp;c.exitFlag, <span class="number">0</span>, <span class="number">1</span>) &#123;</span><br><span class="line">		<span class="keyword">return</span> errors.New(<span class="string">"exiting"</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> deleted &#123;</span><br><span class="line">		c.ctx.nsqd.logf(LOG_INFO, <span class="string">"CHANNEL(%s): deleting"</span>, c.name)</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 通知 lookdup</span></span><br><span class="line">		c.ctx.nsqd.Notify(c)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		c.ctx.nsqd.logf(LOG_INFO, <span class="string">"CHANNEL(%s): closing"</span>, c.name)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	c.RLock()</span><br><span class="line">	<span class="comment">// 所有关联客户端均关闭</span></span><br><span class="line">	<span class="keyword">for</span> _, client := <span class="keyword">range</span> c.clients &#123;</span><br><span class="line">		client.Close()</span><br><span class="line">	&#125;</span><br><span class="line">	c.RUnlock()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> deleted &#123;</span><br><span class="line">		<span class="comment">// 删除的话需要删除所有未发送消息</span></span><br><span class="line">		c.Empty()</span><br><span class="line">		<span class="keyword">return</span> c.backend.Delete()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 仅关闭的话,将所有消息放入磁盘中</span></span><br><span class="line">	c.flush()</span><br><span class="line">	<span class="keyword">return</span> c.backend.Close()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 清空所有队列中的所有消息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">Empty</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	c.Lock()</span><br><span class="line">	<span class="keyword">defer</span> c.Unlock()</span><br><span class="line">	<span class="comment">// 重置两个队列</span></span><br><span class="line">	c.initPQ()</span><br><span class="line">	<span class="comment">// 清空所有客户端</span></span><br><span class="line">	<span class="keyword">for</span> _, client := <span class="keyword">range</span> c.clients &#123;</span><br><span class="line">		client.Empty()</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 清空所有未接收消息</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> &lt;-c.memoryMsgChan:</span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">			<span class="keyword">goto</span> finish</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">finish:</span><br><span class="line">	<span class="comment">// 最后把磁盘中的消息清空</span></span><br><span class="line">	<span class="keyword">return</span> c.backend.Empty()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 将消息全部落盘</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">flush</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> msgBuf bytes.Buffer</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(c.memoryMsgChan) &gt; <span class="number">0</span> || <span class="built_in">len</span>(c.inFlightMessages) &gt; <span class="number">0</span> || <span class="built_in">len</span>(c.deferredMessages) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		...log...</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 队列中的消息落盘</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> msg := &lt;-c.memoryMsgChan:</span><br><span class="line">			err := writeMessageToBackend(&amp;msgBuf, msg, c.backend)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				c.ctx.nsqd.logf(LOG_ERROR, <span class="string">"failed to write message to backend - %s"</span>, err)</span><br><span class="line">			&#125;</span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">			<span class="keyword">goto</span> finish</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">finish:</span><br><span class="line">	c.inFlightMutex.Lock()</span><br><span class="line">	<span class="comment">// 存盘待确认的消息</span></span><br><span class="line">	<span class="keyword">for</span> _, msg := <span class="keyword">range</span> c.inFlightMessages &#123;</span><br><span class="line">		err := writeMessageToBackend(&amp;msgBuf, msg, c.backend)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			c.ctx.nsqd.logf(LOG_ERROR, <span class="string">"failed to write message to backend - %s"</span>, err)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	c.inFlightMutex.Unlock()</span><br><span class="line"></span><br><span class="line">	c.deferredMutex.Lock()</span><br><span class="line">	<span class="comment">// 存盘延时消息</span></span><br><span class="line">	<span class="keyword">for</span> _, item := <span class="keyword">range</span> c.deferredMessages &#123;</span><br><span class="line">		msg := item.Value.(*Message)</span><br><span class="line">		err := writeMessageToBackend(&amp;msgBuf, msg, c.backend)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			c.ctx.nsqd.logf(LOG_ERROR, <span class="string">"failed to write message to backend - %s"</span>, err)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	c.deferredMutex.Unlock()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="put-操作"><a href="#put-操作" class="headerlink" title="put 操作"></a>put 操作</h2><p>&emsp;&emsp;既然通过 channel 把消息从 topic 送到 client 中,那么问题来了,channel 是怎么和 topic 联通的,以及是怎么把消息发送给 client 的?<br>&emsp;&emsp;先看看是怎么和 topic 联通的,上一小节可以看到 topic 中通过 channel.PutMessage(chanMsg) 和 channel.PutMessageDeferred(chanMsg, chanMsg.deferred) 将消息发送给 channel,下面就来碰碰这两个函数:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 向 channel 中投递一条消息,在 topic 的消息循环中投递</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">PutMessage</span><span class="params">(m *Message)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	c.RLock()</span><br><span class="line">	<span class="keyword">defer</span> c.RUnlock()</span><br><span class="line">	<span class="comment">// channel 是否可用</span></span><br><span class="line">	<span class="keyword">if</span> c.Exiting() &#123;</span><br><span class="line">		<span class="keyword">return</span> errors.New(<span class="string">"exiting"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 调用 channel.put(msg)</span></span><br><span class="line">	err := c.put(m)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 记录 msgCount</span></span><br><span class="line">	atomic.AddUint64(&amp;c.messageCount, <span class="number">1</span>)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 将消息推送出去</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">put</span><span class="params">(m *Message)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">select</span> &#123;</span><br><span class="line">	<span class="comment">// 存入 channel 的消息队列中</span></span><br><span class="line">	<span class="keyword">case</span> c.memoryMsgChan &lt;- m:</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="comment">// 消息队列满了就存入 backend 队列中</span></span><br><span class="line">		b := bufferPoolGet()</span><br><span class="line">		<span class="comment">// 存入磁盘</span></span><br><span class="line">		err := writeMessageToBackend(b, m, c.backend)</span><br><span class="line">		bufferPoolPut(b)</span><br><span class="line">		c.ctx.nsqd.SetHealth(err)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			...log...</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 准备发送延迟消息,先添加到延时队列,时间到再 put</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">PutMessageDeferred</span><span class="params">(msg *Message, timeout time.Duration)</span></span> &#123;</span><br><span class="line">	atomic.AddUint64(&amp;c.messageCount, <span class="number">1</span>)</span><br><span class="line">	c.StartDeferredTimeout(msg, timeout)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 准备添加延迟消息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">StartDeferredTimeout</span><span class="params">(msg *Message, timeout time.Duration)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="comment">// 获取消息延迟推送的目标时间</span></span><br><span class="line">	absTs := time.Now().Add(timeout).UnixNano()</span><br><span class="line">	<span class="comment">// 包装成队列的一个节点</span></span><br><span class="line">	item := &amp;pqueue.Item&#123;Value: msg, Priority: absTs&#125;</span><br><span class="line">	<span class="comment">// 将消息存入 deferredMessage</span></span><br><span class="line">	err := c.pushDeferredMessage(item)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 将消添加到 deferredPQ 优先队列中,进行等待发送</span></span><br><span class="line">	c.addToDeferredPQ(item)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 向 deferredMessages 中存入一条消息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">pushDeferredMessage</span><span class="params">(item *pqueue.Item)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	c.deferredMutex.Lock()</span><br><span class="line">	<span class="comment">// <span class="doctag">TODO:</span> these map lookups are costly</span></span><br><span class="line">	id := item.Value.(*Message).ID</span><br><span class="line">	_, ok := c.deferredMessages[id]</span><br><span class="line">	<span class="keyword">if</span> ok &#123;</span><br><span class="line">		c.deferredMutex.Unlock()</span><br><span class="line">		<span class="keyword">return</span> errors.New(<span class="string">"ID already deferred"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 加锁存入</span></span><br><span class="line">	c.deferredMessages[id] = item</span><br><span class="line">	c.deferredMutex.Unlock()</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 添加到 deferredPQ 中</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">addToDeferredPQ</span><span class="params">(item *pqueue.Item)</span></span> &#123;</span><br><span class="line">	c.deferredMutex.Lock()</span><br><span class="line">	heap.Push(&amp;c.deferredPQ, item)</span><br><span class="line">	c.deferredMutex.Unlock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;channel 也是通过 put 的操作将消息放到消息缓冲通道中,现在已经知道 channel 中的消息是 topic put 进来的,这里有两种类型的消息:</p>
+<ol>
+<li>正常的消息直接添加到消息队列缓冲区或者通过 backend 落地 </li>
+<li>延时消息会通过 PutMessageDeferred -&gt; StartDeferredTimeout -&gt; pushDeferredMessage 添加到 channel 的延时队列中</li>
+</ol>
+<p>向延迟队列的添加需要两步,分别将 msg 加入到 c.deferredMessages 中和 c.deferredPQ 中即可</p>
+<p>&emsp;&emsp;这样的话,我们已经了解了,channel 对从 topic 发来的消息的处理,接下来看看 channel 到底是怎么把这两种消息发送给客户端的.</p>
+<h2 id="正常消息的发送"><a href="#正常消息的发送" class="headerlink" title="正常消息的发送"></a>正常消息的发送</h2><p>&emsp;&emsp;channel 接收到正常消息会直接存放到消息缓冲区中,是否还记得在 nsqd 中我们启动了 queueScanLoop 来对所有的 channel 进行扫描,判断是否有消息需要进行传递:<br>&emsp;&emsp;在 queueScanWorker 中会对每个待扫描的 channel 执行 processInFlightQueue, processDeferredQueue 两个函数.分别处理正常消息和延迟消息.这里我们先看一下正常消息的发送流程:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 在 NSQD 协程中进行处理,传入当前时间,处理 channel 中的待发送消息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">processInFlightQueue</span><span class="params">(t <span class="keyword">int64</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	c.exitMutex.RLock()</span><br><span class="line">	<span class="keyword">defer</span> c.exitMutex.RUnlock()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> c.Exiting() &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// dirty = 是否有新消息</span></span><br><span class="line">	dirty := <span class="literal">false</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		c.inFlightMutex.Lock()</span><br><span class="line">		<span class="comment">// 判断待确认的消息是否超时,获取等待确认超时的一条消息</span></span><br><span class="line">		msg, _ := c.inFlightPQ.PeekAndShift(t)</span><br><span class="line">		c.inFlightMutex.Unlock()</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> msg == <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="comment">// 没有消息等待确认超时,就不需要处理待确认队列</span></span><br><span class="line">			<span class="keyword">goto</span> exit</span><br><span class="line">		&#125;</span><br><span class="line">		dirty = <span class="literal">true</span></span><br><span class="line">		<span class="comment">// 清空到时消息</span></span><br><span class="line">		_, err := c.popInFlightMessage(msg.clientID, msg.ID)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">goto</span> exit</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 这条消息超时没有确认,记录超时数据条数</span></span><br><span class="line">		atomic.AddUint64(&amp;c.timeoutCount, <span class="number">1</span>)</span><br><span class="line">		c.RLock()</span><br><span class="line">		client, ok := c.clients[msg.clientID]</span><br><span class="line">		c.RUnlock()</span><br><span class="line">		<span class="keyword">if</span> ok &#123;</span><br><span class="line">			<span class="comment">// 消息超时后的客户端的处理</span></span><br><span class="line">			client.TimedOutMessage()</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 重新投递消息,调用 put 表示立即发送</span></span><br><span class="line">		c.put(msg)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">exit:</span><br><span class="line">	<span class="keyword">return</span> dirty</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;这就纳闷了,怎么是待确认的消息超时处理呢?消息咋还没发给客户端就待确认了呢?其实 channel 就是把消息存放到消息缓冲区中,谁抢到就是谁的,那么客户端怎么抢呢?看一下 memoryMsgChan 就知道,原来是 client 中有一段代码如下:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span>;;&#123;</span><br><span class="line">	<span class="keyword">case</span> msg := &lt;-memoryMsgChan:  <span class="comment">// 接收消息</span></span><br><span class="line">		...</span><br><span class="line"></span><br><span class="line">		subChannel.StartInFlightTimeout(msg, client.ID, msgTimeout)</span><br><span class="line">		client.SendingMessage()</span><br><span class="line">		err = p.SendMessage(client, msg)</span><br><span class="line">		...</span><br><span class="line">	<span class="keyword">case</span> b := &lt;-backendMsgChan:  <span class="comment">// 从存盘队列接收消息</span></span><br><span class="line">		...类似上面...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;这个 channel 的所有客户端均等待从 memoryMsgChan 中获取消息,每条消息谁抢到谁执行.我们暂时只关心抢到消息的 client 会执行 subChannel.StartInFlightTimeout(),里面传入的 msgTimeout 就是这个消息等待客户端确认的时间,然后调用 SendMessage() 把消息发送给客户端.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 推送一条消息给客户端,等待确认,timeout 是确认超时时间</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">StartInFlightTimeout</span><span class="params">(msg *Message, clientID <span class="keyword">int64</span>, timeout time.Duration)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	now := time.Now()</span><br><span class="line">	msg.clientID = clientID</span><br><span class="line">	<span class="comment">// 消息发送时间</span></span><br><span class="line">	msg.deliveryTS = now</span><br><span class="line">	<span class="comment">// 等待确认超时时间,在优先队列中按照它进行排序的</span></span><br><span class="line">	msg.pri = now.Add(timeout).UnixNano()</span><br><span class="line">	<span class="comment">// 加到 InFlightMessage 中</span></span><br><span class="line">	err := c.pushInFlightMessage(msg)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 记录进优先队列</span></span><br><span class="line">	c.addToInFlightPQ(msg)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 在 inFlightMessages 中存入一条消息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">pushInFlightMessage</span><span class="params">(msg *Message)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	c.inFlightMutex.Lock()</span><br><span class="line">	_, ok := c.inFlightMessages[msg.ID]</span><br><span class="line">	<span class="keyword">if</span> ok &#123;</span><br><span class="line">		c.inFlightMutex.Unlock()</span><br><span class="line">		<span class="keyword">return</span> errors.New(<span class="string">"ID already in flight"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	c.inFlightMessages[msg.ID] = msg</span><br><span class="line">	c.inFlightMutex.Unlock()</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 添加到 inFlightPQ 中,等待确认或超时</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">addToInFlightPQ</span><span class="params">(msg *Message)</span></span> &#123;</span><br><span class="line">	c.inFlightMutex.Lock()</span><br><span class="line">	c.inFlightPQ.Push(msg)</span><br><span class="line">	c.inFlightMutex.Unlock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;现在消息已经添加到等待确认队列中了,也已经发给客户端了,消息超时的情况上面已经处理了,那么客户端及时确认是怎么处理的呢?</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 接收消息确认并把消息从待确认队列删除</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">FinishMessage</span><span class="params">(clientID <span class="keyword">int64</span>, id MessageID)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	msg, err := c.popInFlightMessage(clientID, id)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 从待确认优先队列中删除</span></span><br><span class="line">	c.removeFromInFlightPQ(msg)</span><br><span class="line">	<span class="comment">// 统计一下性能,消息确认时间</span></span><br><span class="line">	<span class="keyword">if</span> c.e2eProcessingLatencyStream != <span class="literal">nil</span> &#123;</span><br><span class="line">		c.e2eProcessingLatencyStream.Insert(msg.Timestamp)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;调用 FinishMessage 来吧确认成功的消息删除即可,但是问题又来了, FinishMessage 是从哪里进行调用的呢?其实客户端会发送一系列的指令来和 nsqd 进行沟通,通过使用 FIN MessageID 来确认一条消息接收成功,然后通过 nsqd 中的客户端代理 client 执行 FinishMessage.</p>
+<h2 id="延时消息的发送"><a href="#延时消息的发送" class="headerlink" title="延时消息的发送"></a>延时消息的发送</h2><p>&emsp;&emsp;处理完了正常消息,下面看看延迟发送消息的流程.消息从 topic 送到 channel 中,自动添加到了延迟队列中,然后在 queueScanWorker 扫描 channel 的时候进行了处理:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 在 NSQD 协程中进行处理,传入当前时间</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">processDeferredQueue</span><span class="params">(t <span class="keyword">int64</span>)</span> <span class="title">bool</span></span> &#123;</span><br><span class="line">	c.exitMutex.RLock()</span><br><span class="line">	<span class="keyword">defer</span> c.exitMutex.RUnlock()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> c.Exiting() &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	dirty := <span class="literal">false</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		c.deferredMutex.Lock()</span><br><span class="line">		<span class="comment">// 等待时间到的第一条消息,可以投递</span></span><br><span class="line">		item, _ := c.deferredPQ.PeekAndShift(t)</span><br><span class="line">		c.deferredMutex.Unlock()</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> item == <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">goto</span> exit</span><br><span class="line">		&#125;</span><br><span class="line">		dirty = <span class="literal">true</span></span><br><span class="line"></span><br><span class="line">		msg := item.Value.(*Message)</span><br><span class="line">		<span class="comment">// 将消息取出来并进行 put</span></span><br><span class="line">		_, err := c.popDeferredMessage(msg.ID)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">goto</span> exit</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 此时已经是一条正常消息了,调用 put 投递即可 </span></span><br><span class="line">		c.put(msg)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">exit:</span><br><span class="line">	<span class="keyword">return</span> dirty</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>每次扫描就把最早的一条到时间的延迟消息当做正常消息发送即可</p>
+<h2 id="channel-和-client-的操作"><a href="#channel-和-client-的操作" class="headerlink" title="channel 和 client 的操作"></a>channel 和 client 的操作</h2><p>&emsp;&emsp;因为 channel 是直接和客户端进行沟通的组件,所以每个 channel 会维护一个所有关注它的客户端的 map,接着看看 channel 对 client 的操作:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 增加一个客户端</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">AddClient</span><span class="params">(clientID <span class="keyword">int64</span>, client Consumer)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	c.Lock()</span><br><span class="line">	<span class="keyword">defer</span> c.Unlock()</span><br><span class="line"></span><br><span class="line">	_, ok := c.clients[clientID]</span><br><span class="line">	<span class="keyword">if</span> ok &#123;</span><br><span class="line">		<span class="comment">// 已经存在</span></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 客户端过多的话报错,默认不设限制</span></span><br><span class="line">	maxChannelConsumers := c.ctx.nsqd.getOpts().MaxChannelConsumers</span><br><span class="line">	<span class="keyword">if</span> maxChannelConsumers != <span class="number">0</span> &amp;&amp; <span class="built_in">len</span>(c.clients) &gt;= maxChannelConsumers &#123;</span><br><span class="line">		<span class="keyword">return</span> errors.New(<span class="string">"E_TOO_MANY_CHANNEL_CONSUMERS"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 添加到 map 中</span></span><br><span class="line">	c.clients[clientID] = client</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 删除一个客户端</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">RemoveClient</span><span class="params">(clientID <span class="keyword">int64</span>)</span></span> &#123;</span><br><span class="line">	c.Lock()</span><br><span class="line">	<span class="keyword">defer</span> c.Unlock()</span><br><span class="line"></span><br><span class="line">	_, ok := c.clients[clientID]</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		<span class="keyword">return</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="built_in">delete</span>(c.clients, clientID)</span><br><span class="line">	<span class="comment">// 删除 channel</span></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(c.clients) == <span class="number">0</span> &amp;&amp; c.ephemeral == <span class="literal">true</span> &#123;</span><br><span class="line">		<span class="keyword">go</span> c.deleter.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; c.deleteCallback(c) &#125;)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="关于-message-的辅助操作"><a href="#关于-message-的辅助操作" class="headerlink" title="关于 message 的辅助操作"></a>关于 message 的辅助操作</h2><p>除了 FIN MessageID 外,关于待确认消息,客户端还有两条额外的指令,分别是:</p>
+<ol>
+<li>TOUCH MessageID        -&gt; channel.TouchMessage : 重置待确认队列中的一条超时消息</li>
+<li>REQ MessageID timeout  -&gt; channel.RequeueMessage : 重置一条消息,可能变成正常消息或者延迟消息<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">TouchMessage</span><span class="params">(clientID <span class="keyword">int64</span>, id MessageID, clientMsgTimeout time.Duration)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="comment">// 从待确认队列移除</span></span><br><span class="line">	msg, err := c.popInFlightMessage(clientID, id)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	c.removeFromInFlightPQ(msg)</span><br><span class="line">	<span class="comment">// 更新新的待确认超时时间</span></span><br><span class="line">	<span class="comment">// 最长确认时间 15min</span></span><br><span class="line">	newTimeout := time.Now().Add(clientMsgTimeout)</span><br><span class="line">	<span class="keyword">if</span> newTimeout.Sub(msg.deliveryTS) &gt;=</span><br><span class="line">		c.ctx.nsqd.getOpts().MaxMsgTimeout &#123;</span><br><span class="line">		newTimeout = msg.deliveryTS.Add(c.ctx.nsqd.getOpts().MaxMsgTimeout)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	msg.pri = newTimeout.UnixNano()</span><br><span class="line">	<span class="comment">// 重新加入待确认队列,仅仅修改了待确认超时时间</span></span><br><span class="line">	err = c.pushInFlightMessage(msg)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	c.addToInFlightPQ(msg)</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// `timeoutMs` == 0 - requeue a message immediately</span></span><br><span class="line"><span class="comment">// `timeoutMs`  &gt; 0 - asynchronously wait for the specified timeout</span></span><br><span class="line"><span class="comment">//     and requeue a message (aka "deferred requeue")</span></span><br><span class="line"><span class="comment">// 重置一条消息,并判断时候需要延迟发送,以投递消息,但是客户端请求重新投递(它不想处理...)</span></span><br><span class="line"><span class="comment">// timeout == 0 立即重新发送该消息</span></span><br><span class="line"><span class="comment">// timeout &gt; 0  延迟消息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(c *Channel)</span> <span class="title">RequeueMessage</span><span class="params">(clientID <span class="keyword">int64</span>, id MessageID, timeout time.Duration)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="comment">// 先从待确认消息队列移除</span></span><br><span class="line">	msg, err := c.popInFlightMessage(clientID, id)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	c.removeFromInFlightPQ(msg)</span><br><span class="line">	<span class="comment">// 投递消息数加一</span></span><br><span class="line">	atomic.AddUint64(&amp;c.requeueCount, <span class="number">1</span>)</span><br><span class="line">	<span class="comment">// 立即投递</span></span><br><span class="line">	<span class="keyword">if</span> timeout == <span class="number">0</span> &#123;</span><br><span class="line">		c.exitMutex.RLock()</span><br><span class="line">		<span class="keyword">if</span> c.Exiting() &#123;</span><br><span class="line">			c.exitMutex.RUnlock()</span><br><span class="line">			<span class="keyword">return</span> errors.New(<span class="string">"exiting"</span>)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 正常推送消息</span></span><br><span class="line">		err := c.put(msg)</span><br><span class="line">		c.exitMutex.RUnlock()</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 添加到延迟推送队列</span></span><br><span class="line">	<span class="keyword">return</span> c.StartDeferredTimeout(msg, timeout)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+</li>
+</ol>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>&emsp;&emsp;整个 channel 的代码看的差不多了,channel 可以将 topic 收到的正常消息和延迟消息推送到消息队列中,客户端从读取进行处理,然后通过 nsqd 中的 queueScanWorker 来刷新 channel 中的两个队列即可.</p>
+<p>最后附上 github 的 nsqd 的源码解析地址:<a href="https://github.com/nercoeus/nsq_source_note" target="_blank" rel="noopener">https://github.com/nercoeus/nsq_source_note</a></p>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2020/01/14/nsqd解析-nsqd-topic/" rel="next" title="nsqd解析:nsqd_topic">
+                  <i class="fa fa-chevron-left"></i> nsqd解析:nsqd_topic
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#nsqd-Channel-解析"><span class="nav-text">nsqd.Channel 解析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#channel-struct"><span class="nav-text">channel struct</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#NewChannel-操作"><span class="nav-text">NewChannel 操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#channel-的删除和关闭"><span class="nav-text">channel 的删除和关闭</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#put-操作"><span class="nav-text">put 操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#正常消息的发送"><span class="nav-text">正常消息的发送</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#延时消息的发送"><span class="nav-text">延时消息的发送</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#channel-和-client-的操作"><span class="nav-text">channel 和 client 的操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#关于-message-的辅助操作"><span class="nav-text">关于 message 的辅助操作</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-text">小结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">57</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

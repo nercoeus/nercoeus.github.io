@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="nsqd.Topic 解析&amp;emsp;&amp;emsp;上一篇我们对 nsqd 的整体框架有了大概的了解,但是光看整个运行的流程是十分空洞的,本篇文章来对这个框架进行填充,对 topic 这一组成部分进行详尽的解析.&amp;emsp;&amp;emsp;topic 管理着多个 channel 通过从 client 中获取消息，然后将消息发送到 channel 中传递给客户端.在 channel 初始化时会加载原有的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="nsqd解析:nsqd_topic">
+<meta property="og:url" content="http://yoursite.com/2020/01/14/nsqd解析-nsqd-topic/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="nsqd.Topic 解析&amp;emsp;&amp;emsp;上一篇我们对 nsqd 的整体框架有了大概的了解,但是光看整个运行的流程是十分空洞的,本篇文章来对这个框架进行填充,对 topic 这一组成部分进行详尽的解析.&amp;emsp;&amp;emsp;topic 管理着多个 channel 通过从 client 中获取消息，然后将消息发送到 channel 中传递给客户端.在 channel 初始化时会加载原有的">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2020-01-14T17:48:23.280Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="nsqd解析:nsqd_topic">
+<meta name="twitter:description" content="nsqd.Topic 解析&amp;emsp;&amp;emsp;上一篇我们对 nsqd 的整体框架有了大概的了解,但是光看整个运行的流程是十分空洞的,本篇文章来对这个框架进行填充,对 topic 这一组成部分进行详尽的解析.&amp;emsp;&amp;emsp;topic 管理着多个 channel 通过从 client 中获取消息，然后将消息发送到 channel 中传递给客户端.在 channel 初始化时会加载原有的">
+  <link rel="canonical" href="http://yoursite.com/2020/01/14/nsqd解析-nsqd-topic/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>nsqd解析:nsqd_topic | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/01/14/nsqd解析-nsqd-topic/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">nsqd解析:nsqd_topic
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2020-01-14 16:50:02" itemprop="dateCreated datePublished" datetime="2020-01-14T16:50:02+08:00">2020-01-14</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-01-15 01:48:23" itemprop="dateModified" datetime="2020-01-15T01:48:23+08:00">2020-01-15</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/nsq解析/" itemprop="url" rel="index"><span itemprop="name">nsq解析</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="nsqd-Topic-解析"><a href="#nsqd-Topic-解析" class="headerlink" title="nsqd.Topic 解析"></a>nsqd.Topic 解析</h1><p>&emsp;&emsp;上一篇我们对 nsqd 的整体框架有了大概的了解,但是光看整个运行的流程是十分空洞的,本篇文章来对这个框架进行填充,对 topic 这一组成部分进行详尽的解析.<br>&emsp;&emsp;topic 管理着多个 channel 通过从 client 中获取消息，然后将消息发送到 channel 中传递给客户端.在 channel 初始化时会加载原有的 topic 并在最后统一执行 topic.Start(),新创建的 topic 会同步给 lookupd 后开始运行.<br>&emsp;&emsp;nsqd 中通过创建创建多个 topic 来管理不同类别的频道.</p>
+<a id="more"></a>
+
+<h2 id="topic-struct"><a href="#topic-struct" class="headerlink" title="topic struct"></a>topic struct</h2><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// topic 结构体</span></span><br><span class="line"><span class="keyword">type</span> Topic <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// 这两个字段仅作统计信息,保证 32 位对其操作</span></span><br><span class="line">	messageCount <span class="keyword">uint64</span> <span class="comment">// topic 接受的消息数</span></span><br><span class="line">	messageBytes <span class="keyword">uint64</span> <span class="comment">// 所有接收消息结构体的长度</span></span><br><span class="line"></span><br><span class="line">	sync.RWMutex <span class="comment">// 在 channel 的操作需要加锁，包括 putMessage</span></span><br><span class="line"></span><br><span class="line">	name              <span class="keyword">string</span>                <span class="comment">// topic 的 name</span></span><br><span class="line">	<span class="comment">// 存储这个 topic 的所有 channel</span></span><br><span class="line">	channelMap        <span class="keyword">map</span>[<span class="keyword">string</span>]*Channel   </span><br><span class="line">	<span class="comment">// 当消息数过多，消息队列中存不下会将消息存入 backend(消息落地)</span></span><br><span class="line">	backend           BackendQueue          </span><br><span class="line">	<span class="comment">// 内存中存放的消息队列，默认长度是 10000</span></span><br><span class="line">	memoryMsgChan     <span class="keyword">chan</span> *Message         </span><br><span class="line">	<span class="comment">// 接收开始信号的 channel，调用 start 开始 topic 消息循环</span></span><br><span class="line">	startChan         <span class="keyword">chan</span> <span class="keyword">int</span>              </span><br><span class="line">	<span class="comment">// 判断 topic 是否退出</span></span><br><span class="line">	exitChan          <span class="keyword">chan</span> <span class="keyword">int</span>              </span><br><span class="line">	<span class="comment">// 在 select 的地方都要添加 exitChan</span></span><br><span class="line">	<span class="comment">// 除非使用 default 或者保证程序不会永远阻塞在 select 处,即可以退出循环</span></span><br><span class="line">	<span class="comment">// channel 更新时用来通知并更新消息循环中的 chan 数组</span></span><br><span class="line">	channelUpdateChan <span class="keyword">chan</span> <span class="keyword">int</span>              </span><br><span class="line">	<span class="comment">// 用来等待所有的子 goroutine</span></span><br><span class="line">	waitGroup         util.WaitGroupWrapper </span><br><span class="line">	</span><br><span class="line">	exitFlag          <span class="keyword">int32</span>                 <span class="comment">// topic 退出标识符</span></span><br><span class="line">	idFactory         *guidFactory          <span class="comment">// 生成 guid 的工厂方法</span></span><br><span class="line"></span><br><span class="line">	ephemeral      <span class="keyword">bool</span>         <span class="comment">// 该 topic 是否是临时 topic</span></span><br><span class="line">	deleteCallback <span class="function"><span class="keyword">func</span><span class="params">(*Topic)</span> // <span class="title">topic</span> 删除时的回调函数</span></span><br><span class="line"><span class="function">	<span class="title">deleter</span>        <span class="title">sync</span>.<span class="title">Once</span>    // 确保 <span class="title">deleteCallback</span> 仅执行一次</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">	<span class="title">paused</span>    <span class="title">int32</span>    // <span class="title">topic</span> 是否暂停</span></span><br><span class="line"><span class="function">	<span class="title">pauseChan</span> <span class="title">chan</span> <span class="title">int</span> // 改变 <span class="title">topic</span> 暂停/运行状态的通道</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">	<span class="title">ctx</span> *<span class="title">context</span> // <span class="title">topic</span> 的上下文</span></span><br><span class="line"><span class="function">&#125;</span></span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;nsqd 是所有 topic 的管理者,topic 是它自己所有 channel 的管理者,同样也是使用了 map+RWMutex 来存储管理 channel.</p>
+<h2 id="NewTopic-操作"><a href="#NewTopic-操作" class="headerlink" title="NewTopic 操作"></a>NewTopic 操作</h2><p>下面就是 topic 的创建流程,传入的参数参数包括,topicName,上下文环境,删除回调函数:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewTopic</span><span class="params">(topicName <span class="keyword">string</span>, ctx *context, deleteCallback <span class="keyword">func</span>(*Topic)</span>) *<span class="title">Topic</span></span> &#123;</span><br><span class="line">	t := &amp;Topic&#123;</span><br><span class="line">		name:              topicName,</span><br><span class="line">		channelMap:        <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]*Channel),</span><br><span class="line">		memoryMsgChan:     <span class="literal">nil</span>,</span><br><span class="line">		startChan:         <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>, <span class="number">1</span>),</span><br><span class="line">		exitChan:          <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>),</span><br><span class="line">		channelUpdateChan: <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>),</span><br><span class="line">		ctx:               ctx,</span><br><span class="line">		paused:            <span class="number">0</span>,</span><br><span class="line">		pauseChan:         <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>),</span><br><span class="line">		deleteCallback:    deleteCallback,</span><br><span class="line">		<span class="comment">// 所有 topic 使用同一个 guidFactory，因为都是用的 nsqd 的 ctx.nsqd.getOpts().ID 为基础生成的</span></span><br><span class="line">		idFactory:         NewGUIDFactory(ctx.nsqd.getOpts().ID),</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 根据消息队列生成消息 chan,default size = 10000</span></span><br><span class="line">	<span class="keyword">if</span> ctx.nsqd.getOpts().MemQueueSize &gt; <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// 初始化一个消息队列</span></span><br><span class="line">		t.memoryMsgChan = <span class="built_in">make</span>(<span class="keyword">chan</span> *Message, ctx.nsqd.getOpts().MemQueueSize)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 判断这个 topic 是不是暂时的，暂时的 topic 消息仅仅存储在内存中</span></span><br><span class="line">	<span class="comment">// DummyBackendQueue 和 diskqueue 均实现了 backend 接口</span></span><br><span class="line">	<span class="keyword">if</span> strings.HasSuffix(topicName, <span class="string">"#ephemeral"</span>) &#123;</span><br><span class="line">		<span class="comment">// 临时的 topic，设置标志并使用 newDummyBackendQueue 初始化 backend</span></span><br><span class="line">		t.ephemeral = <span class="literal">true</span></span><br><span class="line">		t.backend = newDummyBackendQueue()   <span class="comment">// 实现了 backend 但是并没有逻辑，所有操作仅仅返回 nil</span></span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		dqLogf := <span class="function"><span class="keyword">func</span><span class="params">(level diskqueue.LogLevel, f <span class="keyword">string</span>, args ...<span class="keyword">interface</span>&#123;&#125;)</span></span> &#123;</span><br><span class="line">			opts := ctx.nsqd.getOpts()</span><br><span class="line">			lg.Logf(opts.Logger, opts.LogLevel, lg.LogLevel(level), f, args...)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 使用 diskqueue 初始化 backend 队列</span></span><br><span class="line">		t.backend = diskqueue.New(</span><br><span class="line">			topicName,</span><br><span class="line">			ctx.nsqd.getOpts().DataPath,</span><br><span class="line">			ctx.nsqd.getOpts().MaxBytesPerFile,</span><br><span class="line">			<span class="keyword">int32</span>(minValidMsgLength),</span><br><span class="line">			<span class="keyword">int32</span>(ctx.nsqd.getOpts().MaxMsgSize)+minValidMsgLength,</span><br><span class="line">			ctx.nsqd.getOpts().SyncEvery,</span><br><span class="line">			ctx.nsqd.getOpts().SyncTimeout,</span><br><span class="line">			dqLogf,</span><br><span class="line">		)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 使用一个新的协程来执行 messagePump</span></span><br><span class="line">	t.waitGroup.Wrap(t.messagePump)</span><br><span class="line">	<span class="comment">// 调用 Notify</span></span><br><span class="line">	t.ctx.nsqd.Notify(t)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> t</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;每个 topic 都有一个消息队列缓冲区,默认大小为 10000.并且多余的消息会放到 backend 中进行落地保存.保存的方式有两种,如果这是一个临时的 topic 会直接进行丢弃,否则会使用 diskqueue 保存到磁盘中.在 NewTopic 的最后启动了一个 goroutine 来执行 t.messagePump().<br>&emsp;&emsp;看到这里会好奇,topic 是怎么和 nsqd 联系起来的呢?当 nsqd 初始化时,会加载已经存在的 topic 然后执行 Start() 函数开始运行.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 根据 topic 名称获取或创建一个 topic 指针</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(n *NSQD)</span> <span class="title">GetTopic</span><span class="params">(topicName <span class="keyword">string</span>)</span> *<span class="title">Topic</span></span> &#123;</span><br><span class="line">	<span class="comment">// Fast path:该 topic 已经存在，加读锁进行获取</span></span><br><span class="line">	n.RLock()</span><br><span class="line">	t, ok := n.topicMap[topicName]</span><br><span class="line">	n.RUnlock()</span><br><span class="line">	<span class="keyword">if</span> ok &#123;</span><br><span class="line">		<span class="keyword">return</span> t</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// Slow path</span></span><br><span class="line">	n.Lock()</span><br><span class="line">	<span class="comment">// 再进行一次判断，dobule check</span></span><br><span class="line">	t, ok = n.topicMap[topicName]</span><br><span class="line">	<span class="keyword">if</span> ok &#123;</span><br><span class="line">		n.Unlock()</span><br><span class="line">		<span class="keyword">return</span> t</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// topic 删除时回调，仅执行一次（Once 保证）</span></span><br><span class="line">	deleteCallback := <span class="function"><span class="keyword">func</span><span class="params">(t *Topic)</span></span> &#123;</span><br><span class="line">		n.DeleteExistingTopic(t.name)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 创建一个新的 Topic 传入名字、context、删除回调函数</span></span><br><span class="line">	t = NewTopic(topicName, &amp;context&#123;n&#125;, deleteCallback)</span><br><span class="line">	<span class="comment">// 插入到 map 中</span></span><br><span class="line">	n.topicMap[topicName] = t</span><br><span class="line"></span><br><span class="line">	n.Unlock()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// topic 已经创建,但是 messagePump 还没有开始运行</span></span><br><span class="line">	<span class="comment">// 如果在启动时加载元数据，尚无 nsqdlookupd 连接，则在加载后启动 topic，由 LoadMetadata 自己启动即可</span></span><br><span class="line">	<span class="keyword">if</span> atomic.LoadInt32(&amp;n.isLoading) == <span class="number">1</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> t</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 从下面开始就不再使用 NSQD 的全局锁转而使用 topic 的细粒度锁</span></span><br><span class="line">	<span class="comment">// 如果使用了 lookupd 就需要阻塞获取该 topic 的所有 channel，并立即进行创建</span></span><br><span class="line">	<span class="comment">// 这样可以确保将收到的任何消息缓冲到正确的通道</span></span><br><span class="line">	lookupdHTTPAddrs := n.lookupdHTTPAddrs()</span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(lookupdHTTPAddrs) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// 在所有 lookupd 中获取这个 topic 所有的 channels，这一步同样不需要在 LoadMetadata 时执行</span></span><br><span class="line">		channelNames, err := n.ci.GetLookupdTopicChannels(t.name, lookupdHTTPAddrs)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			...</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">for</span> _, channelName := <span class="keyword">range</span> channelNames &#123;</span><br><span class="line">			<span class="comment">// 临时的就不管了</span></span><br><span class="line">			<span class="keyword">if</span> strings.HasSuffix(channelName, <span class="string">"#ephemeral"</span>) &#123;</span><br><span class="line">				<span class="keyword">continue</span> <span class="comment">// do not create ephemeral channel with no consumer client</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 否则需要创建 channel</span></span><br><span class="line">			t.GetChannel(channelName)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> <span class="built_in">len</span>(n.getOpts().NSQLookupdTCPAddresses) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		<span class="comment">// 没有 lookupd 地址但是配置文件中却有。。。</span></span><br><span class="line">		...</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 已经添加了所有 channel 可以开始 topic 下的消息分发</span></span><br><span class="line">	<span class="comment">// 向 startChan 发送通知 messagePump 开始运行</span></span><br><span class="line">	t.Start()</span><br><span class="line">	<span class="keyword">return</span> t</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;如果 nsqd 中没有这个 topic 会进行创建,如果是从 nsqd.dat 加载文件时创建 topic 直接返回不执行 Start(),如果是新的 topic,会尝试从 lookupd 中获取对应的所有 channels,保证 channel 列表的正确性,最后执行 topic.Start()启动 topic.</p>
+<h2 id="Start-amp-amp-messagePump-操作"><a href="#Start-amp-amp-messagePump-操作" class="headerlink" title="Start &amp;&amp; messagePump 操作"></a>Start &amp;&amp; messagePump 操作</h2><p>topic 启动的代码很简单,就是发送一个 startChan:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 开始消息循环</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *Topic)</span> <span class="title">Start</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">select</span> &#123;</span><br><span class="line">	<span class="keyword">case</span> t.startChan &lt;- <span class="number">1</span>:</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;那么这个 startChan 发给哪里了呢?还记得 NewTopic 最后执行了 t.messagePump(),startChan 就发送给了它,messagePump 函数负责分发整个 topic 接收到的消息给该 topic 下的 channels.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 负责消息循环，将进入 topic 中的消息投递到 channel 中</span></span><br><span class="line"><span class="comment">// 仅在 topic 创建时通过新的协程开始执行</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *Topic)</span> <span class="title">messagePump</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> msg *Message</span><br><span class="line">	<span class="keyword">var</span> buf []<span class="keyword">byte</span></span><br><span class="line">	<span class="keyword">var</span> err error</span><br><span class="line">	<span class="keyword">var</span> chans []*Channel</span><br><span class="line">	<span class="keyword">var</span> memoryMsgChan <span class="keyword">chan</span> *Message</span><br><span class="line">	<span class="keyword">var</span> backendChan <span class="keyword">chan</span> []<span class="keyword">byte</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 仅在触发 startChan 开始运行，否则会阻塞住，直到退出</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> &lt;-t.channelUpdateChan:</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		<span class="keyword">case</span> &lt;-t.pauseChan:</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		<span class="keyword">case</span> &lt;-t.exitChan:</span><br><span class="line">			<span class="keyword">goto</span> exit</span><br><span class="line">		<span class="keyword">case</span> &lt;-t.startChan:</span><br><span class="line">			<span class="comment">// 只有接收到 startChan 才触发开始运行</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">break</span></span><br><span class="line">	&#125;</span><br><span class="line">	t.RLock()</span><br><span class="line">	<span class="comment">// 获取当前 topic 的所有 channel</span></span><br><span class="line">	<span class="keyword">for</span> _, c := <span class="keyword">range</span> t.channelMap &#123;</span><br><span class="line">		chans = <span class="built_in">append</span>(chans, c)</span><br><span class="line">	&#125;</span><br><span class="line">	t.RUnlock()</span><br><span class="line">	<span class="comment">// 设置消息循环接收的通道</span></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(chans) &gt; <span class="number">0</span> &amp;&amp; !t.IsPaused() &#123;</span><br><span class="line">		memoryMsgChan = t.memoryMsgChan      <span class="comment">// 消息缓冲区</span></span><br><span class="line">		backendChan = t.backend.ReadChan()   <span class="comment">// 落地通道</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 主消息循环</span></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> msg = &lt;-memoryMsgChan:   <span class="comment">// 消息队列收到了新消息,开始运行后面的代码</span></span><br><span class="line">		<span class="keyword">case</span> buf = &lt;-backendChan:</span><br><span class="line">			<span class="comment">// 内存满了后放到磁盘中的消息读取出来，需要解数据才能使用</span></span><br><span class="line">			<span class="comment">// 解消息的消息结构见 writeMessageToBackend</span></span><br><span class="line">			msg, err = decodeMessage(buf)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				t.ctx.nsqd.logf(LOG_ERROR, <span class="string">"failed to decode message - %s"</span>, err)</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">		<span class="keyword">case</span> &lt;-t.channelUpdateChan:</span><br><span class="line">			<span class="comment">// channel 的更新，清空后重新获取即可</span></span><br><span class="line">			chans = chans[:<span class="number">0</span>]</span><br><span class="line">			t.RLock()</span><br><span class="line">			<span class="comment">// 新的 channels</span></span><br><span class="line">			<span class="keyword">for</span> _, c := <span class="keyword">range</span> t.channelMap &#123;</span><br><span class="line">				chans = <span class="built_in">append</span>(chans, c)</span><br><span class="line">			&#125;</span><br><span class="line">			t.RUnlock()</span><br><span class="line">			<span class="comment">// 更新一下监听 channel 即可，没有 channel 就暂停</span></span><br><span class="line">			<span class="keyword">if</span> <span class="built_in">len</span>(chans) == <span class="number">0</span> || t.IsPaused() &#123;</span><br><span class="line">				memoryMsgChan = <span class="literal">nil</span></span><br><span class="line">				backendChan = <span class="literal">nil</span></span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				memoryMsgChan = t.memoryMsgChan</span><br><span class="line">				backendChan = t.backend.ReadChan()</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		<span class="keyword">case</span> &lt;-t.pauseChan:</span><br><span class="line">			<span class="comment">// 可能是暂停 topic 也可能是开启 topic</span></span><br><span class="line">			<span class="keyword">if</span> <span class="built_in">len</span>(chans) == <span class="number">0</span> || t.IsPaused() &#123;</span><br><span class="line">				<span class="comment">// 暂停 topic</span></span><br><span class="line">				memoryMsgChan = <span class="literal">nil</span></span><br><span class="line">				backendChan = <span class="literal">nil</span></span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				<span class="comment">// 恢复 topic</span></span><br><span class="line">				memoryMsgChan = t.memoryMsgChan</span><br><span class="line">				backendChan = t.backend.ReadChan()</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		<span class="keyword">case</span> &lt;-t.exitChan:</span><br><span class="line">			<span class="comment">// 退出 topic 消息循环</span></span><br><span class="line">			<span class="keyword">goto</span> exit</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 遍历所有 channel，在 memoryMsgChan 触发和 backendChan 解消息成功时执行</span></span><br><span class="line">		<span class="keyword">for</span> i, channel := <span class="keyword">range</span> chans &#123;</span><br><span class="line">			<span class="comment">// msg 就是那个消息</span></span><br><span class="line">			chanMsg := msg</span><br><span class="line">			<span class="comment">// 每个 channel 都需要唯一的实例，第一个 channel 不需要复制，已经有一份了(msg)，小优化</span></span><br><span class="line">			<span class="keyword">if</span> i &gt; <span class="number">0</span> &#123;</span><br><span class="line">				<span class="comment">// 复制新的 message</span></span><br><span class="line">				chanMsg = NewMessage(msg.ID, msg.Body)</span><br><span class="line">				chanMsg.Timestamp = msg.Timestamp</span><br><span class="line">				chanMsg.deferred = msg.deferred</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 延迟消息，使用 PutMessageDeferred 进行投递</span></span><br><span class="line">			<span class="keyword">if</span> chanMsg.deferred != <span class="number">0</span> &#123;</span><br><span class="line">				channel.PutMessageDeferred(chanMsg, chanMsg.deferred)</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 即时消息直接投递到所有 channel 即可</span></span><br><span class="line">			err := channel.PutMessage(chanMsg)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				...</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">exit:</span><br><span class="line">	t.ctx.nsqd.logf(LOG_INFO, <span class="string">"TOPIC(%s): closing ... messagePump"</span>, t.name)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;整个 topic 的消息循环还是很简洁的,通过一个 for 循环来监听 channel 的修改,topic 的暂停恢复,以及来自消息缓冲区的新消息和落地队列中读取出来的旧消息,再将收到的消息给每个 channel 复制一份进行投递</p>
+<h2 id="Topic-上的-channel-相关操作"><a href="#Topic-上的-channel-相关操作" class="headerlink" title="Topic 上的 channel 相关操作"></a>Topic 上的 channel 相关操作</h2><p>因为 topic 管理着多个 channel,下面来看看 topic 对 channel 的管理操作</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 获取一个 channel 不存在报错</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *Topic)</span> <span class="title">GetExistingChannel</span><span class="params">(channelName <span class="keyword">string</span>)</span> <span class="params">(*Channel, error)</span></span> &#123;</span><br><span class="line">	t.RLock()</span><br><span class="line">	<span class="keyword">defer</span> t.RUnlock()</span><br><span class="line">	channel, ok := t.channelMap[channelName]</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">"channel does not exist"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> channel, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 获取一个 channel 没有就创建一个</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *Topic)</span> <span class="title">GetChannel</span><span class="params">(channelName <span class="keyword">string</span>)</span> *<span class="title">Channel</span></span> &#123;</span><br><span class="line">	t.Lock()</span><br><span class="line">	channel, isNew := t.getOrCreateChannel(channelName)</span><br><span class="line">	t.Unlock()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 这里监听 exitChan 是一个值得探讨的点，通过监听 exitChan 可以获取 channelUpdateChan 是否关闭</span></span><br><span class="line">	<span class="comment">// 从而控制是否向 channelUpdateChan 中发送消息</span></span><br><span class="line">	<span class="comment">// 否则可能，channelUpdateChan 的对端已经不再监听，但是程序会阻塞在向 channelUpdateChan 发送消息不能释放</span></span><br><span class="line">	<span class="keyword">if</span> isNew &#123;</span><br><span class="line">		<span class="comment">// 更新 messagePump 状态</span></span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="comment">// 创建新的 channel 就更新 topic</span></span><br><span class="line">		<span class="keyword">case</span> t.channelUpdateChan &lt;- <span class="number">1</span>:</span><br><span class="line">		<span class="keyword">case</span> &lt;-t.exitChan:</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> channel</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 获取或创建一个 Channel 这个函数期望调用者加锁</span></span><br><span class="line"><span class="comment">// 这个函数仅由内部进行调用，例如 GetChannel 调用</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *Topic)</span> <span class="title">getOrCreateChannel</span><span class="params">(channelName <span class="keyword">string</span>)</span> <span class="params">(*Channel, <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 获取 channel</span></span><br><span class="line">	channel, ok := t.channelMap[channelName]</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		<span class="comment">// 没有就创建</span></span><br><span class="line">		deleteCallback := <span class="function"><span class="keyword">func</span><span class="params">(c *Channel)</span></span> &#123;</span><br><span class="line">			<span class="comment">// channel 删除函数，用回调的方式添加到 channel 中</span></span><br><span class="line">			t.DeleteExistingChannel(c.name)</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 创建新的 channel</span></span><br><span class="line">		channel = NewChannel(t.name, channelName, t.ctx, deleteCallback)</span><br><span class="line">		<span class="comment">// 加入 channel map</span></span><br><span class="line">		t.channelMap[channelName] = channel</span><br><span class="line">		<span class="keyword">return</span> channel, <span class="literal">true</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 存在直接返回</span></span><br><span class="line">	<span class="keyword">return</span> channel, <span class="literal">false</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;这里 getChannel 类似 getTopic 都是不存在就创建新的,需要注意的是 channel 的删除回调函数:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// channel 删除的回调函数，仅在 channel 存在时才进行删除</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *Topic)</span> <span class="title">DeleteExistingChannel</span><span class="params">(channelName <span class="keyword">string</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	t.Lock()</span><br><span class="line">	channel, ok := t.channelMap[channelName]</span><br><span class="line">	<span class="keyword">if</span> !ok &#123;</span><br><span class="line">		t.Unlock()</span><br><span class="line">		<span class="keyword">return</span> errors.New(<span class="string">"channel does not exist"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 从 channelMap 中删除这个 channel</span></span><br><span class="line">	<span class="built_in">delete</span>(t.channelMap, channelName)</span><br><span class="line">	<span class="comment">// not defered so that we can continue while the channel async closes</span></span><br><span class="line">	numChannels := <span class="built_in">len</span>(t.channelMap)</span><br><span class="line">	t.Unlock()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 删除 channel 前，会先清空 channel 中的 msg 再删除</span></span><br><span class="line">	channel.Delete()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 更新 messagePump 状态</span></span><br><span class="line">	<span class="keyword">select</span> &#123;</span><br><span class="line">	<span class="keyword">case</span> t.channelUpdateChan &lt;- <span class="number">1</span>:</span><br><span class="line">	<span class="keyword">case</span> &lt;-t.exitChan:</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 当临时 topic 中不存在 channel 时，将其删除</span></span><br><span class="line">	<span class="keyword">if</span> numChannels == <span class="number">0</span> &amp;&amp; t.ephemeral == <span class="literal">true</span> &#123;</span><br><span class="line">		<span class="keyword">go</span> t.deleter.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123; t.deleteCallback(t) &#125;)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="PutMessage-操作"><a href="#PutMessage-操作" class="headerlink" title="PutMessage 操作"></a>PutMessage 操作</h2><p>&emsp;&emsp;topic 里的消息从哪里来?怎么放进来的?首先 topic 里的消息来自于客户端，暂时先不需要了解这部分，只需要知道 topic 怎么去接收一条或多条消息即可，代码如下：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 向 topic 中写入一条消息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *Topic)</span> <span class="title">PutMessage</span><span class="params">(m *Message)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	t.RLock()</span><br><span class="line">	<span class="keyword">defer</span> t.RUnlock()</span><br><span class="line">	<span class="comment">// topic 已经退出了</span></span><br><span class="line">	<span class="keyword">if</span> atomic.LoadInt32(&amp;t.exitFlag) == <span class="number">1</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> errors.New(<span class="string">"exiting"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 调用 put 放进一条消息</span></span><br><span class="line">	err := t.put(m)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> err</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 增加消息计数和数据传输大小</span></span><br><span class="line">	atomic.AddUint64(&amp;t.messageCount, <span class="number">1</span>)</span><br><span class="line">	atomic.AddUint64(&amp;t.messageBytes, <span class="keyword">uint64</span>(<span class="built_in">len</span>(m.Body)))</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 向 topic 中写入多条消息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *Topic)</span> <span class="title">PutMessages</span><span class="params">(msgs []*Message)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	t.RLock()</span><br><span class="line">	<span class="keyword">defer</span> t.RUnlock()</span><br><span class="line">	<span class="comment">// topic 已经退出了</span></span><br><span class="line">	<span class="keyword">if</span> atomic.LoadInt32(&amp;t.exitFlag) == <span class="number">1</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> errors.New(<span class="string">"exiting"</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	messageTotalBytes := <span class="number">0</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> i, m := <span class="keyword">range</span> msgs &#123;</span><br><span class="line">		<span class="comment">// 调用 put 添加 msg</span></span><br><span class="line">		err := t.put(m)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="comment">// 增加消息计数</span></span><br><span class="line">			atomic.AddUint64(&amp;t.messageCount, <span class="keyword">uint64</span>(i))</span><br><span class="line">			atomic.AddUint64(&amp;t.messageBytes, <span class="keyword">uint64</span>(messageTotalBytes))</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 记录所有消息长度</span></span><br><span class="line">		messageTotalBytes += <span class="built_in">len</span>(m.Body)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 增加消息计数和数据传输大小</span></span><br><span class="line">	atomic.AddUint64(&amp;t.messageBytes, <span class="keyword">uint64</span>(messageTotalBytes))</span><br><span class="line">	atomic.AddUint64(&amp;t.messageCount, <span class="keyword">uint64</span>(<span class="built_in">len</span>(msgs)))</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 投递一条消息到 channel 中</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *Topic)</span> <span class="title">put</span><span class="params">(m *Message)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">select</span> &#123;</span><br><span class="line">	<span class="keyword">case</span> t.memoryMsgChan &lt;- m:   <span class="comment">// 内存中的消息队列还可以继续存放，直接放入 memoryMsgChan 交给 messagePump 处理即可</span></span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="comment">// 内存中消息队列存放满了，需要存放到 backend 中</span></span><br><span class="line">		<span class="comment">// 临时的 topic 会直接进行丢弃，永久的则会存放到磁盘中</span></span><br><span class="line">		b := bufferPoolGet() <span class="comment">// 从 buffer pool 中获取一个 buffer</span></span><br><span class="line">		<span class="comment">// 调用 writeMessageToBackend 将消息写入磁盘中</span></span><br><span class="line">		err := writeMessageToBackend(b, m, t.backend)</span><br><span class="line">		<span class="comment">// 归还 buffer 对象</span></span><br><span class="line">		bufferPoolPut(b)</span><br><span class="line">		<span class="comment">// 将错误存储在 nsqd 中</span></span><br><span class="line">		t.ctx.nsqd.SetHealth(err)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			...</span><br><span class="line">			<span class="keyword">return</span> err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;向 topic 放入消息流程很简单,在放入的同时做一些记录,然后使用 put 先尝试将消息存入 memoryMsgChan,存不进去就会存入 backend 中,然后 topic 的 messagePump 会从 memoryMsgChan 和 backend 中获取消息进行投递.</p>
+<p><strong>client</strong>-&gt;<strong>topic</strong>-&gt;<strong>allChannel</strong>-&gt;<strong>clients</strong></p>
+<p>&emsp;&emsp;在一个 select 中 case 的优先级高于 default,put 中的 select 其实会被编译为 if{}else{}类型,所以会先判断 memoryMsgChan 能不能存消息,不能存的话,才进行消息的落地</p>
+<h2 id="exit-操作"><a href="#exit-操作" class="headerlink" title="exit 操作"></a>exit 操作</h2><p>讲完了 topic 的运行流程,最后是如何关闭或删除一个 topic:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 删除 topic 并关闭所有 channel</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *Topic)</span> <span class="title">Delete</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> t.exit(<span class="literal">true</span>)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 关闭 topic 存储所有未完成的 topic data 并关闭所有 channel</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *Topic)</span> <span class="title">Close</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> t.exit(<span class="literal">false</span>)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// topic 删除和关闭均调用这个函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *Topic)</span> <span class="title">exit</span><span class="params">(deleted <span class="keyword">bool</span>)</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="comment">// 打开退出标志</span></span><br><span class="line">	<span class="keyword">if</span> !atomic.CompareAndSwapInt32(&amp;t.exitFlag, <span class="number">0</span>, <span class="number">1</span>) &#123;</span><br><span class="line">		<span class="keyword">return</span> errors.New(<span class="string">"exiting"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 是否删除</span></span><br><span class="line">	<span class="keyword">if</span> deleted &#123;</span><br><span class="line">		...</span><br><span class="line">		<span class="comment">// 需要在 lookupd 中删除这个 topic</span></span><br><span class="line">		t.ctx.nsqd.Notify(t)</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		t.ctx.nsqd.logf(LOG_INFO, <span class="string">"TOPIC(%s): closing"</span>, t.name)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 关闭 topic 所有 channel，真好用</span></span><br><span class="line">	<span class="built_in">close</span>(t.exitChan)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 同步等待 messagePump 关闭</span></span><br><span class="line">	t.waitGroup.Wait()</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> deleted &#123;</span><br><span class="line">		<span class="comment">// 删除的话，先清空 channelMap</span></span><br><span class="line">		t.Lock()</span><br><span class="line">		<span class="keyword">for</span> _, channel := <span class="keyword">range</span> t.channelMap &#123;</span><br><span class="line">			<span class="comment">// 手动释放了</span></span><br><span class="line">			<span class="built_in">delete</span>(t.channelMap, channel.name)</span><br><span class="line">			channel.Delete()</span><br><span class="line">		&#125;</span><br><span class="line">		t.Unlock()</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 删除所有未投递的消息</span></span><br><span class="line">		t.Empty()</span><br><span class="line">		<span class="keyword">return</span> t.backend.Delete()</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 关闭所有 channel，并不删除消息</span></span><br><span class="line">	<span class="keyword">for</span> _, channel := <span class="keyword">range</span> t.channelMap &#123;</span><br><span class="line">		err := channel.Close()</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			t.ctx.nsqd.logf(LOG_ERROR, <span class="string">"channel(%s) close - %s"</span>, channel.name, err)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 将 channel 中未投递的数据全部保存至磁盘中</span></span><br><span class="line">	t.flush()</span><br><span class="line">	<span class="keyword">return</span> t.backend.Close()</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 清空未投递的消息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *Topic)</span> <span class="title">Empty</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> &lt;-t.memoryMsgChan:</span><br><span class="line">			<span class="comment">// 把所有消息队列中的消息删除，接受但不处理</span></span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">			<span class="keyword">goto</span> finish</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">finish:</span><br><span class="line">	<span class="comment">// 最后清除 backend 中的消息</span></span><br><span class="line">	<span class="keyword">return</span> t.backend.Empty()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 将内存中的未投递消息保存至磁盘中</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *Topic)</span> <span class="title">flush</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> msgBuf bytes.Buffer</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> <span class="built_in">len</span>(t.memoryMsgChan) &gt; <span class="number">0</span> &#123;</span><br><span class="line">		...log...</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> msg := &lt;-t.memoryMsgChan:</span><br><span class="line">			<span class="comment">// 使用 writeMessageToBackend 写入磁盘即可</span></span><br><span class="line">			err := writeMessageToBackend(&amp;msgBuf, msg, t.backend)</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				...log...</span><br><span class="line">			&#125;</span><br><span class="line">		<span class="keyword">default</span>:</span><br><span class="line">			<span class="keyword">goto</span> finish</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">finish:</span><br><span class="line">	<span class="keyword">return</span> <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;topic 的删除和关闭使用的都是 exit 函数,但是二者的区别在于删除会删除所有包括内存和磁盘的消息,但是关闭会把内存中未投递的消息保存至磁盘中.</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>&emsp;&emsp;topic 下的源码基本就看完了，虽然还没有别的部分完整的完整的串联起来，但是也可以了解到，多个 topic 在初始化时就开启了消息循环 goroutine，执行完 Start 后开始消息分发，将收到的消息分发到管理的 channel 中.每个 topic 运行的 goroutine 比较简单，只有一个消息分发 goroutine: messagePump</p>
+<p>最后附上 github 的 nsqd 的源码解析地址:<a href="https://github.com/nercoeus/nsq_source_note" target="_blank" rel="noopener">https://github.com/nercoeus/nsq_source_note</a></p>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2020/01/14/nsqd解析-nsqd整体框架/" rel="next" title="nsqd解析:nsqd整体框架">
+                  <i class="fa fa-chevron-left"></i> nsqd解析:nsqd整体框架
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2020/01/14/nsqd解析-nsqd-channel/" rel="prev" title="nsqd解析:nsqd_channel">
+                  nsqd解析:nsqd_channel <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#nsqd-Topic-解析"><span class="nav-text">nsqd.Topic 解析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#topic-struct"><span class="nav-text">topic struct</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#NewTopic-操作"><span class="nav-text">NewTopic 操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Start-amp-amp-messagePump-操作"><span class="nav-text">Start &amp;&amp; messagePump 操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Topic-上的-channel-相关操作"><span class="nav-text">Topic 上的 channel 相关操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#PutMessage-操作"><span class="nav-text">PutMessage 操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#exit-操作"><span class="nav-text">exit 操作</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-text">小结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">57</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>
