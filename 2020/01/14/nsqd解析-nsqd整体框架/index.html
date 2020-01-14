@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="nsqd整个 nsqd 外面套了一层外壳,用来监听系统信号并维持 nsqd 的正常运行nsqd 的启动流程如下:  Init() Start() 参数解析 NewNsqd() LoadMetadata() PersistMetadata() go Main(),这就是 nsqd 的真正入口了   NotifySignal(SIGINT, SIGTERM) &amp;lt;-Signal(系统信号,和程序无">
+<meta property="og:type" content="article">
+<meta property="og:title" content="nsqd解析:nsqd整体框架">
+<meta property="og:url" content="http://yoursite.com/2020/01/14/nsqd解析-nsqd整体框架/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="nsqd整个 nsqd 外面套了一层外壳,用来监听系统信号并维持 nsqd 的正常运行nsqd 的启动流程如下:  Init() Start() 参数解析 NewNsqd() LoadMetadata() PersistMetadata() go Main(),这就是 nsqd 的真正入口了   NotifySignal(SIGINT, SIGTERM) &amp;lt;-Signal(系统信号,和程序无">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2020-01-14T08:05:40.244Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="nsqd解析:nsqd整体框架">
+<meta name="twitter:description" content="nsqd整个 nsqd 外面套了一层外壳,用来监听系统信号并维持 nsqd 的正常运行nsqd 的启动流程如下:  Init() Start() 参数解析 NewNsqd() LoadMetadata() PersistMetadata() go Main(),这就是 nsqd 的真正入口了   NotifySignal(SIGINT, SIGTERM) &amp;lt;-Signal(系统信号,和程序无">
+  <link rel="canonical" href="http://yoursite.com/2020/01/14/nsqd解析-nsqd整体框架/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>nsqd解析:nsqd整体框架 | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/01/14/nsqd解析-nsqd整体框架/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">nsqd解析:nsqd整体框架
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2020-01-14 15:24:54 / 修改时间：16:05:40" itemprop="dateCreated datePublished" datetime="2020-01-14T15:24:54+08:00">2020-01-14</time>
+            </span>
+          
+            
+
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/nsq解析/" itemprop="url" rel="index"><span itemprop="name">nsq解析</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="nsqd"><a href="#nsqd" class="headerlink" title="nsqd"></a>nsqd</h1><p>整个 nsqd 外面套了一层外壳,用来监听系统信号并维持 nsqd 的正常运行<br>nsqd 的启动流程如下:</p>
+<ul>
+<li>Init()</li>
+<li>Start()<ul>
+<li>参数解析</li>
+<li>NewNsqd()</li>
+<li>LoadMetadata()</li>
+<li>PersistMetadata()</li>
+<li>go Main(),这就是 nsqd 的真正入口了</li>
+</ul>
+</li>
+<li>NotifySignal(SIGINT, SIGTERM)</li>
+<li>&lt;-Signal(系统信号,和程序无关)</li>
+<li>Stop()</li>
+</ul>
+<a id="more"></a>
+
+<h2 id="nsqd-struct"><a href="#nsqd-struct" class="headerlink" title="nsqd struct"></a>nsqd struct</h2><p>&emsp;&emsp;首先先看一下 NSQD 的结构.前面的配置文件解析这里就不展开了,NSQD 中并没有使用 sync.map 而是使用了 map+RWMutex 的方式进行设计,因为创建删除 topic 和 channel 是很低频的操作,这么做可以最大化提升系统的性能.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> NSQD <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// 放在头部保证在 32 位机器上对其操作</span></span><br><span class="line">	clientIDSequence <span class="keyword">int64</span> <span class="comment">// 用来给每个客户端生成 ID，操作时使用原子操作</span></span><br><span class="line"></span><br><span class="line">	sync.RWMutex      <span class="comment">// 仅在操作 topic 的时候才会使用这个锁,使用读写锁</span></span><br><span class="line"></span><br><span class="line">	opts atomic.Value <span class="comment">// 配置信息结构体，所有配置信息都在这里，初始化时进行设置</span></span><br><span class="line"></span><br><span class="line">	dl        *dirlock.DirLock <span class="comment">// 自己实现的文件夹锁</span></span><br><span class="line">	isLoading <span class="keyword">int32</span>            <span class="comment">// 标识正在从文件中加载元数据</span></span><br><span class="line">	errValue  atomic.Value     <span class="comment">// 错误标识，使用原子 value</span></span><br><span class="line">	startTime time.Time        <span class="comment">// nsqd 启动时间</span></span><br><span class="line"></span><br><span class="line">	topicMap <span class="keyword">map</span>[<span class="keyword">string</span>]*Topic <span class="comment">// 管理所有的 topic</span></span><br><span class="line"></span><br><span class="line">	clientLock sync.RWMutex     <span class="comment">// 操作 Clients 时的读写锁</span></span><br><span class="line">	clients    <span class="keyword">map</span>[<span class="keyword">int64</span>]Client <span class="comment">// 管理所有的 Client</span></span><br><span class="line"></span><br><span class="line">	lookupPeers atomic.Value   <span class="comment">// 用来记录所有 lookupPeer（和 lookupd 的连接）</span></span><br><span class="line"></span><br><span class="line">	tcpServer     *tcpServer   <span class="comment">// 用来管理所有连接</span></span><br><span class="line">	tcpListener   net.Listener <span class="comment">// 监听 TCP 连接</span></span><br><span class="line">	httpListener  net.Listener <span class="comment">// 监听 HTTP 连接</span></span><br><span class="line">	httpsListener net.Listener <span class="comment">// 监听 HTTPS 连接</span></span><br><span class="line">	tlsConfig     *tls.Config  <span class="comment">// 安全协议配置信息</span></span><br><span class="line"></span><br><span class="line">	poolSize <span class="keyword">int</span> <span class="comment">// 用来运行 queueScanWorker 的协程数的多少</span></span><br><span class="line"></span><br><span class="line">	notifyChan           <span class="keyword">chan</span> <span class="keyword">interface</span>&#123;&#125;      <span class="comment">// 通知 lookupd 的管道</span></span><br><span class="line">	optsNotificationChan <span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;         <span class="comment">// 用来通知 lookupd IP 地址改变通知</span></span><br><span class="line">	exitChan             <span class="keyword">chan</span> <span class="keyword">int</span>              <span class="comment">// 用来通知各个 channel nsqd 退出从而停止循环监听</span></span><br><span class="line">	waitGroup            util.WaitGroupWrapper <span class="comment">// 用来在程序退出之前等待 goroutine 退出</span></span><br><span class="line"></span><br><span class="line">	ci *clusterinfo.ClusterInfo  <span class="comment">// 专门用来和 lookupd 通信</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>里面有些字段暂时还用不上,忽略即可</p>
+<h2 id="New-NSQD-操作"><a href="#New-NSQD-操作" class="headerlink" title="New NSQD 操作"></a>New NSQD 操作</h2><p>接下来就可以创建 NSQD 了,整个 New 函数分为如下几步:</p>
+<ul>
+<li>创建一个 HTTP 客户端和 Lookupd 通信</li>
+<li>对数据存储目录加锁,防止两个 nsqd 使用同一个目录</li>
+<li>把统计前缀拼出来存到 opts.StatsdPrefix</li>
+<li>有 TLS 配置参数的话,需要设置 TLS config,默认不开启(可选)</li>
+<li>创建 TCP 监听者</li>
+<li>创建 HTTP 监听者</li>
+<li>创建 HTTPS 监听者(可选)</li>
+</ul>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">New</span><span class="params">(opts *Options)</span> <span class="params">(*NSQD, error)</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> err error</span><br><span class="line">	<span class="comment">// 设置数据缓存路径,主要就是 .dat 文件,记录了 topic 和 channel 的信息</span></span><br><span class="line">	dataPath := opts.DataPath</span><br><span class="line">	<span class="keyword">if</span> opts.DataPath == <span class="string">""</span> &#123;</span><br><span class="line">		<span class="comment">// 获取当前执行路径</span></span><br><span class="line">		cwd, _ := os.Getwd()</span><br><span class="line">		dataPath = cwd</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 日志部分</span></span><br><span class="line">	<span class="keyword">if</span> opts.Logger == <span class="literal">nil</span> &#123;</span><br><span class="line">		opts.Logger = log.New(os.Stderr, opts.LogPrefix, log.Ldate|log.Ltime|log.Lmicroseconds)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 一些基本字段的填充</span></span><br><span class="line">	n := &amp;NSQD&#123;</span><br><span class="line">		startTime:            time.Now(),              <span class="comment">// 开始时间</span></span><br><span class="line">		topicMap:             <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]*Topic), <span class="comment">// 管理 topic 的 map</span></span><br><span class="line">		clients:              <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">int64</span>]Client),  <span class="comment">// 管理所有客户端 </span></span><br><span class="line">		exitChan:             <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>),          <span class="comment">// 退出通知管道</span></span><br><span class="line">		notifyChan:           <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">interface</span>&#123;&#125;),  <span class="comment">// 通知 lookupd 的管道</span></span><br><span class="line">		optsNotificationChan: <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, <span class="number">1</span>),</span><br><span class="line">		dl:                   dirlock.New(dataPath),   <span class="comment">// 目录锁，保证只有一个 nsqd 使用该目录</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 创建一个 HTTP 客户端，用来从 lookupd 中获取 topic 数据</span></span><br><span class="line">	httpcli := http_api.NewClient(<span class="literal">nil</span>, opts.HTTPClientConnectTimeout, opts.HTTPClientRequestTimeout)</span><br><span class="line">	n.ci = clusterinfo.New(n.logf, httpcli)</span><br><span class="line"></span><br><span class="line">	n.lookupPeers.Store([]*lookupPeer&#123;&#125;)</span><br><span class="line">	<span class="comment">// 保存初始化时传入的配置</span></span><br><span class="line">	n.swapOpts(opts)</span><br><span class="line">	n.errValue.Store(errStore&#123;&#125;)</span><br><span class="line">	<span class="comment">// 对目录加锁</span></span><br><span class="line">	err = n.dl.Lock()</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="comment">// 文件夹被重复使用了</span></span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">"--data-path=%s in use (possibly by another instance of nsqd)"</span>, dataPath)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 检查配置信息</span></span><br><span class="line">	<span class="keyword">if</span> opts.MaxDeflateLevel &lt; <span class="number">1</span> || opts.MaxDeflateLevel &gt; <span class="number">9</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">"--max-deflate-level must be [1,9]"</span>)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> opts.ID &lt; <span class="number">0</span> || opts.ID &gt;= <span class="number">1024</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">"--node-id must be [0,1024)"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 先把统计前缀拼出来存到 opts.StatsdPrefix</span></span><br><span class="line">	<span class="keyword">if</span> opts.StatsdPrefix != <span class="string">""</span> &#123;</span><br><span class="line">		<span class="keyword">var</span> port <span class="keyword">string</span></span><br><span class="line">		_, port, err = net.SplitHostPort(opts.HTTPAddress)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">"failed to parse HTTP address (%s) - %s"</span>, opts.HTTPAddress, err)</span><br><span class="line">		&#125;</span><br><span class="line">		statsdHostKey := statsd.HostKey(net.JoinHostPort(opts.BroadcastAddress, port))</span><br><span class="line">		prefixWithHost := strings.Replace(opts.StatsdPrefix, <span class="string">"%s"</span>, statsdHostKey, <span class="number">-1</span>)</span><br><span class="line">		<span class="keyword">if</span> prefixWithHost[<span class="built_in">len</span>(prefixWithHost)<span class="number">-1</span>] != <span class="string">'.'</span> &#123;</span><br><span class="line">			prefixWithHost += <span class="string">"."</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 拼好之后,在我的机器上是 opts.StatsdPrefix = nsq.XXXdeMacBook-Pro_local_4151.</span></span><br><span class="line">		opts.StatsdPrefix = prefixWithHost</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// TLS 客户端是否需要验证,默认是 no</span></span><br><span class="line">	<span class="keyword">if</span> opts.TLSClientAuthPolicy != <span class="string">""</span> &amp;&amp; opts.TLSRequired == TLSNotRequired &#123;</span><br><span class="line">		opts.TLSRequired = TLSRequired</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 设置 TLS config</span></span><br><span class="line">	tlsConfig, err := buildTLSConfig(opts)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">"failed to build TLS config - %s"</span>, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> tlsConfig == <span class="literal">nil</span> &amp;&amp; opts.TLSRequired != TLSNotRequired &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, errors.New(<span class="string">"cannot require TLS client connections without TLS key and cert"</span>)</span><br><span class="line">	&#125;</span><br><span class="line">	n.tlsConfig = tlsConfig</span><br><span class="line">	<span class="comment">// 验证端到端处理延迟的百分比正确</span></span><br><span class="line">	<span class="keyword">for</span> _, v := <span class="keyword">range</span> opts.E2EProcessingLatencyPercentiles &#123;</span><br><span class="line">		<span class="keyword">if</span> v &lt;= <span class="number">0</span> || v &gt; <span class="number">1</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">"invalid E2E processing latency percentile: %v"</span>, v)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	n.logf(LOG_INFO, version.String(<span class="string">"nsqd"</span>))</span><br><span class="line">	n.logf(LOG_INFO, <span class="string">"ID: %d"</span>, opts.ID)    <span class="comment">// ID 是编码生成的 [0,1023] 之间</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// 用来管理所有 TCP 连接</span></span><br><span class="line">	n.tcpServer = &amp;tcpServer&#123;&#125;</span><br><span class="line">	<span class="comment">// TCP 监听接口</span></span><br><span class="line">	n.tcpListener, err = net.Listen(<span class="string">"tcp"</span>, opts.TCPAddress)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">"listen (%s) failed - %s"</span>, opts.TCPAddress, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// HTTP 监听接口</span></span><br><span class="line">	n.httpListener, err = net.Listen(<span class="string">"tcp"</span>, opts.HTTPAddress)</span><br><span class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">"listen (%s) failed - %s"</span>, opts.HTTPAddress, err)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// HTTPS 监听接口,默认不开启 TLS 也就不用 HTTPS</span></span><br><span class="line">	<span class="keyword">if</span> n.tlsConfig != <span class="literal">nil</span> &amp;&amp; opts.HTTPSAddress != <span class="string">""</span> &#123;</span><br><span class="line">		<span class="comment">// 使用 tls.Listen 来创建 HTTPS 的监听接口</span></span><br><span class="line">		n.httpsListener, err = tls.Listen(<span class="string">"tcp"</span>, opts.HTTPSAddress, n.tlsConfig)</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">"listen (%s) failed - %s"</span>, opts.HTTPSAddress, err)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> n, <span class="literal">nil</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;上面就把一个完整的 NSQD 创建出来了,其中主要包括 TCP,HTTP,HTTPS 三个监听接口,然后继续执行 Start() 函数</p>
+<h2 id="meta-data"><a href="#meta-data" class="headerlink" title="meta data"></a>meta data</h2><p>&emsp;&emsp;接下来开始加载元数据了,这里的代码就不粘贴了,直接介绍一下整个加载流程:</p>
+<ol>
+<li>加载 nsqd.dat 中的数据</li>
+<li>遍历所有的 topic,对暂停服务的 topic 设置暂停标识</li>
+<li>将这个 topic 中的所有 channel 添加,对暂停服务的 channel 设置暂停标识</li>
+<li>开始运行 topic</li>
+</ol>
+<p>加载完之后立即进行数据的存储,不保存临时 topic 和 channel,流程如下:</p>
+<ol>
+<li>遍历所有 topic 保存起来</li>
+<li>遍历每个 topic 下的所有 channel</li>
+<li>头部加上 version 版本号</li>
+<li>保存到 nsqd.dat 文件中</li>
+</ol>
+<p>&emsp;&emsp;加载完立刻存储可能是为了更新 nsqd.dat 文件中的信息,因为在加载的过程中可能会对原有信息做一些改变,下面是 nsqd.dat 中的数据结构</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 元数据结构体，json 类型,存储在 bat 文件中，记录所有 topic 和 channel 的信息</span></span><br><span class="line"><span class="comment">// 并在最后加上 nsqd 的版本号用于区分不同版本的 meta 结构</span></span><br><span class="line"><span class="keyword">type</span> meta <span class="keyword">struct</span> &#123;</span><br><span class="line">	Topics []<span class="keyword">struct</span> &#123;</span><br><span class="line">		Name     <span class="keyword">string</span> <span class="string">`json:"name"`</span></span><br><span class="line">		Paused   <span class="keyword">bool</span>   <span class="string">`json:"paused"`</span></span><br><span class="line">		Channels []<span class="keyword">struct</span> &#123;</span><br><span class="line">			Name   <span class="keyword">string</span> <span class="string">`json:"name"`</span></span><br><span class="line">			Paused <span class="keyword">bool</span>   <span class="string">`json:"paused"`</span></span><br><span class="line">		&#125; <span class="string">`json:"channels"`</span></span><br><span class="line">	&#125; <span class="string">`json:"topics"`</span></span><br><span class="line">&#125;</span><br><span class="line">&#123;</span><br><span class="line">	<span class="string">"topics"</span>:[</span><br><span class="line">		&#123;</span><br><span class="line">			<span class="string">"channels"</span>:[</span><br><span class="line">				&#123;<span class="string">"name"</span>:<span class="string">"channel_space"</span>,<span class="string">"paused"</span>:<span class="literal">false</span>&#125;</span><br><span class="line">			],</span><br><span class="line">	  		<span class="string">"name"</span>:<span class="string">"space"</span>,</span><br><span class="line">	  		<span class="string">"paused"</span>:<span class="literal">false</span></span><br><span class="line">	  	&#125;,</span><br><span class="line">	 	&#123;</span><br><span class="line">	 		<span class="string">"channels"</span>:[</span><br><span class="line">	 			&#123;<span class="string">"name"</span>:<span class="string">"channel_center"</span>,<span class="string">"paused"</span>:<span class="literal">false</span>&#125;</span><br><span class="line">	 		],</span><br><span class="line">	  		<span class="string">"name"</span>:<span class="string">"center"</span>,</span><br><span class="line">	  		<span class="string">"paused"</span>:<span class="literal">false</span></span><br><span class="line">	  	&#125;</span><br><span class="line">	 ],</span><br><span class="line"> 	<span class="string">"version"</span>:<span class="string">"1.2.0"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;上面是我本机上的 nsqd.dat 文件中的一部分,可以看出有两个 topic,每个 topic 有一个 channel,还有版本信息 1.2.0<br>topic:<br>    space:[channel_space]<br>    center[channel_center]</p>
+<h2 id="NSQD-Main"><a href="#NSQD-Main" class="headerlink" title="NSQD.Main()"></a>NSQD.Main()</h2><p>紧接着运行 nsqd 的 Main 函数,正式开始运行 nsqd:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(n *NSQD)</span> <span class="title">Main</span><span class="params">()</span> <span class="title">error</span></span> &#123;</span><br><span class="line">	<span class="comment">// 这里的 context 把 n 封装进去了</span></span><br><span class="line">	ctx := &amp;context&#123;n&#125;</span><br><span class="line"></span><br><span class="line">	exitCh := <span class="built_in">make</span>(<span class="keyword">chan</span> error)</span><br><span class="line">	<span class="keyword">var</span> once sync.Once</span><br><span class="line">	<span class="comment">// 用于退出的函数</span></span><br><span class="line">	exitFunc := <span class="function"><span class="keyword">func</span><span class="params">(err error)</span></span> &#123;</span><br><span class="line">		<span class="comment">// 仅发送一次 err 给 exitch</span></span><br><span class="line">		once.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">				n.logf(LOG_FATAL, <span class="string">"%s"</span>, err)</span><br><span class="line">			&#125;</span><br><span class="line">			exitCh &lt;- err</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	n.tcpServer.ctx = ctx</span><br><span class="line">	<span class="comment">// 对 TCP 进行监听</span></span><br><span class="line">	n.waitGroup.Wrap(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="comment">// 在 protocol 中包装了 TCPServer，传入 Listener、TCPHandler、AppLogFunc</span></span><br><span class="line">		exitFunc(protocol.TCPServer(n.tcpListener, n.tcpServer, n.logf))</span><br><span class="line">	&#125;)</span><br><span class="line">	<span class="comment">// 开启对 HTTP 进行监听</span></span><br><span class="line">	httpServer := newHTTPServer(ctx, <span class="literal">false</span>, n.getOpts().TLSRequired == TLSRequired)</span><br><span class="line">	n.waitGroup.Wrap(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		exitFunc(http_api.Serve(n.httpListener, httpServer, <span class="string">"HTTP"</span>, n.logf))</span><br><span class="line">	&#125;)</span><br><span class="line">	<span class="comment">// 开启对 HTTPS 进行监听</span></span><br><span class="line">	<span class="keyword">if</span> n.tlsConfig != <span class="literal">nil</span> &amp;&amp; n.getOpts().HTTPSAddress != <span class="string">""</span> &#123;</span><br><span class="line">		httpsServer := newHTTPServer(ctx, <span class="literal">true</span>, <span class="literal">true</span>)</span><br><span class="line">		n.waitGroup.Wrap(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">			exitFunc(http_api.Serve(n.httpsListener, httpsServer, <span class="string">"HTTPS"</span>, n.logf))</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 使用两个协程运行下面的方法</span></span><br><span class="line">	n.waitGroup.Wrap(n.queueScanLoop)   <span class="comment">// 处理消息的优先队列</span></span><br><span class="line">	n.waitGroup.Wrap(n.lookupLoop)      <span class="comment">// 如果 nsqd 发生变化，同步至 nsqloopdup，函数定义在 lookup 中</span></span><br><span class="line">	<span class="keyword">if</span> n.getOpts().StatsdAddress != <span class="string">""</span> &#123;</span><br><span class="line">		<span class="comment">// 定时间 nsqd 的状态通过短链接的方式发送至一个状态监护进程中</span></span><br><span class="line">		<span class="comment">// 包括 nsqd 的应用资源信息，以及 nsqd 上 topic 的信息</span></span><br><span class="line">		n.waitGroup.Wrap(n.statsdLoop)</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 收集错误条件</span></span><br><span class="line">	err := &lt;-exitCh</span><br><span class="line">	<span class="keyword">return</span> err</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;整个函数的前半部分把创建 NSQD 时创建的 TCP,HTTP,HTTPS 的 Listener 包装成对应的 Server,并使用一个协程进行运行监听,后半部分就运行了三个 goroutine: n.queueScanLoop, n.lookupLoop, n.statsdLoop(可选).<br>关于错误的处理实现很有趣,这里使用了</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">exitCh := <span class="built_in">make</span>(<span class="keyword">chan</span> error)</span><br><span class="line"><span class="keyword">var</span> once sync.Once</span><br><span class="line"><span class="comment">// 用于退出的函数</span></span><br><span class="line">exitFunc := <span class="function"><span class="keyword">func</span><span class="params">(err error)</span></span> &#123;</span><br><span class="line">	<span class="comment">// 仅发送一次 err 给 exitch</span></span><br><span class="line">	once.Do(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">			n.logf(LOG_FATAL, <span class="string">"%s"</span>, err)</span><br><span class="line">		&#125;</span><br><span class="line">		exitCh &lt;- err</span><br><span class="line">	&#125;)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;创建了一个错误接收方法,然后在统一等待每个 server 传出的错误,之后进行返回退出,且使用 waitgroup 来保证主函数和 server 之间的退出顺序,因为 Exit() 中执行了 n.waitGroup.Wait()<br>暂时先不着急看各个 server 的实现方式,先来看看 Main() 最后执行的几行代码:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 使用两个协程运行下面的方法</span></span><br><span class="line">n.waitGroup.Wrap(n.queueScanLoop)   <span class="comment">// 扫描 channel 处理消息</span></span><br><span class="line">n.waitGroup.Wrap(n.lookupLoop)      <span class="comment">// 如果 nsqd 发生变化，同步至 nsqloopdup，函数定义在 lookup 中</span></span><br><span class="line"><span class="keyword">if</span> n.getOpts().StatsdAddress != <span class="string">""</span> &#123;</span><br><span class="line">	<span class="comment">// 定时间 nsqd 的状态通过短链接的方式发送至一个状态监护进程中</span></span><br><span class="line">	<span class="comment">// 包括 nsqd 的应用资源信息，以及 nsqd 上 topic 的信息</span></span><br><span class="line">	n.waitGroup.Wrap(n.statsdLoop)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="NSQD-queueScanLoop"><a href="#NSQD-queueScanLoop" class="headerlink" title="NSQD.queueScanLoop()"></a>NSQD.queueScanLoop()</h2><p>&emsp;&emsp;这几行代码是整个启动函数的关键,三个函数对应是 channel 扫描函数,和 lookupd 之间的通信处理,以及状态统计函数,后面两个暂时不管,先看看 n.queueScanLoop:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// channel 扫描函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(n *NSQD)</span> <span class="title">queueScanLoop</span><span class="params">()</span></span> &#123;</span><br><span class="line">	workCh := <span class="built_in">make</span>(<span class="keyword">chan</span> *Channel, n.getOpts().QueueScanSelectionCount)</span><br><span class="line">	responseCh := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">bool</span>, n.getOpts().QueueScanSelectionCount)</span><br><span class="line">	closeCh := <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">int</span>)</span><br><span class="line"></span><br><span class="line">	<span class="comment">// 默认 100ms 唤醒一次</span></span><br><span class="line">	workTicker := time.NewTicker(n.getOpts().QueueScanInterval)</span><br><span class="line">	<span class="comment">// 5s 刷新一次 channel</span></span><br><span class="line">	refreshTicker := time.NewTicker(n.getOpts().QueueScanRefreshInterval)</span><br><span class="line">	<span class="comment">// 获取所有 topic 中的所有 channel</span></span><br><span class="line">	channels := n.channels()</span><br><span class="line">	<span class="comment">// 重新调整 pool 大小</span></span><br><span class="line">	n.resizePool(<span class="built_in">len</span>(channels), workCh, responseCh, closeCh)</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="keyword">case</span> &lt;-workTicker.C:</span><br><span class="line">			<span class="comment">// 100 ms 强制扫描 channel</span></span><br><span class="line">			<span class="keyword">if</span> <span class="built_in">len</span>(channels) == <span class="number">0</span> &#123;</span><br><span class="line">				<span class="keyword">continue</span></span><br><span class="line">			&#125;</span><br><span class="line">		<span class="keyword">case</span> &lt;-refreshTicker.C:</span><br><span class="line">			<span class="comment">// 每 5s 刷新 channel 并且更改 pool 的大小</span></span><br><span class="line">			channels = n.channels()</span><br><span class="line">			n.resizePool(<span class="built_in">len</span>(channels), workCh, responseCh, closeCh)</span><br><span class="line">			<span class="keyword">continue</span></span><br><span class="line">		<span class="keyword">case</span> &lt;-n.exitChan:</span><br><span class="line">			<span class="comment">// 退出 goroutine</span></span><br><span class="line">			<span class="keyword">goto</span> exit</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 默认一轮最多扫描 20 个 channel</span></span><br><span class="line">		num := n.getOpts().QueueScanSelectionCount</span><br><span class="line">		<span class="keyword">if</span> num &gt; <span class="built_in">len</span>(channels) &#123;</span><br><span class="line">			num = <span class="built_in">len</span>(channels)</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">	loop:</span><br><span class="line">		<span class="comment">// 随机从一个位置开始循环 channels</span></span><br><span class="line">		<span class="keyword">for</span> _, i := <span class="keyword">range</span> util.UniqRands(num, <span class="built_in">len</span>(channels)) &#123;</span><br><span class="line">			workCh &lt;- channels[i]  <span class="comment">// 把 channel 交给 work pool 处理</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 判断 dirty 的个数</span></span><br><span class="line">		numDirty := <span class="number">0</span></span><br><span class="line">		<span class="keyword">for</span> i := <span class="number">0</span>; i &lt; num; i++ &#123;</span><br><span class="line">			<span class="keyword">if</span> &lt;-responseCh &#123;</span><br><span class="line">				numDirty++</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="comment">// 大于 1/4 的话不进行睡眠，继续运行，因为这时大量的 channel 需要处理</span></span><br><span class="line">		<span class="comment">// TODO 这可能导致长时间 channels 得不到更新，因为如果一直处于忙碌状态的话</span></span><br><span class="line">		<span class="comment">// 不会执行 select 即使 channel 发生了变化也不会更新</span></span><br><span class="line">		<span class="keyword">if</span> <span class="keyword">float64</span>(numDirty)/<span class="keyword">float64</span>(num) &gt; n.getOpts().QueueScanDirtyPercent &#123;</span><br><span class="line">			<span class="keyword">goto</span> loop</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">exit:</span><br><span class="line">	n.logf(LOG_INFO, <span class="string">"QUEUESCAN: closing"</span>)</span><br><span class="line">	<span class="built_in">close</span>(closeCh)</span><br><span class="line">	workTicker.Stop()</span><br><span class="line">	refreshTicker.Stop()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;以上函数的 loop 部分就是主要的 channel 扫描部分,在这里先使用 util.UniqRands 确定每次扫描的 channel.<br>多次运行 UniqRands(10,20) 结果如下:<br>[10 12 11 6 5 0 4 15 16 7]<br>[5 3 18 4 16 13 11 14 6 10]<br>[17 10 13 16 2 5 6 0 12 15]<br>可以看到就是在 20 个中选 10 个并随机排序而已.<br>&emsp;&emsp;找出需要扫描的 channel 之后判断这些 channel 中是否有数据需要处理,默认的情况下,如果选中的 channel 中有 1/4 的channel 存在数据就不需要等待 100ms 的触发扫描,而是直接跳转到 loop 继续进行扫描,这是一个优化<br>&emsp;&emsp;这里使用 resizePool 修改 Pool 的大小以及通过几个通道之间的互相传输,这是干什么的呢?继续看:</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 	1 &lt;= pool &lt;= min(num * 0.25, 4)</span></span><br><span class="line"><span class="comment">// 修改 pool（运行 queueScanWorker 的协程） 的大小</span></span><br><span class="line"><span class="comment">// 参数: 每轮处理 channel 数量,channel 通道,反馈通道</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(n *NSQD)</span> <span class="title">resizePool</span><span class="params">(num <span class="keyword">int</span>, workCh <span class="keyword">chan</span> *Channel, responseCh <span class="keyword">chan</span> <span class="keyword">bool</span>, closeCh <span class="keyword">chan</span> <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="comment">// num 是一次需要处理的 channel 个数</span></span><br><span class="line">	idealPoolSize := <span class="keyword">int</span>(<span class="keyword">float64</span>(num) * <span class="number">0.25</span>)</span><br><span class="line">	<span class="comment">// idealPoolSize 范围 [1,4]</span></span><br><span class="line">	<span class="keyword">if</span> idealPoolSize &lt; <span class="number">1</span> &#123;</span><br><span class="line">		idealPoolSize = <span class="number">1</span></span><br><span class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> idealPoolSize &gt; n.getOpts().QueueScanWorkerPoolMax &#123;</span><br><span class="line">		idealPoolSize = n.getOpts().QueueScanWorkerPoolMax</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">if</span> idealPoolSize == n.poolSize &#123;</span><br><span class="line">			<span class="comment">// 不用改变 Pool 的大小</span></span><br><span class="line">			<span class="keyword">break</span></span><br><span class="line">		&#125; <span class="keyword">else</span> <span class="keyword">if</span> idealPoolSize &lt; n.poolSize &#123;</span><br><span class="line">			<span class="comment">// 关闭 queueScanWorker 协程直到剩余数量等于 idealPoolSize</span></span><br><span class="line">			closeCh &lt;- <span class="number">1</span>   <span class="comment">// 一次只关闭一个</span></span><br><span class="line">			n.poolSize--</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="comment">// 添加 queueScanWorker 协程，直到数量等于 idealPoolSize</span></span><br><span class="line">			n.waitGroup.Wrap(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</span><br><span class="line">				n.queueScanWorker(workCh, responseCh, closeCh)</span><br><span class="line">			&#125;)</span><br><span class="line">			n.poolSize++</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;resizePool 的逻辑很简单,就是修改运行 queueScanWorker() 函数的 goroutine 个数,真正的 channel 扫描发生在 queueScanWorker() 中,也是通过单独的 goroutine 进行运行的.</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 扫描 channel 的 deferredPQ 和 inFlightPQ  两个队列处理其中的消息</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(n *NSQD)</span> <span class="title">queueScanWorker</span><span class="params">(workCh <span class="keyword">chan</span> *Channel, responseCh <span class="keyword">chan</span> <span class="keyword">bool</span>, closeCh <span class="keyword">chan</span> <span class="keyword">int</span>)</span></span> &#123;</span><br><span class="line">	<span class="keyword">for</span> &#123;</span><br><span class="line">		<span class="keyword">select</span> &#123;</span><br><span class="line">		<span class="comment">// 接收工作 channel</span></span><br><span class="line">		<span class="keyword">case</span> c := &lt;-workCh:</span><br><span class="line">			<span class="comment">// 获取了一个 channel 开始扫描它</span></span><br><span class="line">			now := time.Now().UnixNano()</span><br><span class="line">			dirty := <span class="literal">false</span></span><br><span class="line">			<span class="comment">// 下面处理 channel 中 deferredPQ 和 inFlightPQ 两个消息优先队列</span></span><br><span class="line">			<span class="keyword">if</span> c.processInFlightQueue(now) &#123;</span><br><span class="line">				dirty = <span class="literal">true</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> c.processDeferredQueue(now) &#123;</span><br><span class="line">				dirty = <span class="literal">true</span></span><br><span class="line">			&#125;</span><br><span class="line">			<span class="comment">// 把 dirty 标志传回去用于统计</span></span><br><span class="line">			responseCh &lt;- dirty</span><br><span class="line">		<span class="keyword">case</span> &lt;-closeCh:</span><br><span class="line">			<span class="comment">// 关闭这个 queueScanWorker</span></span><br><span class="line">			<span class="keyword">return</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;queueScanWorker 从 workCh 中获取一个 channel,然后对它进行扫描,并处理其中的新数据,并通知给 queueScanLoop 做触发统计</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>整个 main 函数启动 6 个 goroutine,以及 n [0-4] 个 channel 扫描 goroutine:</p>
+<ol>
+<li>TCP 监听处理</li>
+<li>HTTP 监听处理</li>
+<li>HTTPS 监听处理(可选)</li>
+<li>queueScanLoop<ul>
+<li>n 个 queueScanWorker</li>
+</ul>
+</li>
+<li>lookupLoop</li>
+<li>n.statsdLoop</li>
+</ol>
+<p>&emsp;&emsp;看到现在整个 nsqd 的流程已经十分清楚了,创建三个服务器来监听新的连接,包括和 Lookupd 之间的通信,客户端和 nsqd 之间建立的链接.然后通过一个 for 循环定时触发 channel 的扫描过程,来进行消息的处理.需要注意的是,暂时我们还没有看到 topic 以及 channel 的代码,所以现在仅仅只有 nsqd 的整体框架,这并不是完整的.</p>
+<p>最后附上 github 的 nsqd 的源码解析地址:<a href="https://github.com/nercoeus/nsq_source_note" target="_blank" rel="noopener">https://github.com/nercoeus/nsq_source_note</a></p>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2020/01/13/go源码阅读之Select/" rel="next" title="go源码阅读之Select">
+                  <i class="fa fa-chevron-left"></i> go源码阅读之Select
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#nsqd"><span class="nav-text">nsqd</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#nsqd-struct"><span class="nav-text">nsqd struct</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#New-NSQD-操作"><span class="nav-text">New NSQD 操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#meta-data"><span class="nav-text">meta data</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#NSQD-Main"><span class="nav-text">NSQD.Main()</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#NSQD-queueScanLoop"><span class="nav-text">NSQD.queueScanLoop()</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-text">小结</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">55</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>
