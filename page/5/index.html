@@ -204,7 +204,7 @@
   
   
   <div class="post-block home">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/27.IP选项/">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/10/31/设计模式-抽象工厂/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="nercoeus">
@@ -218,7 +218,109 @@
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
             
-            <a href="/2019/09/25/27.IP选项/" class="post-title-link" itemprop="url">第27章：IP选项</a>
+            <a href="/2019/10/31/设计模式-抽象工厂/" class="post-title-link" itemprop="url">设计模式-抽象工厂</a>
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2019-10-31 20:24:43" itemprop="dateCreated datePublished" datetime="2019-10-31T20:24:43+08:00">2019-10-31</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-11-05 20:38:26" itemprop="dateModified" datetime="2019-11-05T20:38:26+08:00">2019-11-05</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/设计模式/" itemprop="url" rel="index"><span itemprop="name">设计模式</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="1-抽象工厂模式（Abstract-factory-pattern）"><a href="#1-抽象工厂模式（Abstract-factory-pattern）" class="headerlink" title="1 抽象工厂模式（Abstract factory pattern）"></a>1 抽象工厂模式（Abstract factory pattern）</h1><p><strong>抽象工厂模式定义</strong>：提供接口，创建一系列相关或独立的对象，而不指定这些对象的具体类<br>&emsp;&emsp;这里强调了抽象工厂用来创建的是一系列的对象，当一个项目需要提供不同的系列的相同对象并且每个系列之间没有关联时，使用抽象工厂可以对构建一个总接口作为所有系列的共同父亲，用父类来统一创建所有对象。这样就不需要根据不同的系列硬编码到自己的工程中，只需要在总接口处进行系列的转换即可。</p>
+          <!--noindex-->
+          
+            <div class="post-button text-center">
+              <a class="btn" href="/2019/10/31/设计模式-抽象工厂/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+          <div class="post-eof"></div>
+        
+      </footer>
+  </div>
+  
+  
+  
+  </article>
+
+    
+        <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block home">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/24.带外数据/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+            
+            <a href="/2019/09/25/24.带外数据/" class="post-title-link" itemprop="url">第24章：带外数据</a>
           
         </h1>
 
@@ -244,7 +346,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2019-09-28 16:46:29" itemprop="dateModified" datetime="2019-09-28T16:46:29+08:00">2019-09-28</time>
+                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
               </span>
             
           
@@ -273,11 +375,113 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h1 id="27-1-概述"><a href="#27-1-概述" class="headerlink" title="27.1 概述"></a>27.1 概述</h1><p>&emsp;&emsp;IPv4 允许在 20 字节首部固定部分之后跟最多 40 个字节的选项。尽管已经定义的 IPv4 选项共有 10 种，常用的确实源路径选项。这些选项访问途径是存取 IP_OPTIONS 套接字选项。<br>&emsp;&emsp;IPv6 允许在固定长度的 40 字节 IPv6 首部和传输层首部之间出现扩展首部。目前定义了 6 种不同的扩展首部。不同于 Ipv4 的是，IPv6 扩展首部的访问途径是函数接口。</p>
+          <h1 id="24-1-概述"><a href="#24-1-概述" class="headerlink" title="24.1 概述"></a>24.1 概述</h1><p>&emsp;&emsp;许多传输层有带外数据的概念，它有时也称为<strong>经加速数据</strong>。其想法是一个已连接某端发生重要的事情，而且该端希望迅速通告其对端（也就是比正在缓冲区排队的数据还要快）带外数据的优先级高于普通数据。带外数据不会新建立连接，会被映射到已有连接中。<br>&emsp;&emsp;UDP 没有办法实现带外数据，所以我们仅仅关心 TCP 的带外数据模型。</p>
           <!--noindex-->
           
             <div class="post-button text-center">
-              <a class="btn" href="/2019/09/25/27.IP选项/#more" rel="contents">
+              <a class="btn" href="/2019/09/25/24.带外数据/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+          <div class="post-eof"></div>
+        
+      </footer>
+  </div>
+  
+  
+  
+  </article>
+
+    
+        <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block home">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/25.信号驱动式IO/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+            
+            <a href="/2019/09/25/25.信号驱动式IO/" class="post-title-link" itemprop="url">第25章：信号驱动式IO</a>
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="25-1-概述"><a href="#25-1-概述" class="headerlink" title="25.1 概述"></a>25.1 概述</h1><p>&emsp;&emsp;信号驱动式 I/O 是指进程预先告知内核，使得当某个描述符上发生某事时，内核使用信号通知相关进程。</p>
+          <!--noindex-->
+          
+            <div class="post-button text-center">
+              <a class="btn" href="/2019/09/25/25.信号驱动式IO/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -401,6 +605,108 @@
           
             <div class="post-button text-center">
               <a class="btn" href="/2019/09/25/26.线程/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+          <div class="post-eof"></div>
+        
+      </footer>
+  </div>
+  
+  
+  
+  </article>
+
+    
+        <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block home">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/27.IP选项/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+            
+            <a href="/2019/09/25/27.IP选项/" class="post-title-link" itemprop="url">第27章：IP选项</a>
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-09-28 16:46:29" itemprop="dateModified" datetime="2019-09-28T16:46:29+08:00">2019-09-28</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="27-1-概述"><a href="#27-1-概述" class="headerlink" title="27.1 概述"></a>27.1 概述</h1><p>&emsp;&emsp;IPv4 允许在 20 字节首部固定部分之后跟最多 40 个字节的选项。尽管已经定义的 IPv4 选项共有 10 种，常用的确实源路径选项。这些选项访问途径是存取 IP_OPTIONS 套接字选项。<br>&emsp;&emsp;IPv6 允许在固定长度的 40 字节 IPv6 首部和传输层首部之间出现扩展首部。目前定义了 6 种不同的扩展首部。不同于 Ipv4 的是，IPv6 扩展首部的访问途径是函数接口。</p>
+          <!--noindex-->
+          
+            <div class="post-button text-center">
+              <a class="btn" href="/2019/09/25/27.IP选项/#more" rel="contents">
                 阅读全文 &raquo;
               </a>
             </div>
@@ -639,6 +945,109 @@
   
   
   <div class="post-block home">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/19.密钥管理套接字/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+            
+            <a href="/2019/09/25/19.密钥管理套接字/" class="post-title-link" itemprop="url">第19章：密钥管理套接字</a>
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+          <h1 id="19-1-概述"><a href="#19-1-概述" class="headerlink" title="19.1 概述"></a>19.1 概述</h1><p>&emsp;&emsp;随着 IP 安全体系结构的引入，私钥体系加密和认证密钥的管理越来越需要一套标准的机制。新创建了一套协议族 PF_KEY 域，在这个密钥管理域中，唯一支持的一种套接字是原始套接字。</p>
+<p>&emsp;&emsp;在普通的 Unix 系统上，密钥管理套接字仅限超级用户有打开的权限。</p>
+          <!--noindex-->
+          
+            <div class="post-button text-center">
+              <a class="btn" href="/2019/09/25/19.密钥管理套接字/#more" rel="contents">
+                阅读全文 &raquo;
+              </a>
+            </div>
+          
+          <!--/noindex-->
+        
+      
+    </div>
+
+    
+    
+    
+      <footer class="post-footer">
+          <div class="post-eof"></div>
+        
+      </footer>
+  </div>
+  
+  
+  
+  </article>
+
+    
+        <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block home">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/20.广播/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -802,211 +1211,6 @@
   
   
   <div class="post-block home">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/19.密钥管理套接字/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="nercoeus">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="nercoeus">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-            
-            <a href="/2019/09/25/19.密钥管理套接字/" class="post-title-link" itemprop="url">第19章：密钥管理套接字</a>
-          
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              
-                
-              
-
-              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
-            </span>
-          
-            
-
-            
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
-              </span>
-            
-          
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
-
-                
-                
-              
-            </span>
-          
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="19-1-概述"><a href="#19-1-概述" class="headerlink" title="19.1 概述"></a>19.1 概述</h1><p>&emsp;&emsp;随着 IP 安全体系结构的引入，私钥体系加密和认证密钥的管理越来越需要一套标准的机制。新创建了一套协议族 PF_KEY 域，在这个密钥管理域中，唯一支持的一种套接字是原始套接字。</p>
-<p>&emsp;&emsp;在普通的 Unix 系统上，密钥管理套接字仅限超级用户有打开的权限。</p>
-          <!--noindex-->
-          
-            <div class="post-button text-center">
-              <a class="btn" href="/2019/09/25/19.密钥管理套接字/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-          <div class="post-eof"></div>
-        
-      </footer>
-  </div>
-  
-  
-  
-  </article>
-
-    
-        <article itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block home">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/22.高级UDP套接字编程/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="nercoeus">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="nercoeus">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-            
-            <a href="/2019/09/25/22.高级UDP套接字编程/" class="post-title-link" itemprop="url">第22章：高级UDP套接字编程</a>
-          
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              
-                
-              
-
-              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
-            </span>
-          
-            
-
-            
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
-              </span>
-            
-          
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
-
-                
-                
-              
-            </span>
-          
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="22-1-概述"><a href="#22-1-概述" class="headerlink" title="22.1 概述"></a>22.1 概述</h1><p>&emsp;&emsp;首先确定某个外来 UDP 数据报的目的地址和接收端口，因为绑定某个 UDP 端口和通配地址的一个套接字能够在任何接口上接受单播，广播和组播数据报。<br>&emsp;&emsp;TCP 是一个字节流协议，又使用滑动窗口，因此没有记录边界和接收端速度慢于发送端的情况。但是 UDP 却需要程序对这些进行处理。<br>&emsp;&emsp;如果实现不支持 IP_RECVDSTADDR 套接字选项，那么确定外来 UDP 数据报目的地址的方法之一是捆绑所有接口地址并使用 select。</p>
-          <!--noindex-->
-          
-            <div class="post-button text-center">
-              <a class="btn" href="/2019/09/25/22.高级UDP套接字编程/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-          <div class="post-eof"></div>
-        
-      </footer>
-  </div>
-  
-  
-  
-  </article>
-
-    
-        <article itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block home">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/21.组播/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -1105,235 +1309,11 @@
   </article>
 
     
-        <article itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block home">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/12.IPv4和IPv6的互操作性/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="nercoeus">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="nercoeus">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-            
-            <a href="/2019/09/25/12.IPv4和IPv6的互操作性/" class="post-title-link" itemprop="url">第12章：IPv4和IPv6的互操作性</a>
-          
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              
-                
-              
-
-              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
-            </span>
-          
-            
-
-            
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
-              </span>
-            
-          
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
-
-                
-                
-              
-            </span>
-          
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="12-1-概述"><a href="#12-1-概述" class="headerlink" title="12.1 概述"></a>12.1 概述</h1><p>&emsp;&emsp;未来，因特网会逐渐从 IPv4 转换到 IPv6，所以引用程序能够对两种协议协同工作是很重要的，我们将讨论 IPv4 应用如何与 IPv6 进行通信</p>
-<!--main-->
-<h1 id="12-2-IPv4-客户与-IPv6-服务器"><a href="#12-2-IPv4-客户与-IPv6-服务器" class="headerlink" title="12.2 IPv4 客户与 IPv6 服务器"></a>12.2 IPv4 客户与 IPv6 服务器</h1><p>&emsp;&emsp;双栈主机一个很重要的特性就是技能处理 IPv4 又能处理 IPv6 客户。这是通过使用 IPv4 映射的 IPv6 地址来实现的<br>主机使用 IPv6 服务器，收到 IPv4 的帧时，会将源 IPv4 地址转换为一个映射的 IPv6 地址<br>一个 IPv4 客户端和 IPv6 服务端通信地步骤如下：</p>
-<ol>
-<li>IPv6 服务器启动后创建一个 IPv6 监听套接字</li>
-<li>IPv4 客户调用 getsockname 找到服务器地 A 记录。服务器既有 A 也有 AAAA 记录，因为它是双栈的</li>
-<li>客户调用 connect，发送一个 IPv4 的 SYN 给服务器</li>
-<li>服务器收到这个 SYN，把它标志为 IPv4 映射为 IPv6，响应一个 IPv4 SYN/ACK。连接建立后，由 accept 返回给服务器的地址就是这个 IPv4 映射的 IPv6 地址</li>
-<li>当服务器向这个客户端发送数据时，会使用客户端的 IPv4 地址，所以通信使用的全部都是 IPv4 连接</li>
-<li>如果服务器不检查这个地址时 IPv6 还是 IPv4 映射过来，它永远不会知道客户端的 IP 类型，客户端也不需要知道服务器的类型</li>
-</ol>
-<p>大多数双栈主机遵循以下规则：</p>
-<ul>
-<li>IPv4 监听套接字只能接受来自 IPv4 客户的外来连接</li>
-<li>如果服务器有一个绑定了 IPv6 的监听套接字，该套接字没设置 IPV6_V6ONLY 套接字选项，它可以接收 IPv4 连接</li>
-<li>如果服务器有一个 IPv6 监听套接字，绑定了通配地址，该套接字设置了 IPV6_V6ONLY 套接字选项，它只能接收 IPv6 连接<h1 id="12-3-IPv6-客户与-IPv4-服务器"><a href="#12-3-IPv6-客户与-IPv4-服务器" class="headerlink" title="12.3 IPv6 客户与 IPv4 服务器"></a>12.3 IPv6 客户与 IPv4 服务器</h1>&emsp;&emsp;客户机运行在双栈主机上并使用 IPv6 套接字描述符</li>
-</ul>
-<ol>
-<li>一个 IPv4 服务器在只支持 IPv4 的主机上启动一个 IPv4 监听套接字</li>
-<li>IPv6 客户启动后调用 getaddrinfo 单纯查找 IPv6 的地址，因为服务器只支持 IPv4，所以返回给客户端的是一个 IPv4 映射的 IPv6 地址</li>
-<li>IPv6 客户在作为函数参数的 IPv6 套接字地址结构中设置这个 IPv4 映射的 IPv6 地址然后调用 connect。内核检测到这个映射地址后自动发送一个 IPv4 SYN 到服务器</li>
-<li>服务器响应一个 IPv4 SYN/ACK，连接于是通过使用 IPv4 数据报建立<h1 id="12-4-IPv6-地址测试宏"><a href="#12-4-IPv6-地址测试宏" class="headerlink" title="12.4 IPv6 地址测试宏"></a>12.4 IPv6 地址测试宏</h1></li>
-</ol>
-<p>有一些 IPv6 应用必须知道和它通信的是 IPv6 还是 IPv4 协议，使用 &lt;netinet/in.h&gt; 中的函数可以进行测试</p>
-<h1 id="12-5-源代码可移植性"><a href="#12-5-源代码可移植性" class="headerlink" title="12.5 源代码可移植性"></a>12.5 源代码可移植性</h1><p>考虑到源码的可移植性，编写代码时应尽量避免 gethostbyname gethostbyaddr 等套接字函数，使用 getaddrinfo getnameinfo 等函数，使得代码变得与协议无关。</p>
-<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><ul>
-<li>双栈主机的 IPv6 服务器可以和两种客户端进行通讯，网络中仅使用 IPv4 进行传输</li>
-<li>双栈主机的 IPv6 客户端也可以和两种服务器进行通讯</li>
-</ul>
-
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-          <div class="post-eof"></div>
-        
-      </footer>
-  </div>
-  
-  
-  
-  </article>
-
-    
-        <article itemscope itemtype="http://schema.org/Article">
-  
-  
-  
-  <div class="post-block home">
-    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2019/09/25/13.守护进程和inetd超级服务器/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="name" content="nercoeus">
-      <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="nercoeus">
-    </span>
-      <header class="post-header">
-        <h1 class="post-title" itemprop="name headline">
-            
-            <a href="/2019/09/25/13.守护进程和inetd超级服务器/" class="post-title-link" itemprop="url">第13章：守护进程和inetd超级服务器</a>
-          
-        </h1>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-calendar-o"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              
-                
-              
-
-              <time title="创建时间：2019-09-25 22:54:48" itemprop="dateCreated datePublished" datetime="2019-09-25T22:54:48+08:00">2019-09-25</time>
-            </span>
-          
-            
-
-            
-              <span class="post-meta-item">
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2019-09-28 16:46:38" itemprop="dateModified" datetime="2019-09-28T16:46:38+08:00">2019-09-28</time>
-              </span>
-            
-          
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/UNP/" itemprop="url" rel="index"><span itemprop="name">UNP</span></a></span>
-
-                
-                
-              
-            </span>
-          
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <h1 id="13-1-概述"><a href="#13-1-概述" class="headerlink" title="13.1 概述"></a>13.1 概述</h1><p>&emsp;&emsp;<strong>守护进程</strong>：是在后台运行且不与任何控制终端关联的进程。Unix 系统通常有很多守护进程在后台运行（20~50）执行不同的管理任务<br>&emsp;&emsp;守护进程没有终端，通常是因为他们由开机时的脚本进行启动。但是守护进程也可能从某个终端由用户在 shell 提示符下键入命令行进行启动，这样的守护进程必须亲自脱离与控制终端的关联，从而避免与作业控制，终端会话管理，终端产生信号等发生不希望的交互,也防止后台的守护进程输出到终端  </p>
-          <!--noindex-->
-          
-            <div class="post-button text-center">
-              <a class="btn" href="/2019/09/25/13.守护进程和inetd超级服务器/#more" rel="contents">
-                阅读全文 &raquo;
-              </a>
-            </div>
-          
-          <!--/noindex-->
-        
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-          <div class="post-eof"></div>
-        
-      </footer>
-  </div>
-  
-  
-  
-  </article>
-
-    
   </div>
 
   
   <nav class="pagination">
-    <a class="extend prev" rel="prev" href="/page/4/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span><a class="page-number" href="/page/6/">6</a><a class="extend next" rel="next" href="/page/6/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
+    <a class="extend prev" rel="prev" href="/page/4/"><i class="fa fa-angle-left" aria-label="上一页"></i></a><a class="page-number" href="/">1</a><span class="space">&hellip;</span><a class="page-number" href="/page/4/">4</a><span class="page-number current">5</span><a class="page-number" href="/page/6/">6</a><a class="page-number" href="/page/7/">7</a><a class="extend next" rel="next" href="/page/6/"><i class="fa fa-angle-right" aria-label="下一页"></i></a>
   </nav>
 
 
@@ -1378,7 +1358,7 @@
         
           <a href="/archives/">
         
-          <span class="site-state-item-count">59</span>
+          <span class="site-state-item-count">62</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
@@ -1391,7 +1371,7 @@
             <a href="/categories/">
           
         
-        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-count">5</span>
         <span class="site-state-item-name">分类</span>
         </a>
       </div>
@@ -1400,7 +1380,7 @@
       
       <div class="site-state-item site-state-tags">
         
-        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-count">3</span>
         <span class="site-state-item-name">标签</span>
         
       </div>
