@@ -64,12 +64,14 @@
 <meta property="og:site_name" content="nercoeus">
 <meta property="og:description" content="简介&amp;emsp;&amp;emsp;gRPC 是 Google 开源的一个高性能,开源通用 RPC 框架。支持 C++,Python,Ruby,PHP,C#,Golang 多语言和 Linux,Android,Windows 等多平台。它拥有插件式的负载均衡,追踪,运行状况检查和身份验证.基于 HTTP/2 协议标准和 Protobuf 序列化协议进行开发。&amp;emsp;&amp;emsp;从图片中可以看到 gRP">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="http://yoursite.com/2020/02/10/RPC系列②-GRPC概述/1.jpg">
-<meta property="og:updated_time" content="2020-02-11T10:39:49.440Z">
+<meta property="og:image" content="http://yoursite.com/2020/02/10/RPC系列②-GRPC概述/1.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/10/RPC系列②-GRPC概述/2.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/10/RPC系列②-GRPC概述/3.png">
+<meta property="og:updated_time" content="2020-02-11T11:38:04.909Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="RPC系列②:GRPC概述">
 <meta name="twitter:description" content="简介&amp;emsp;&amp;emsp;gRPC 是 Google 开源的一个高性能,开源通用 RPC 框架。支持 C++,Python,Ruby,PHP,C#,Golang 多语言和 Linux,Android,Windows 等多平台。它拥有插件式的负载均衡,追踪,运行状况检查和身份验证.基于 HTTP/2 协议标准和 Protobuf 序列化协议进行开发。&amp;emsp;&amp;emsp;从图片中可以看到 gRP">
-<meta name="twitter:image" content="http://yoursite.com/2020/02/10/RPC系列②-GRPC概述/1.jpg">
+<meta name="twitter:image" content="http://yoursite.com/2020/02/10/RPC系列②-GRPC概述/1.png">
   <link rel="canonical" href="http://yoursite.com/2020/02/10/RPC系列②-GRPC概述/">
 
 
@@ -251,7 +253,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-02-11 18:39:49" itemprop="dateModified" datetime="2020-02-11T18:39:49+08:00">2020-02-11</time>
+                <time title="修改时间：2020-02-11 19:38:04" itemprop="dateModified" datetime="2020-02-11T19:38:04+08:00">2020-02-11</time>
               </span>
             
           
@@ -280,7 +282,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h1 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h1><p>&emsp;&emsp;gRPC 是 Google 开源的一个高性能,开源通用 RPC 框架。支持 C++,Python,Ruby,PHP,C#,Golang 多语言和 Linux,Android,Windows 等多平台。它拥有插件式的负载均衡,追踪,运行状况检查和身份验证.基于 HTTP/2 协议标准和 Protobuf 序列化协议进行开发。<br><img src="/2020/02/10/RPC系列②-GRPC概述/1.jpg" alt="RPC 通信"><br>&emsp;&emsp;从图片中可以看到 gRPC 可以在不同语言实现的系统之间进行通信，并且使用 Proto 进行数据的序列化。使用 gRPC 的时候也需要考察语言对 Proto 协议的支持程度。<br>&emsp;&emsp;gRPC 和别的 RPC 框架存在许多的差异，其中需要了解的有 HTTP/2 协议和 Protobuf 序列化方法。</p>
+        <h1 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h1><p>&emsp;&emsp;gRPC 是 Google 开源的一个高性能,开源通用 RPC 框架。支持 C++,Python,Ruby,PHP,C#,Golang 多语言和 Linux,Android,Windows 等多平台。它拥有插件式的负载均衡,追踪,运行状况检查和身份验证.基于 HTTP/2 协议标准和 Protobuf 序列化协议进行开发。<br><img src="/2020/02/10/RPC系列②-GRPC概述/1.png" alt="RPC 通信"><br>&emsp;&emsp;从图片中可以看到 gRPC 可以在不同语言实现的系统之间进行通信，并且使用 Proto 进行数据的序列化。使用 gRPC 的时候也需要考察语言对 Proto 协议的支持程度。<br>&emsp;&emsp;gRPC 和别的 RPC 框架存在许多的差异，其中需要了解的有 HTTP/2 协议和 Protobuf 序列化方法。</p>
 <a id="more"></a>
 <h1 id="HTTP-2-协议在-gRPC-中的使用"><a href="#HTTP-2-协议在-gRPC-中的使用" class="headerlink" title="HTTP/2 协议在 gRPC 中的使用"></a>HTTP/2 协议在 gRPC 中的使用</h1><p>&emsp;&emsp;HTTP/2 旨在解决 HTTP/1.1 的性能问题，同时兼容 HTTP/1.1。前身是 Google 开发的 SPDY 协议。<br>HTTP/2 通过以下技术减少了延迟并提高了 Web 浏览时的加载速度：</p>
 <ul>
@@ -293,11 +295,15 @@
 <p>&emsp;&emsp;需要知道的是大部分的 RPC 框架均是基于 TCP 进行系统间数据传输的，gRPC 却采用了 HTTP/2 的方式进行。<br>&emsp;&emsp;创建一个 HTTP 连接的开销是很大的，因为 HTTP 是基于 TCP 的，所以需要先创建一个 TCP 连接，并使用 TLS 等一系列开销。但是 HTTP 也将会采取复用长连接的方式来节约开销。但是 HTTP/1.1 主要的问题在于每个连接一次只能处理一个请求，如果发送了一条很大的数据，则后面的请求需要等待其传输完成才会进行传输，这是很影响性能的。<br>&emsp;&emsp;HTTP/2 则在连接的上层提供了 streams 语义，streams 的主要优点在于它提供了并发。比如客户端可以创建多个 streams，并在同一条连接上依次进行数据的传输。虽然数据的传输并不是并行的，但是根据 streams 的不同，可以防止一个大的请求阻塞住整个连接后面的请求。<br>&emsp;&emsp;HTTP/2 提供了相当多的优良特性，其中最重要的是 HTTP/2 提供了流式传输特性，使得 gRPC 不需要再重新进行流传输的设计。</p>
 <h1 id="Protobuf-序列化方式在-gRPC-中的使用"><a href="#Protobuf-序列化方式在-gRPC-中的使用" class="headerlink" title="Protobuf 序列化方式在 gRPC 中的使用"></a>Protobuf 序列化方式在 gRPC 中的使用</h1><p>&emsp;&emsp;同 gRPC 一样，Protobuf 也出自 Google。首先 gRPC 是一个跨语言的 RPC 框架，而支持跨语言序列化的只有 Protobuf，json，thrift 三种方式。</p>
 <ul>
-<li>json：说道序列化，大家肯定首先想到的就是 json。易于人阅读和编写，但是它的缺点也十分明显，生成的字符串过于臃肿，导致了性能不太行。大部分用于 RESTful 接口传输，不用于 RPC 框架。</li>
+<li>json：说到序列化，大家肯定首先想到的就是 json。易于人阅读和编写，但是它的缺点也十分明显，生成的字符串过于臃肿，导致了性能不太行。大部分用于 RESTful 接口传输，不用于 RPC 框架。</li>
 <li>Protobuf：protobuf使用起来十分简单。并且性能不俗，因为其传输的是二进制数据，这也导致了调试时候可读性很差，但是有的工具已经可以解析出来了。</li>
 <li>Thrift：Facebook 开发的。同样支持二进制和压缩格式，也支持 json。还提供了完整的 RPC 支持。</li>
 </ul>
 <p>&emsp;&emsp;其实 Thrift 本身就是一个 RPC 框架。而 Protobuf 仅仅提供了 stub 的生成器和格式定义。gRPC 也可以认为弥补了这一部分，实现了基于 Protobuf 的 RPC 框架。</p>
+<h1 id="gRPC-和-REST-进行对比"><a href="#gRPC-和-REST-进行对比" class="headerlink" title="gRPC 和 REST 进行对比"></a>gRPC 和 REST 进行对比</h1><p>&emsp;&emsp;大家肯定对 REST 十分熟悉了,它的使用十分广泛从后端应用程序到移动设备以及 Web。REST 默认使用 JSON 作为数据交换格式。并可以使用 HTTP/1.1 和 HTTP/2。</p>
+<h2 id="HTTP-1-1-和-HTTP-2"><a href="#HTTP-1-1-和-HTTP-2" class="headerlink" title="HTTP/1.1 和 HTTP/2"></a>HTTP/1.1 和 HTTP/2</h2><p>&emsp;&emsp;由于上面对 HTTP/1.1 和 HTTP/2 进行对比的结果可知，我们有足够的理由选择 HTTP/2 作为传输协议。下面是而二者在不同请求数下的性能情况。<br><img src="/2020/02/10/RPC系列②-GRPC概述/2.png" alt></p>
+<h2 id="JSON-和-Protobuf"><a href="#JSON-和-Protobuf" class="headerlink" title="JSON 和 Protobuf"></a>JSON 和 Protobuf</h2><p>&emsp;&emsp;REST API 是一个非常通用的规范，可以从任何地方进行访问。因为 REST 默认使用 JSON，所以一个 REST 请求较为冗长。不光是传输数据量更大，而且对于代码的编写也更加冗长。所以 gRPC 相比于 REST 会更加的简单快捷。<br><img src="/2020/02/10/RPC系列②-GRPC概述/3.png" alt><br>&emsp;&emsp;上图来源见参考资料 3，可以看到同样基于 HTTP/2，gRPC 的性能相比于 REST 在整个工作负载范围内将处理时间减少了 50%~75%，提升还是很明显的。</p>
+<h2 id="比较"><a href="#比较" class="headerlink" title="比较"></a>比较</h2><p>&emsp;&emsp;虽然相比于 gRPC，REST 在语言支持方面十分优秀，但是随着 gRPC 的逐渐推广，对于大多数的用例来说，已经可以满足使用了。HTTP/1.1 相较于 HTTP/2 性能较差，同样基于 HTTP/2 的情况下 gRPC 也明显好于 REST。使用 gRPC 进行开发时，用户只需要编写简单的代码即可确定客户端和服务器端之间的调用接口，然后使用工具生成对应的代码，但是使用 gRPC 调试的话会有一些困难。<br>&emsp;&emsp;总的来说，虽然 REST 和 gRPC 均能完成同样的工作，但是在内部服务之间进行通信，gRPC 无疑使更好的选择。</p>
 <h1 id="gRPC-的四种通讯方式"><a href="#gRPC-的四种通讯方式" class="headerlink" title="gRPC 的四种通讯方式"></a>gRPC 的四种通讯方式</h1><h2 id="Unary-RPCs"><a href="#Unary-RPCs" class="headerlink" title="Unary RPCs"></a>Unary RPCs</h2><p>&emsp;&emsp;客户端发送一个参数，服务端返回一个参数。类似于普通函数的调用</p>
 <h2 id="Server-streaming-RPCs"><a href="#Server-streaming-RPCs" class="headerlink" title="Server streaming RPCs"></a>Server streaming RPCs</h2><p>&emsp;&emsp;客户端发起一个请求到服务端。服务器端向客户端传送流式的数据响应，客户端从返回的流中获取数据，知道没有更多的消息为止，同时保证消息顺序。</p>
 <h2 id="Client-streaming-RPCs"><a href="#Client-streaming-RPCs" class="headerlink" title="Client streaming RPCs"></a>Client streaming RPCs</h2><p>&emsp;&emsp;客户端向服务器端传送流式的数据，写完数据后等待服务端读取消息并返回响应，同样保证了顺序。</p>
@@ -306,6 +312,7 @@
 <h1 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h1><ol>
 <li><a href="https://grpc.io/docs/guides/concepts/" target="_blank" rel="noopener">gRPC Concepts</a></li>
 <li><a href="https://www.slideshare.net/VarunTalwar4/grpc-design-and-implementation" target="_blank" rel="noopener">gRPC design and implementation</a></li>
+<li><a href="https://medium.com/@bimeshde/grpc-vs-rest-performance-simplified-fd35d01bbd4" target="_blank" rel="noopener">gRPC vs. REST: Performance Simplified</a></li>
 <li><a href="https://www.jianshu.com/p/7392406e2450" target="_blank" rel="noopener">grpc应用详解与实例剖析</a></li>
 <li><a href="https://www.cnblogs.com/confach/p/10141273.html" target="_blank" rel="noopener">深入浅出：HTTP/2</a></li>
 <li><a href="https://en.wikipedia.org/wiki/HTTP/2" target="_blank" rel="noopener">wiki：HTTP/2</a></li>
@@ -393,7 +400,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#简介"><span class="nav-text">简介</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#HTTP-2-协议在-gRPC-中的使用"><span class="nav-text">HTTP/2 协议在 gRPC 中的使用</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Protobuf-序列化方式在-gRPC-中的使用"><span class="nav-text">Protobuf 序列化方式在 gRPC 中的使用</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#gRPC-的四种通讯方式"><span class="nav-text">gRPC 的四种通讯方式</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Unary-RPCs"><span class="nav-text">Unary RPCs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Server-streaming-RPCs"><span class="nav-text">Server streaming RPCs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Client-streaming-RPCs"><span class="nav-text">Client streaming RPCs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bidirectional-streaming-RPCs"><span class="nav-text">Bidirectional streaming RPCs</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#reference"><span class="nav-text">reference</span></a></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#简介"><span class="nav-text">简介</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#HTTP-2-协议在-gRPC-中的使用"><span class="nav-text">HTTP/2 协议在 gRPC 中的使用</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Protobuf-序列化方式在-gRPC-中的使用"><span class="nav-text">Protobuf 序列化方式在 gRPC 中的使用</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#gRPC-和-REST-进行对比"><span class="nav-text">gRPC 和 REST 进行对比</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#HTTP-1-1-和-HTTP-2"><span class="nav-text">HTTP/1.1 和 HTTP/2</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#JSON-和-Protobuf"><span class="nav-text">JSON 和 Protobuf</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#比较"><span class="nav-text">比较</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#gRPC-的四种通讯方式"><span class="nav-text">gRPC 的四种通讯方式</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Unary-RPCs"><span class="nav-text">Unary RPCs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Server-streaming-RPCs"><span class="nav-text">Server streaming RPCs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Client-streaming-RPCs"><span class="nav-text">Client streaming RPCs</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bidirectional-streaming-RPCs"><span class="nav-text">Bidirectional streaming RPCs</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#reference"><span class="nav-text">reference</span></a></li></ol></div>
         
       </div>
       <!--/noindex-->
