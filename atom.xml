@@ -6,7 +6,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://yoursite.com/"/>
-  <updated>2020-02-09T02:49:38.266Z</updated>
+  <updated>2020-02-11T10:39:49.440Z</updated>
   <id>http://yoursite.com/</id>
   
   <author>
@@ -15,6 +15,55 @@
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>RPC系列②:GRPC概述</title>
+    <link href="http://yoursite.com/2020/02/10/RPC%E7%B3%BB%E5%88%97%E2%91%A1-GRPC%E6%A6%82%E8%BF%B0/"/>
+    <id>http://yoursite.com/2020/02/10/RPC系列②-GRPC概述/</id>
+    <published>2020-02-10T06:25:35.000Z</published>
+    <updated>2020-02-11T10:39:49.440Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h1><p>&emsp;&emsp;gRPC 是 Google 开源的一个高性能,开源通用 RPC 框架。支持 C++,Python,Ruby,PHP,C#,Golang 多语言和 Linux,Android,Windows 等多平台。它拥有插件式的负载均衡,追踪,运行状况检查和身份验证.基于 HTTP/2 协议标准和 Protobuf 序列化协议进行开发。<br><img src="/2020/02/10/RPC系列②-GRPC概述/1.jpg" alt="RPC 通信"><br>&emsp;&emsp;从图片中可以看到 gRPC 可以在不同语言实现的系统之间进行通信，并且使用 Proto 进行数据的序列化。使用 gRPC 的时候也需要考察语言对 Proto 协议的支持程度。<br>&emsp;&emsp;gRPC 和别的 RPC 框架存在许多的差异，其中需要了解的有 HTTP/2 协议和 Protobuf 序列化方法。</p><a id="more"></a><h1 id="HTTP-2-协议在-gRPC-中的使用"><a href="#HTTP-2-协议在-gRPC-中的使用" class="headerlink" title="HTTP/2 协议在 gRPC 中的使用"></a>HTTP/2 协议在 gRPC 中的使用</h1><p>&emsp;&emsp;HTTP/2 旨在解决 HTTP/1.1 的性能问题，同时兼容 HTTP/1.1。前身是 Google 开发的 SPDY 协议。<br>HTTP/2 通过以下技术减少了延迟并提高了 Web 浏览时的加载速度：</p><ul><li>采用 HPack 算法进行 HTTP Header 的压缩</li><li>提供 HTTP/2 Server Push</li><li>流水线式的请求</li><li>修复 HTTP/1 的对头阻塞问题</li><li>在单个 TCP 连接上多路复用多个请求</li></ul><p>&emsp;&emsp;需要知道的是大部分的 RPC 框架均是基于 TCP 进行系统间数据传输的，gRPC 却采用了 HTTP/2 的方式进行。<br>&emsp;&emsp;创建一个 HTTP 连接的开销是很大的，因为 HTTP 是基于 TCP 的，所以需要先创建一个 TCP 连接，并使用 TLS 等一系列开销。但是 HTTP 也将会采取复用长连接的方式来节约开销。但是 HTTP/1.1 主要的问题在于每个连接一次只能处理一个请求，如果发送了一条很大的数据，则后面的请求需要等待其传输完成才会进行传输，这是很影响性能的。<br>&emsp;&emsp;HTTP/2 则在连接的上层提供了 streams 语义，streams 的主要优点在于它提供了并发。比如客户端可以创建多个 streams，并在同一条连接上依次进行数据的传输。虽然数据的传输并不是并行的，但是根据 streams 的不同，可以防止一个大的请求阻塞住整个连接后面的请求。<br>&emsp;&emsp;HTTP/2 提供了相当多的优良特性，其中最重要的是 HTTP/2 提供了流式传输特性，使得 gRPC 不需要再重新进行流传输的设计。</p><h1 id="Protobuf-序列化方式在-gRPC-中的使用"><a href="#Protobuf-序列化方式在-gRPC-中的使用" class="headerlink" title="Protobuf 序列化方式在 gRPC 中的使用"></a>Protobuf 序列化方式在 gRPC 中的使用</h1><p>&emsp;&emsp;同 gRPC 一样，Protobuf 也出自 Google。首先 gRPC 是一个跨语言的 RPC 框架，而支持跨语言序列化的只有 Protobuf，json，thrift 三种方式。</p><ul><li>json：说道序列化，大家肯定首先想到的就是 json。易于人阅读和编写，但是它的缺点也十分明显，生成的字符串过于臃肿，导致了性能不太行。大部分用于 RESTful 接口传输，不用于 RPC 框架。</li><li>Protobuf：protobuf使用起来十分简单。并且性能不俗，因为其传输的是二进制数据，这也导致了调试时候可读性很差，但是有的工具已经可以解析出来了。</li><li>Thrift：Facebook 开发的。同样支持二进制和压缩格式，也支持 json。还提供了完整的 RPC 支持。</li></ul><p>&emsp;&emsp;其实 Thrift 本身就是一个 RPC 框架。而 Protobuf 仅仅提供了 stub 的生成器和格式定义。gRPC 也可以认为弥补了这一部分，实现了基于 Protobuf 的 RPC 框架。</p><h1 id="gRPC-的四种通讯方式"><a href="#gRPC-的四种通讯方式" class="headerlink" title="gRPC 的四种通讯方式"></a>gRPC 的四种通讯方式</h1><h2 id="Unary-RPCs"><a href="#Unary-RPCs" class="headerlink" title="Unary RPCs"></a>Unary RPCs</h2><p>&emsp;&emsp;客户端发送一个参数，服务端返回一个参数。类似于普通函数的调用</p><h2 id="Server-streaming-RPCs"><a href="#Server-streaming-RPCs" class="headerlink" title="Server streaming RPCs"></a>Server streaming RPCs</h2><p>&emsp;&emsp;客户端发起一个请求到服务端。服务器端向客户端传送流式的数据响应，客户端从返回的流中获取数据，知道没有更多的消息为止，同时保证消息顺序。</p><h2 id="Client-streaming-RPCs"><a href="#Client-streaming-RPCs" class="headerlink" title="Client streaming RPCs"></a>Client streaming RPCs</h2><p>&emsp;&emsp;客户端向服务器端传送流式的数据，写完数据后等待服务端读取消息并返回响应，同样保证了顺序。</p><h2 id="Bidirectional-streaming-RPCs"><a href="#Bidirectional-streaming-RPCs" class="headerlink" title="Bidirectional streaming RPCs"></a>Bidirectional streaming RPCs</h2><p>&emsp;&emsp;双向流传输，在客户端发送流的同时，服务端能够同时读取和写入多个返回值。两个流相互独立，但是每个流中的数据都保证顺序传输。</p><p>⭐️ gRPC 支持流对象，具体则是将流对象作为集合，并进行遍历处理。</p><h1 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h1><ol><li><a href="https://grpc.io/docs/guides/concepts/" target="_blank" rel="noopener">gRPC Concepts</a></li><li><a href="https://www.slideshare.net/VarunTalwar4/grpc-design-and-implementation" target="_blank" rel="noopener">gRPC design and implementation</a></li><li><a href="https://www.jianshu.com/p/7392406e2450" target="_blank" rel="noopener">grpc应用详解与实例剖析</a></li><li><a href="https://www.cnblogs.com/confach/p/10141273.html" target="_blank" rel="noopener">深入浅出：HTTP/2</a></li><li><a href="https://en.wikipedia.org/wiki/HTTP/2" target="_blank" rel="noopener">wiki：HTTP/2</a></li><li><a href="https://grpc.io/blog/http2_smarter_at_scale/" target="_blank" rel="noopener">Http2 smarter at scale</a></li></ol>]]></content>
+    
+    <summary type="html">
+    
+      &lt;h1 id=&quot;简介&quot;&gt;&lt;a href=&quot;#简介&quot; class=&quot;headerlink&quot; title=&quot;简介&quot;&gt;&lt;/a&gt;简介&lt;/h1&gt;&lt;p&gt;&amp;emsp;&amp;emsp;gRPC 是 Google 开源的一个高性能,开源通用 RPC 框架。支持 C++,Python,Ruby,PHP,C#,Golang 多语言和 Linux,Android,Windows 等多平台。它拥有插件式的负载均衡,追踪,运行状况检查和身份验证.基于 HTTP/2 协议标准和 Protobuf 序列化协议进行开发。&lt;br&gt;&lt;img src=&quot;/2020/02/10/RPC系列②-GRPC概述/1.jpg&quot; alt=&quot;RPC 通信&quot;&gt;&lt;br&gt;&amp;emsp;&amp;emsp;从图片中可以看到 gRPC 可以在不同语言实现的系统之间进行通信，并且使用 Proto 进行数据的序列化。使用 gRPC 的时候也需要考察语言对 Proto 协议的支持程度。&lt;br&gt;&amp;emsp;&amp;emsp;gRPC 和别的 RPC 框架存在许多的差异，其中需要了解的有 HTTP/2 协议和 Protobuf 序列化方法。&lt;/p&gt;
+    
+    </summary>
+    
+    
+      <category term="RPC系列" scheme="http://yoursite.com/categories/RPC%E7%B3%BB%E5%88%97/"/>
+    
+    
+      <category term="RPC" scheme="http://yoursite.com/tags/RPC/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>RPC系列①:什么是RPC</title>
+    <link href="http://yoursite.com/2020/02/09/RPC%E7%B3%BB%E5%88%97%E2%91%A0-%E4%BB%80%E4%B9%88%E6%98%AFRPC/"/>
+    <id>http://yoursite.com/2020/02/09/RPC系列①-什么是RPC/</id>
+    <published>2020-02-09T02:58:11.000Z</published>
+    <updated>2020-02-11T04:32:00.415Z</updated>
+    
+    <content type="html"><![CDATA[<p>既然讲 RPC,就先要了解什么是 RPC.全称 Remote procedure call,简单翻译过来就是:远程过程调用.通俗来说就是一个进程调用另一个进程的方法.所以很明显它属于进程间通信的一种方式.RPC 主要应用在分布式领域,让一个服务使用类似本地调用的方式去调用远程服务的函数.例如服务 A 通过 RPC 方法调用服务 B 中的函数 B1().<br>专业的说法就是:在分布式系统中,RPC 指程序使在不同地址空间的过程调用执行时,其编码细节就像是本地调用,不需要用户为远程的交互明确编码的细节.RPC 意味着一定程度的地址透明性,即无论本地还是远程调用,所编写的代码是一致的.虽然使用起来是一致的,但是需要注意的是远程调用会较慢并且缺乏可靠性,所以需要重视远程调用和本地调用的区别.<br>RPC 的应用十分广泛,实现的话,可以自己项目中进行实现也可以使用开源的 RPC 框架,开源的 RPC 框架一般分为和语言绑定和跨语言平台两种.<br>和语言绑定的 RPC 框架有:</p><ol><li>Dubbo:阿里开源,支持 Java 语言,已经停止更新</li><li>Motan:新浪开源,支持 Java 语言</li><li>Tars:腾讯开源,支持 C++ 语言</li><li>Spring Cloud:国外公司的开源 RPC 框架,支持 Java 语言</li></ol><p>跨语言平台的 RPC 框架有:</p><ol><li>gRPC:Google 开源,支持多种语言,基于 HTTP/2 协议进行设计实现</li><li>Thrift:Facebook 开源,支持多种语言</li></ol><p>不同框架在进行选择时需要进行多方面的比较,例如性能的话 Thrift 是较快的一种,语言支持程度的话不同语言可使用的框架不同且类似于 gRPC 这种框架还要考察语言对 ProtoBuf 的支持程度进行选择.</p><p>一个简单的 RPC 框架的组成部分如下:</p><ul><li>客户端:</li><li></li></ul><p><a href="https://en.wikipedia.org/wiki/Remote_procedure_call" target="_blank" rel="noopener">Wiki:Remote procedure call</a></p>]]></content>
+    
+    <summary type="html">
+    
+      
+      
+        &lt;p&gt;既然讲 RPC,就先要了解什么是 RPC.全称 Remote procedure call,简单翻译过来就是:远程过程调用.通俗来说就是一个进程调用另一个进程的方法.所以很明显它属于进程间通信的一种方式.RPC 主要应用在分布式领域,让一个服务使用类似本地调用的方式去调用远
+      
+    
+    </summary>
+    
+    
+      <category term="RPC系列" scheme="http://yoursite.com/categories/RPC%E7%B3%BB%E5%88%97/"/>
+    
+    
+      <category term="RPC" scheme="http://yoursite.com/tags/RPC/"/>
+    
+  </entry>
   
   <entry>
     <title>写在年初</title>
@@ -40,31 +89,6 @@
     
     
       <category term="杂文" scheme="http://yoursite.com/tags/%E6%9D%82%E6%96%87/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>nsqd解析:nsqd总结篇</title>
-    <link href="http://yoursite.com/2020/01/17/nsqd%E8%A7%A3%E6%9E%90-nsqd%E6%80%BB%E7%BB%93%E7%AF%87/"/>
-    <id>http://yoursite.com/2020/01/17/nsqd解析-nsqd总结篇/</id>
-    <published>2020-01-17T08:12:17.000Z</published>
-    <updated>2020-01-18T10:36:44.751Z</updated>
-    
-    <content type="html"><![CDATA[<p>啥也不说,开始画图.</p><p>最后附上 github 的 nsqd 的源码解析地址:<a href="https://github.com/nercoeus/nsq_source_note" target="_blank" rel="noopener">https://github.com/nercoeus/nsq_source_note</a></p>]]></content>
-    
-    <summary type="html">
-    
-      
-      
-        &lt;p&gt;啥也不说,开始画图.&lt;/p&gt;
-&lt;p&gt;最后附上 github 的 nsqd 的源码解析地址:&lt;a href=&quot;https://github.com/nercoeus/nsq_source_note&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;https:/
-      
-    
-    </summary>
-    
-    
-      <category term="nsq解析" scheme="http://yoursite.com/categories/nsq%E8%A7%A3%E6%9E%90/"/>
-    
     
   </entry>
   
@@ -447,27 +471,6 @@
     <summary type="html">
     
       &lt;h1 id=&quot;1-访问者模式（Visitor-pattern）&quot;&gt;&lt;a href=&quot;#1-访问者模式（Visitor-pattern）&quot; class=&quot;headerlink&quot; title=&quot;1 访问者模式（Visitor pattern）&quot;&gt;&lt;/a&gt;1 访问者模式（Visitor pattern）&lt;/h1&gt;&lt;p&gt;&lt;strong&gt;访问者模式定义&lt;/strong&gt;：（对象行为型模式）表示一个作用域某对象的结构中的各元素的操作。他是你可以在不改变各元素的类的前提下定义作用于这些元素的新操作。&lt;/p&gt;
-    
-    </summary>
-    
-    
-      <category term="设计模式" scheme="http://yoursite.com/categories/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
-    
-    
-  </entry>
-  
-  <entry>
-    <title>设计模式-模板方法模式</title>
-    <link href="http://yoursite.com/2019/11/14/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E6%A8%A1%E6%9D%BF%E6%96%B9%E6%B3%95%E6%A8%A1%E5%BC%8F/"/>
-    <id>http://yoursite.com/2019/11/14/设计模式-模板方法模式/</id>
-    <published>2019-11-14T13:09:42.000Z</published>
-    <updated>2019-11-14T13:29:05.450Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="1-模板方法模式（Template-Method-pattern）"><a href="#1-模板方法模式（Template-Method-pattern）" class="headerlink" title="1 模板方法模式（Template Method pattern）"></a>1 模板方法模式（Template Method pattern）</h1><p><strong>模板方法模式定义</strong>：（对象行为型模式）定义一个操作中的算法的骨架，而将一些步骤延迟到子类中去。模板方法模式使得子类可以不改变一个算法的结构图即可重定义该算法的某些特定步骤。</p><a id="more"></a><p><img src="/2019/11/14/设计模式-模板方法模式/1.png" alt></p><h1 id="2-目标问题"><a href="#2-目标问题" class="headerlink" title="2 目标问题"></a>2 目标问题</h1><p>&emsp;&emsp;你需要构建一个分析各种文档的程序，文档的种类包括：word、txt、pdf、markdown 等等。你需要从各种文档中提取出有价值的数据，并进行处理。<br>&emsp;&emsp;首先你先完成了对 word 文档的处理，包括文件的解析，数据的读取，数据的提取，数据的分析，分析结果的记录。接下来你有依次为这个程序添加了其余几种格式的支持。<br>&emsp;&emsp;等到系统完成就会发现其实不同的格式之间存在许多的相似代码。尽管在所有类中用于处理各种数据格式的代码完全不同，但是用于数据处理和分析的代码几乎完全相同。我们可以把整个算法的逻辑独立出来，可以防止代码变得过于繁杂。</p><h1 id="3-解决方法"><a href="#3-解决方法" class="headerlink" title="3 解决方法"></a>3 解决方法</h1><p>&emsp;&emsp;模板方法建议你将算法分为多个步骤，将这些步骤封装在方法中，并将这一些列的方法封装在单个模板方法对象中。在具体使用这个算法时，用户提供实现这些抽象步骤的类，并使用模板方法对象完成整个算法的逻辑即可。<br>每个步骤类型可以分为两种：</p><ul><li>子类必须自己实现的抽象步骤：word，pdf。。的数据读取肯定是不能通用的</li><li>已经具有默认的实现，但是客户也可以自己进行实现来覆盖它</li></ul><h1 id="4-所有类之间的关系"><a href="#4-所有类之间的关系" class="headerlink" title="4 所有类之间的关系"></a>4 所有类之间的关系</h1><p><img src="/2019/11/14/设计模式-模板方法模式/2.png" alt></p><ol><li>AbstractClass 抽象类：<ul><li>定义抽象的原始操作，具体的子类将重定义它们以实现一个的算法的步骤</li><li>实现一个模板方法，定义一个算法的骨架。该模板方法不仅调用原语操作，也调用定义在 AbstractClass 或其他对象中的操作</li></ul></li><li>ConcreteClass 具体类：<ul><li>实现原语操作以完成算法中与特定子类相关的步骤</li></ul></li></ol><h1 id="5-代码实现"><a href="#5-代码实现" class="headerlink" title="5 代码实现"></a>5 代码实现</h1><p>本节例子来源见文章末尾</p><figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">type</span> Downloader <span class="keyword">interface</span> &#123;</span><br><span class="line">Download(uri <span class="keyword">string</span>)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 算法模板对象，包含一个 implement 接口对象（实现具体算法的子类）</span></span><br><span class="line"><span class="keyword">type</span> template <span class="keyword">struct</span> &#123;</span><br><span class="line">implement</span><br><span class="line">uri <span class="keyword">string</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 算法中步骤分为 download 和 save</span></span><br><span class="line"><span class="keyword">type</span> implement <span class="keyword">interface</span> &#123;</span><br><span class="line">download()</span><br><span class="line">save()</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 返回一个模板方法对象，具体实现子类是 impl</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">newTemplate</span><span class="params">(impl implement)</span> *<span class="title">template</span></span> &#123;</span><br><span class="line"><span class="keyword">return</span> &amp;template&#123;</span><br><span class="line">implement: impl,</span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 整个算法执行流程，分为几个步骤</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *template)</span> <span class="title">Download</span><span class="params">(uri <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">t.uri = uri</span><br><span class="line">fmt.Print(<span class="string">"prepare downloading\n"</span>)</span><br><span class="line">t.implement.download()</span><br><span class="line">t.implement.save()</span><br><span class="line">fmt.Print(<span class="string">"finish downloading\n"</span>)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 提供一个默认的 save 方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(t *template)</span> <span class="title">save</span><span class="params">()</span></span> &#123;</span><br><span class="line">fmt.Print(<span class="string">"default save\n"</span>)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 具体实现算法步骤子类</span></span><br><span class="line"><span class="keyword">type</span> HTTPDownloader <span class="keyword">struct</span> &#123;</span><br><span class="line">*template</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// http 子类的工厂函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewHTTPDownloader</span><span class="params">()</span> <span class="title">Downloader</span></span> &#123;</span><br><span class="line">downloader := &amp;HTTPDownloader&#123;&#125;</span><br><span class="line">template := newTemplate(downloader)</span><br><span class="line">downloader.template = template</span><br><span class="line"><span class="keyword">return</span> downloader</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 子类实现具体的算法步骤</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *HTTPDownloader)</span> <span class="title">download</span><span class="params">()</span></span> &#123;</span><br><span class="line">fmt.Printf(<span class="string">"download %s via http\n"</span>, d.uri)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// http 子类实现了 save 方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(*HTTPDownloader)</span> <span class="title">save</span><span class="params">()</span></span> &#123;</span><br><span class="line">fmt.Printf(<span class="string">"http save\n"</span>)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// ftp 子类</span></span><br><span class="line"><span class="keyword">type</span> FTPDownloader <span class="keyword">struct</span> &#123;</span><br><span class="line">*template</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// ftp 子类的工厂函数</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">NewFTPDownloader</span><span class="params">()</span> <span class="title">Downloader</span></span> &#123;</span><br><span class="line">downloader := &amp;FTPDownloader&#123;&#125;</span><br><span class="line">template := newTemplate(downloader)</span><br><span class="line">downloader.template = template</span><br><span class="line"><span class="keyword">return</span> downloader</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// Ftp 仅仅实现了 doenload 方法</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(d *FTPDownloader)</span> <span class="title">download</span><span class="params">()</span></span> &#123;</span><br><span class="line">fmt.Printf(<span class="string">"download %s via ftp\n"</span>, d.uri)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 分别使用 HTTP 和 FTP 来下载文件</span></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line"><span class="keyword">var</span> downloader1 Downloader = NewHTTPDownloader()</span><br><span class="line">downloader1.Download(<span class="string">"http://example.com/abc.zip"</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">var</span> downloader2 Downloader = NewFTPDownloader()</span><br><span class="line">downloader2.Download(<span class="string">"ftp://example.com/abc.zip"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>打印结果如下：<br><img src="/2019/11/14/设计模式-模板方法模式/3.png" alt></p><h1 id="6-应用场景"><a href="#6-应用场景" class="headerlink" title="6 应用场景"></a>6 应用场景</h1><ul><li>一次性实现一个算法的不变部分，并将可变的部分留给子类去进行实现</li><li>各个子类中公共的行为应被提取出来并集中到一个公共父类中以避免代码重复</li><li>控制子类扩展。模板方法只在特定点调用钩子操作，这样就只允许在这些点进行扩展</li></ul><h1 id="7-优缺点"><a href="#7-优缺点" class="headerlink" title="7 优缺点"></a>7 优缺点</h1><h2 id="7-1-优点"><a href="#7-1-优点" class="headerlink" title="7.1 优点"></a>7.1 优点</h2><ul><li>可以让客户端仅覆盖大型算法的某些特殊部分，从而使它们受到算法其他部分发生的更改的影响较小</li><li>可以将重复的代码放入一个父类中</li></ul><h2 id="7-2-缺点"><a href="#7-2-缺点" class="headerlink" title="7.2 缺点"></a>7.2 缺点</h2><ul><li>某些客户端可能会受到所提供算法框架的限制</li><li>模板方法往往难以维护，因为它们具有的较多步骤</li></ul><h1 id="8-相关模式"><a href="#8-相关模式" class="headerlink" title="8 相关模式"></a>8 相关模式</h1><ul><li>工厂模式常用在模板方法中。</li><li>模板方法使用继承来改变算法的一部分，策略模式使用委托来改变整个算法</li></ul><h1 id="9-reference"><a href="#9-reference" class="headerlink" title="9 reference"></a>9 reference</h1><p>《设计模式》-模板方法模式<br><a href="https://refactoring.guru/design-patterns/template-method" target="_blank" rel="noopener">design-patterns:template-method pattern</a><br><a href="https://github.com/senghoo/golang-design-pattern/tree/master/14_template_method" target="_blank" rel="noopener">本节代码示例</a></p>]]></content>
-    
-    <summary type="html">
-    
-      &lt;h1 id=&quot;1-模板方法模式（Template-Method-pattern）&quot;&gt;&lt;a href=&quot;#1-模板方法模式（Template-Method-pattern）&quot; class=&quot;headerlink&quot; title=&quot;1 模板方法模式（Template Method pattern）&quot;&gt;&lt;/a&gt;1 模板方法模式（Template Method pattern）&lt;/h1&gt;&lt;p&gt;&lt;strong&gt;模板方法模式定义&lt;/strong&gt;：（对象行为型模式）定义一个操作中的算法的骨架，而将一些步骤延迟到子类中去。模板方法模式使得子类可以不改变一个算法的结构图即可重定义该算法的某些特定步骤。&lt;/p&gt;
     
     </summary>
     
