@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="&amp;emsp;&amp;emsp;gRPC 使用的是经典的 Client/Server 模式，整个基本的使用过程简单来说分为三步：  编写 .proto 文件来定义服务 使用 protocol 工具生成客户端和服务端使用的代码 使用 gRPC 的 API 编写客户端和服务端的逻辑代码">
+<meta name="keywords" content="RPC">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RPC系列③:GRPC的使用">
+<meta property="og:url" content="http://yoursite.com/2020/02/11/RPC系列③-GRPC的使用/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="&amp;emsp;&amp;emsp;gRPC 使用的是经典的 Client/Server 模式，整个基本的使用过程简单来说分为三步：  编写 .proto 文件来定义服务 使用 protocol 工具生成客户端和服务端使用的代码 使用 gRPC 的 API 编写客户端和服务端的逻辑代码">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2020-02-12T02:48:10.097Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RPC系列③:GRPC的使用">
+<meta name="twitter:description" content="&amp;emsp;&amp;emsp;gRPC 使用的是经典的 Client/Server 模式，整个基本的使用过程简单来说分为三步：  编写 .proto 文件来定义服务 使用 protocol 工具生成客户端和服务端使用的代码 使用 gRPC 的 API 编写客户端和服务端的逻辑代码">
+  <link rel="canonical" href="http://yoursite.com/2020/02/11/RPC系列③-GRPC的使用/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>RPC系列③:GRPC的使用 | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/02/11/RPC系列③-GRPC的使用/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">RPC系列③:GRPC的使用
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2020-02-11 22:00:44" itemprop="dateCreated datePublished" datetime="2020-02-11T22:00:44+08:00">2020-02-11</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-12 10:48:10" itemprop="dateModified" datetime="2020-02-12T10:48:10+08:00">2020-02-12</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/RPC系列/" itemprop="url" rel="index"><span itemprop="name">RPC系列</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>&emsp;&emsp;gRPC 使用的是经典的 Client/Server 模式，整个基本的使用过程简单来说分为三步：</p>
+<ol>
+<li>编写 .proto 文件来定义服务</li>
+<li>使用 protocol 工具生成客户端和服务端使用的代码</li>
+<li>使用 gRPC 的 API 编写客户端和服务端的逻辑代码<a id="more"></a>
+<h1 id="编写-proto-文件"><a href="#编写-proto-文件" class="headerlink" title="编写 .proto 文件"></a>编写 .proto 文件</h1>&emsp;&emsp;首先来定义 gRPC 服务以及方法的请求和响应的类型。这里用自带的例子进行说明：<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// proto 版本</span></span><br><span class="line">syntax = <span class="string">"proto3"</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 类似于服务的命名空间</span></span><br><span class="line"><span class="keyword">package</span> routeguide;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 服务器提供的对外接口</span></span><br><span class="line">service RouteGuide &#123;</span><br><span class="line">  <span class="comment">// 简单的 RPC 调用类型</span></span><br><span class="line">  <span class="comment">// 传入一个 Point 对象，接收 Feature 结构</span></span><br><span class="line">  rpc GetFeature(Point) returns (Feature) &#123;&#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 服务器到客户端的流传输 RPC</span></span><br><span class="line">  <span class="comment">// 传入一个 Rectangle 对象，接收一个 Feature 对象组成的数据流</span></span><br><span class="line">  rpc ListFeatures(Rectangle) returns (stream Feature) &#123;&#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 客户端到服务器的流传输 RPC</span></span><br><span class="line">  <span class="comment">// 传入一个 Point 对象组成的数据流，接收一个 RouteSummary 对象</span></span><br><span class="line">  rpc RecordRoute(stream Point) returns (RouteSummary) &#123;&#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 客户端和服务器双向流传递</span></span><br><span class="line">  <span class="comment">// 客户端发送一个 RouteNote 组成的数据流，并接收一个 RouteNote 组成的数据流，服务器则是相反的操作</span></span><br><span class="line">  rpc RouteChat(stream RouteNote) returns (stream RouteNote) &#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 客户端和服务器交互中使用的数据类型的定义，暂时不关系每个结构代表的意义</span></span><br><span class="line">message Point &#123;</span><br><span class="line">  <span class="keyword">int32</span> latitude = <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">int32</span> longitude = <span class="number">2</span>;</span><br><span class="line">&#125;</span><br><span class="line">message Rectangle &#123;</span><br><span class="line">  Point lo = <span class="number">1</span>;</span><br><span class="line">  Point hi = <span class="number">2</span>;</span><br><span class="line">&#125;</span><br><span class="line">message Feature &#123;</span><br><span class="line">  <span class="keyword">string</span> name = <span class="number">1</span>;</span><br><span class="line">  Point location = <span class="number">2</span>;</span><br><span class="line">&#125;</span><br><span class="line">message RouteNote &#123;</span><br><span class="line">  Point location = <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">string</span> message = <span class="number">2</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">message RouteSummary &#123;</span><br><span class="line">  <span class="keyword">int32</span> point_count = <span class="number">1</span>;</span><br><span class="line">  <span class="keyword">int32</span> feature_count = <span class="number">2</span>;</span><br><span class="line">  <span class="keyword">int32</span> distance = <span class="number">3</span>;</span><br><span class="line">  <span class="keyword">int32</span> elapsed_time = <span class="number">4</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+</li>
+</ol>
+<p>&emsp;&emsp;上面的代码中主要包括 proto 的版本为 proto3，文件编写要按照 proto 的标准。文件中包含服务器提供的结构定义，以及 rpc 中使用的数据类型。从代码可以看到，这个服务使用了四个 rpc 接口，每个接口的类型不同，具体可以参考<a href="https://nercoeus.github.io/2020/02/10/RPC%E7%B3%BB%E5%88%97%E2%91%A1-GRPC%E6%A6%82%E8%BF%B0/" target="_blank" rel="noopener">上一节</a>。<br>&emsp;&emsp;编写的过程中先指定一个服务：RouteGuide。然后在服务中定义方法，并指定具体的请求和响应使用的数据类型，所有的类型均在 RouteGuide 中进行使用。这样一个完整的 .proto 文件就编写好了。<br>&emsp;&emsp;需要注意的是 rpc 接口中的数据类型只能是 message，不可以是 string，int32 等原始类型。 </p>
+<h1 id="代码生成"><a href="#代码生成" class="headerlink" title="代码生成"></a>代码生成</h1><h2 id="使用官方工具进行代码的生成"><a href="#使用官方工具进行代码的生成" class="headerlink" title="使用官方工具进行代码的生成"></a>使用官方工具进行代码的生成</h2><p>&emsp;&emsp;因为我是 macOS 系统，这里直接使用 macOS 系统进行说明。首先要生成对应的代码需要安装 protobuf，可以直接使用 brew 进行安装。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">brew install protouf</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;然后安装 protoc-gen-go，这里使用 go get 的方式进行安装。如果网络不允许的话，也可以下载代码后到文件夹中执行 go build;go install 进行安装。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">go get -u github.com/golang/protobuf/protoc-gen-go</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;安装完成之后就可以进行代码的生成。拿官方的例子来进行生成，在 route_guide 目录下执行命令。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">protoc -I routeguide/ routeguide/route_guide.proto --go_out=plugins=grpc:routeguide</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;执行完成之后，生成 route_guide.pb.go 文件，文件中包含客户端和服务器端需要使用的数据类型以及服务器提供的方法。</p>
+<h2 id="使用-gogo-protocol-来进行代码的生成"><a href="#使用-gogo-protocol-来进行代码的生成" class="headerlink" title="使用 gogo/protocol 来进行代码的生成"></a>使用 gogo/protocol 来进行代码的生成</h2><p>首先安装命令如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">go get github.com/gogo/protobuf/protoc-gen-gofast</span><br></pre></td></tr></table></figure>
+
+<p>使用的话只需要使用 –gofast_out 参数即可：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">protoc --gofast_out=. *.proto</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;gogo/protocol 在性能上是优于官方工具的并且可以兼容官方格式的同时提供更多功能，值得一试。</p>
+<h1 id="根据生成的代码编写客户端和服务器的逻辑代码"><a href="#根据生成的代码编写客户端和服务器的逻辑代码" class="headerlink" title="根据生成的代码编写客户端和服务器的逻辑代码"></a>根据生成的代码编写客户端和服务器的逻辑代码</h1><h2 id="服务端代码的编写"><a href="#服务端代码的编写" class="headerlink" title="服务端代码的编写"></a>服务端代码的编写</h2><p>想要创建一个服务器并支持 proto 文件中定义的服务需要分为两个步骤：</p>
+<ul>
+<li>客户端调用在服务器中实际执行的方法</li>
+<li>运行 gRPC 服务器用来监听客户端的请求，并执行对应的正确的方法<h3 id="routeGuide-服务的结构体"><a href="#routeGuide-服务的结构体" class="headerlink" title="routeGuide 服务的结构体"></a>routeGuide 服务的结构体</h3>整个服务的结构如下：<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">type routeGuideServer struct &#123;</span><br><span class="line">	pb.UnimplementedRouteGuideServer</span><br><span class="line">&#125;</span><br><span class="line">func (s *routeGuideServer) GetFeature(ctx context.Context, point *pb.Point) (*pb.Feature, error) &#123;&#125;</span><br><span class="line"></span><br><span class="line">func (s *routeGuideServer) ListFeatures(rect *pb.Rectangle, stream pb.RouteGuide_ListFeaturesServer) error &#123;&#125;</span><br><span class="line"></span><br><span class="line">func (s *routeGuideServer) RecordRoute(stream pb.RouteGuide_RecordRouteServer) error &#123;&#125;</span><br><span class="line"></span><br><span class="line">func (s *routeGuideServer) RouteChat(stream pb.RouteGuide_RouteChatServer) error &#123;&#125;</span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+<p>定义 routeGuide 服务结构体并实现所有提供的接口即可。</p>
+<h3 id="不同类型接口的实现"><a href="#不同类型接口的实现" class="headerlink" title="不同类型接口的实现"></a>不同类型接口的实现</h3><h4 id="简单的-rpc-方法实现"><a href="#简单的-rpc-方法实现" class="headerlink" title="简单的 rpc 方法实现"></a>简单的 rpc 方法实现</h4><p>&emsp;&emsp;服务提供的第一个 rpc 接口最为简单也是最常用的，从客户端获取一个 Point，并返回一个 Feature。代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">func (s *routeGuideServer) GetFeature(ctx context.Context, point *pb.Point) (*pb.Feature, error) &#123;</span><br><span class="line">	return &amp;pb.Feature&#123;Location: point&#125;, nil</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;省略了所有代码逻辑，仅仅看看一个 rpc 方法的具体实现，该方法接收传给它的上下文对象和客户端发送的 Point 对象，并直接 return 一个 Feature 和执行时的错误信息一同返回给客户端。</p>
+<h4 id="服务器端流式-rpc-方法实现"><a href="#服务器端流式-rpc-方法实现" class="headerlink" title="服务器端流式 rpc 方法实现"></a>服务器端流式 rpc 方法实现</h4><p>&emsp;&emsp;ListFeatures 方法中服务器会返回一个流式的数据给客户端，方法具体结构如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">func (s *routeGuideServer) ListFeatures(rect *pb.Rectangle, stream pb.RouteGuide_ListFeaturesServer) error &#123;</span><br><span class="line">	for _, feature := range s.savedFeatures &#123;</span><br><span class="line">		if inRange(feature.Location, rect) &#123;</span><br><span class="line">			if err := stream.Send(feature); err != nil &#123;</span><br><span class="line">				return err</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	return nil</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;和简单 rpc 方法不同的是，在 ListFeatures 中方法接收一个客户端传过来的 Rectangle 对象，并且有一个和这个方法对应的流对象，通过这个流对象向客户端推送一系列的数据。通过调用 RouteGuide_ListFeaturesServer 的 Send 方法将数据写入返回流，并在最后 return 一个 nil 通知 gRPC 完成响应的数据发送。如果在这个过程中发生了错误直接返回错误即可。</p>
+<h4 id="客户端流式-rpc-方法实现"><a href="#客户端流式-rpc-方法实现" class="headerlink" title="客户端流式 rpc 方法实现"></a>客户端流式 rpc 方法实现</h4><p>&emsp;&emsp;RecordRoute 方法传入一个 RouteGuide_RecordRouteServer 数据流，通过这个数据流进行客户端和服务器端数据的双向传送。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">func (s *routeGuideServer) RecordRoute(stream pb.RouteGuide_RecordRouteServer) error &#123;</span><br><span class="line">	var pointCount, featureCount, distance int32</span><br><span class="line">	var lastPoint *pb.Point</span><br><span class="line">	startTime := time.Now()</span><br><span class="line">	for &#123;</span><br><span class="line">		point, err := stream.Recv()</span><br><span class="line">		if err == io.EOF &#123;</span><br><span class="line">			endTime := time.Now()</span><br><span class="line">			return stream.SendAndClose(&amp;pb.RouteSummary&#123;</span><br><span class="line">				PointCount:   pointCount,</span><br><span class="line">				FeatureCount: featureCount,</span><br><span class="line">				Distance:     distance,</span><br><span class="line">				ElapsedTime:  int32(endTime.Sub(startTime).Seconds()),</span><br><span class="line">			&#125;)</span><br><span class="line">		&#125;</span><br><span class="line">		if err != nil &#123;</span><br><span class="line">			return err</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;这个方法使用一个 for 结构不断的从 RouteGuide_RecordRouteServer 中调用 Recv() 方法获取一系列 Point 对象并进行处理。如果读取到 EOF 表示消息流结束，就直接调用 SendAndClose() 返回 RouteSummary 对象并关闭这个流。如果是别的错误的话就直接返回给 gRPC 处理即可。</p>
+<h4 id="双向流式-rpc"><a href="#双向流式-rpc" class="headerlink" title="双向流式 rpc"></a>双向流式 rpc</h4><p>RouteChat 方法支持客户端和服务器两端的流式数据传输。结构如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">func (s *routeGuideServer) RouteChat(stream pb.RouteGuide_RouteChatServer) error &#123;</span><br><span class="line">	for &#123;</span><br><span class="line">		in, err := stream.Recv()</span><br><span class="line">		if err == io.EOF &#123;</span><br><span class="line">			return nil</span><br><span class="line">		&#125;</span><br><span class="line">		if err != nil &#123;</span><br><span class="line">			return err</span><br><span class="line">		&#125;</span><br><span class="line">		for _, note := range s.routeNotes[key] &#123;</span><br><span class="line">			if err := stream.Send(note); err != nil &#123;</span><br><span class="line">				return err</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;同样是在一个 for 循环中进行操作，通过 Recv() 来不断地从客户端获取数据，然后使用 Send() 发送数据给客户端。需要注意的是，而这时用的是同一个流数据对象进行操作。和单向不同的是并不会主动 Close() 这个流，而是返回 nil。</p>
+<h3 id="启动服务器"><a href="#启动服务器" class="headerlink" title="启动服务器"></a>启动服务器</h3><p>&emsp;&emsp;下面是启动一个 gRPC 服务器的简化的代码流程，可以看出采取了服务注册的方式将 rpc 接口注册到 gRPC 服务器中去。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">func newServer() *routeGuideServer &#123;</span><br><span class="line">	s := &amp;routeGuideServer&#123;routeNotes: make(map[string][]*pb.RouteNote)&#125;</span><br><span class="line">	return s</span><br><span class="line">&#125;</span><br><span class="line">func main() &#123;</span><br><span class="line">	flag.Parse()</span><br><span class="line">	lis, err := net.Listen(&quot;tcp&quot;, fmt.Sprintf(&quot;localhost:%d&quot;, *port))</span><br><span class="line">	var opts []grpc.ServerOption</span><br><span class="line">	if *tls &#123;</span><br><span class="line">		...</span><br><span class="line">	&#125;</span><br><span class="line">	grpcServer := grpc.NewServer(opts...)</span><br><span class="line">	pb.RegisterRouteGuideServer(grpcServer, newServer())</span><br><span class="line">	grpcServer.Serve(lis)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>启动一个 gRPC 服务器来进行 rpc 的监听处理。这里分为如下几个步骤：</p>
+<ol>
+<li>建立一个 tcp Listener</li>
+<li>有需要的话设置 tls 参数</li>
+<li>创建一个 gRPC 服务器</li>
+<li>创建一个 routeGuideServer 对象，并注册到 gRPC 服务器中去</li>
+<li>开启 routeGuide 服务等待客户端的调用</li>
+</ol>
+<p>&emsp;&emsp;到这里一个服务器就启动好了，之后会在端口上监听客户端的调用操作并不断的执行并返回处理结果即可。</p>
+<h2 id="客户端代码的编写"><a href="#客户端代码的编写" class="headerlink" title="客户端代码的编写"></a>客户端代码的编写</h2><p>&emsp;&emsp;编写客户端的代码来调用 routeGuide 服务器的接口，客户端不需要关心整个调用底层的具体实现只需要调用定义好的接口就可以了。</p>
+<h3 id="创建-Client-stub"><a href="#创建-Client-stub" class="headerlink" title="创建 Client stub"></a>创建 Client stub</h3><p>&emsp;&emsp;rpc 调用归根结底还是基于 tcp 方式的数据传输，所以首先需要创建一个 gRPC 通道用来和服务器通信。知道了服务器地址后，代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">conn, err := grpc.Dial(*serverAddr, opts...)</span><br><span class="line">if err != nil &#123;</span><br><span class="line">	log.Fatalf(&quot;fail to dial: %v&quot;, err)</span><br><span class="line">&#125;</span><br><span class="line">defer conn.Close()</span><br><span class="line">client := pb.NewRouteGuideClient(conn)</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;从代码里可以看到使用 grpc.Dail 创建一个客户端连接，并调用 NewRouteGuideClient 转变客户端的类型用来执行 routeGuide 的 rpc 调用。</p>
+<h3 id="rpc-接口的调用"><a href="#rpc-接口的调用" class="headerlink" title="rpc 接口的调用"></a>rpc 接口的调用</h3><p>&emsp;&emsp;创建好了 NewRouteGuideClient 下面就可以继续去调用已经定义好的服务器接口，根据接口的不同使用如下方式分别进行调用。</p>
+<h4 id="简单接口的调用"><a href="#简单接口的调用" class="headerlink" title="简单接口的调用"></a>简单接口的调用</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">// 调用前先设置超时时间</span><br><span class="line">ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)</span><br><span class="line">defer cancel()</span><br><span class="line">feature, err := client.GetFeature(ctx, point)</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;一行代码就实现了简单 rpc 的调用，通过客户端直接执行 GetFeature 方法即可。这就是 RPC 框架的目标，调用远程服务就像本地服务一样简单。</p>
+<h4 id="服务器流式接口的调用"><a href="#服务器流式接口的调用" class="headerlink" title="服务器流式接口的调用"></a>服务器流式接口的调用</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)</span><br><span class="line">defer cancel()</span><br><span class="line">stream, err := client.ListFeatures(ctx, rect)</span><br><span class="line">if err != nil &#123;</span><br><span class="line">	log.Fatalf(&quot;%v.ListFeatures(_) = _, %v&quot;, client, err)</span><br><span class="line">&#125;</span><br><span class="line">for &#123;</span><br><span class="line">	feature, err := stream.Recv()</span><br><span class="line">	if err == io.EOF &#123;</span><br><span class="line">		break</span><br><span class="line">	&#125;</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		log.Fatalf(&quot;%v.ListFeatures(_) = _, %v&quot;, client, err)</span><br><span class="line">	&#125;</span><br><span class="line">	log.Println(feature)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;整个代码逻辑也很简单，同样是使用 client 直接调用接口但是返回的却是一个 RouteGuide_ListFeaturesClient 数据流对象，然后在 for 循环中不断的调用 stream.Recv() 获取数据并判断是否收到 EOF 即可。</p>
+<h4 id="客户端流式接口的调用"><a href="#客户端流式接口的调用" class="headerlink" title="客户端流式接口的调用"></a>客户端流式接口的调用</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)</span><br><span class="line">defer cancel()</span><br><span class="line">stream, err := client.RecordRoute(ctx)</span><br><span class="line">if err != nil &#123;</span><br><span class="line">	log.Fatalf(&quot;%v.RecordRoute(_) = _, %v&quot;, client, err)</span><br><span class="line">&#125;</span><br><span class="line">for _, point := range points &#123;</span><br><span class="line">	if err := stream.Send(point); err != nil &#123;</span><br><span class="line">		log.Fatalf(&quot;%v.Send(%v) = %v&quot;, stream, point, err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">reply, err := stream.CloseAndRecv()</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;和前面不同的是，客户端流式接口的调用会在执行完 client.RecordRoute 后返回一个 stream 对象，然后客户端不断地通过 stream.Send() 将数据传送给服务器，在最后通过 stream.CloseAndRecv() 接收服务器返回并关闭数据流。</p>
+<h4 id="双向流式接口的调用"><a href="#双向流式接口的调用" class="headerlink" title="双向流式接口的调用"></a>双向流式接口的调用</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)</span><br><span class="line">defer cancel()</span><br><span class="line">stream, err := client.RouteChat(ctx)</span><br><span class="line">if err != nil &#123;</span><br><span class="line">	...</span><br><span class="line">&#125;</span><br><span class="line">waitc := make(chan struct&#123;&#125;)</span><br><span class="line">go func() &#123;</span><br><span class="line">	for &#123;</span><br><span class="line">		in, err := stream.Recv()</span><br><span class="line">		if err == io.EOF &#123;</span><br><span class="line">			// read done.</span><br><span class="line">			close(waitc)</span><br><span class="line">			return</span><br><span class="line">		&#125;</span><br><span class="line">		if err != nil &#123;</span><br><span class="line">			...</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;()</span><br><span class="line">for _, note := range notes &#123;</span><br><span class="line">	if err := stream.Send(note); err != nil &#123;</span><br><span class="line">		...</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">stream.CloseSend()</span><br><span class="line">&lt;-waitc</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;相比于前面的接口调用，双向流传输明显要复杂一些。执行 client.RouteChat 返回一个数据流对象，客户端和服务器均通过这一个对象进行数据的传输，但是这里使用了一个 goroutine 来异步的发送和接收数据，二者之间并不影响。发送和接收分别就是 Send() 和 Recv() 函数。最后客户端主动调用 CloseSend() 关闭写操作，并等待从 stream 中读取 EOF 才结束执行。</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>&emsp;&emsp;本篇文章基本翻译自 grpc 官网的教学篇，来了解一个简单的 gRPC 实例的各个部分以及整个编写步骤。还有很多 gRPC 的特性并没有使用到，后面可以一起看看更底层的东西。</p>
+<h1 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h1><p><a href="https://grpc.io/docs/tutorials/basic/go/" target="_blank" rel="noopener">gRPC Basics - Go</a></p>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/RPC/" rel="tag"># RPC</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2020/02/10/RPC系列②-GRPC概述/" rel="next" title="RPC系列②:GRPC概述">
+                  <i class="fa fa-chevron-left"></i> RPC系列②:GRPC概述
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#编写-proto-文件"><span class="nav-text">编写 .proto 文件</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#代码生成"><span class="nav-text">代码生成</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#使用官方工具进行代码的生成"><span class="nav-text">使用官方工具进行代码的生成</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#使用-gogo-protocol-来进行代码的生成"><span class="nav-text">使用 gogo/protocol 来进行代码的生成</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#根据生成的代码编写客户端和服务器的逻辑代码"><span class="nav-text">根据生成的代码编写客户端和服务器的逻辑代码</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#服务端代码的编写"><span class="nav-text">服务端代码的编写</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#routeGuide-服务的结构体"><span class="nav-text">routeGuide 服务的结构体</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#不同类型接口的实现"><span class="nav-text">不同类型接口的实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#简单的-rpc-方法实现"><span class="nav-text">简单的 rpc 方法实现</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#服务器端流式-rpc-方法实现"><span class="nav-text">服务器端流式 rpc 方法实现</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#客户端流式-rpc-方法实现"><span class="nav-text">客户端流式 rpc 方法实现</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#双向流式-rpc"><span class="nav-text">双向流式 rpc</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#启动服务器"><span class="nav-text">启动服务器</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#客户端代码的编写"><span class="nav-text">客户端代码的编写</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#创建-Client-stub"><span class="nav-text">创建 Client stub</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#rpc-接口的调用"><span class="nav-text">rpc 接口的调用</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#简单接口的调用"><span class="nav-text">简单接口的调用</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#服务器流式接口的调用"><span class="nav-text">服务器流式接口的调用</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#客户端流式接口的调用"><span class="nav-text">客户端流式接口的调用</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#双向流式接口的调用"><span class="nav-text">双向流式接口的调用</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-text">小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#reference"><span class="nav-text">reference</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">64</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>
