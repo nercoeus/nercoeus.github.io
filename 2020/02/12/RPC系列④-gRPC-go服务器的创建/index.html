@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="1. 创建一个 gRPC 服务器&amp;emsp;&amp;emsp;上一节简单看了一下服务器和客户端代码的流程，这一节就从源码角度看一下 gRPC 内部是怎么创建一个 gRPC 服务器的。创建一个 gRPC 服务器很简单，通过如下的一些步骤即可创建：  创建一个 Server 对象 将服务注册到 Server 对象中 运行 Server 开始监听客户端的调用">
+<meta name="keywords" content="RPC">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RPC系列④:gRPC-go服务器">
+<meta property="og:url" content="http://yoursite.com/2020/02/12/RPC系列④-gRPC-go服务器的创建/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="1. 创建一个 gRPC 服务器&amp;emsp;&amp;emsp;上一节简单看了一下服务器和客户端代码的流程，这一节就从源码角度看一下 gRPC 内部是怎么创建一个 gRPC 服务器的。创建一个 gRPC 服务器很简单，通过如下的一些步骤即可创建：  创建一个 Server 对象 将服务注册到 Server 对象中 运行 Server 开始监听客户端的调用">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2020-02-12T09:00:24.719Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RPC系列④:gRPC-go服务器">
+<meta name="twitter:description" content="1. 创建一个 gRPC 服务器&amp;emsp;&amp;emsp;上一节简单看了一下服务器和客户端代码的流程，这一节就从源码角度看一下 gRPC 内部是怎么创建一个 gRPC 服务器的。创建一个 gRPC 服务器很简单，通过如下的一些步骤即可创建：  创建一个 Server 对象 将服务注册到 Server 对象中 运行 Server 开始监听客户端的调用">
+  <link rel="canonical" href="http://yoursite.com/2020/02/12/RPC系列④-gRPC-go服务器的创建/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>RPC系列④:gRPC-go服务器 | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/02/12/RPC系列④-gRPC-go服务器的创建/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">RPC系列④:gRPC-go服务器
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2020-02-12 11:51:52 / 修改时间：17:00:24" itemprop="dateCreated datePublished" datetime="2020-02-12T11:51:52+08:00">2020-02-12</time>
+            </span>
+          
+            
+
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/RPC系列/" itemprop="url" rel="index"><span itemprop="name">RPC系列</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="1-创建一个-gRPC-服务器"><a href="#1-创建一个-gRPC-服务器" class="headerlink" title="1. 创建一个 gRPC 服务器"></a>1. 创建一个 gRPC 服务器</h1><p>&emsp;&emsp;上一节简单看了一下服务器和客户端代码的流程，这一节就从源码角度看一下 gRPC 内部是怎么创建一个 gRPC 服务器的。创建一个 gRPC 服务器很简单，通过如下的一些步骤即可创建：</p>
+<ul>
+<li>创建一个 Server 对象</li>
+<li>将服务注册到 Server 对象中</li>
+<li>运行 Server 开始监听客户端的调用<a id="more"></a>
+
+</li>
+</ul>
+<h2 id="1-1-创建一个-Server"><a href="#1-1-创建一个-Server" class="headerlink" title="1.1 创建一个 Server"></a>1.1 创建一个 Server</h2><p>&emsp;&emsp;服务端通过调用 grpc.NewServer() 创建一个未注册的 gRPC 服务器。首先先来看一下 gRPC Srever 的结构体：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">type Server struct &#123;</span><br><span class="line">	opts serverOptions</span><br><span class="line">	// 互斥锁</span><br><span class="line">	mu     sync.Mutex </span><br><span class="line">	// 用来管理 Listener</span><br><span class="line">	lis    map[net.Listener]bool</span><br><span class="line">	// 管理所有连接</span><br><span class="line">	conns  map[transport.ServerTransport]bool</span><br><span class="line">	serve  bool        // 服务器是否正在运行</span><br><span class="line">	drain  bool</span><br><span class="line">	// GracefulStop 关闭连接时发出信号</span><br><span class="line">	cv     *sync.Cond</span><br><span class="line">	// gRPC 服务器监听的所有服务，根据名字来进行保存</span><br><span class="line">	m      map[string]*service</span><br><span class="line">	events trace.EventLog</span><br><span class="line"></span><br><span class="line">	quit               *grpcsync.Event</span><br><span class="line">	done               *grpcsync.Event</span><br><span class="line">	channelzRemoveOnce sync.Once</span><br><span class="line">	serveWG            sync.WaitGroup</span><br><span class="line"></span><br><span class="line">	channelzID int64</span><br><span class="line">	czData     *channelzData</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>看过了 Server 的结构再来看 NewServer，很简单就是创建一个 Server 对象并返回即可。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">func NewServer(opt ...ServerOption) *Server &#123;</span><br><span class="line">	// 默认设置</span><br><span class="line">	opts := defaultServerOptions</span><br><span class="line">	// 传入的参数，进行遍历覆盖</span><br><span class="line">	for _, o := range opt &#123;</span><br><span class="line">		o.apply(&amp;opts)</span><br><span class="line">	&#125;</span><br><span class="line">	// 初始化 Server 结构体</span><br><span class="line">	s := &amp;Server&#123;</span><br><span class="line">		lis:    make(map[net.Listener]bool),</span><br><span class="line">		opts:   opts,</span><br><span class="line">		conns:  make(map[transport.ServerTransport]bool),</span><br><span class="line">		m:      make(map[string]*service),</span><br><span class="line">		quit:   grpcsync.NewEvent(),</span><br><span class="line">		done:   grpcsync.NewEvent(),</span><br><span class="line">		czData: new(channelzData),</span><br><span class="line">	&#125;</span><br><span class="line">	s.cv = sync.NewCond(&amp;s.mu)</span><br><span class="line">	</span><br><span class="line">	return s</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="1-2-服务注册"><a href="#1-2-服务注册" class="headerlink" title="1.2 服务注册"></a>1.2 服务注册</h2><p>&emsp;&emsp;Server 创建完成之后就可以继续调用 RegisterService 进行服务注册了，gRPC 将不同的服务封装为 service 进行管理。结构如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">type service struct &#123;</span><br><span class="line">	server interface&#123;&#125;  // 运行服务的服务器</span><br><span class="line">	md     map[string]*MethodDesc   // 简单 rpc 接口集合</span><br><span class="line">	sd     map[string]*StreamDesc   // 包含数据流的 rpc 接口集合</span><br><span class="line">	mdata  interface&#123;&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;服务注册的逻辑如下，这里的 ServiceDesc 即服务描述是由 protocol 自动生成文件中提供的，包含服务及接口的基本信息。ss 就是服务器中每个服务注册时传入的对象。注册方法所做的就是将不同的借口根据类型不同按照 name/Desc 的 k/v 格式存储到 map 中进行保存。等到客户端使用时在进行查找即可。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">func (s *Server) register(sd *ServiceDesc, ss interface&#123;&#125;) &#123;</span><br><span class="line">	s.mu.Lock()</span><br><span class="line">	defer s.mu.Unlock()</span><br><span class="line">	if s.serve &#123;</span><br><span class="line">		...</span><br><span class="line">	&#125;</span><br><span class="line">	if _, ok := s.m[sd.ServiceName]; ok &#123;</span><br><span class="line">		...</span><br><span class="line">	&#125;</span><br><span class="line">	srv := &amp;service&#123;</span><br><span class="line">		server: ss,</span><br><span class="line">		md:     make(map[string]*MethodDesc),</span><br><span class="line">		sd:     make(map[string]*StreamDesc),</span><br><span class="line">		mdata:  sd.Metadata,</span><br><span class="line">	&#125;</span><br><span class="line">	// 注册简单 rpc 接口</span><br><span class="line">	for i := range sd.Methods &#123;</span><br><span class="line">		d := &amp;sd.Methods[i]</span><br><span class="line">		srv.md[d.MethodName] = d</span><br><span class="line">	&#125;</span><br><span class="line">	// 注册带数据流的 rpc 接口</span><br><span class="line">	for i := range sd.Streams &#123;</span><br><span class="line">		d := &amp;sd.Streams[i]</span><br><span class="line">		srv.sd[d.StreamName] = d</span><br><span class="line">	&#125;</span><br><span class="line">	s.m[sd.ServiceName] = srv</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;顺便来看一下自带例子生成的 ServiceDesc 结构，从生成的 .proto.go 文件中。内容很简单看一下就知道了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">var _RouteGuide_serviceDesc = grpc.ServiceDesc&#123;</span><br><span class="line">	ServiceName: &quot;routeguide.RouteGuide&quot;,</span><br><span class="line">	HandlerType: (*RouteGuideServer)(nil),</span><br><span class="line">	Methods: []grpc.MethodDesc&#123;</span><br><span class="line">		&#123;</span><br><span class="line">			MethodName: &quot;GetFeature&quot;,</span><br><span class="line">			Handler:    _RouteGuide_GetFeature_Handler,</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;,</span><br><span class="line">	Streams: []grpc.StreamDesc&#123;</span><br><span class="line">		&#123;</span><br><span class="line">			StreamName:    &quot;ListFeatures&quot;,</span><br><span class="line">			Handler:       _RouteGuide_ListFeatures_Handler,</span><br><span class="line">			ServerStreams: true,</span><br><span class="line">		&#125;,</span><br><span class="line">		&#123;</span><br><span class="line">			StreamName:    &quot;RecordRoute&quot;,</span><br><span class="line">			Handler:       _RouteGuide_RecordRoute_Handler,</span><br><span class="line">			ClientStreams: true,</span><br><span class="line">		&#125;,</span><br><span class="line">		&#123;</span><br><span class="line">			StreamName:    &quot;RouteChat&quot;,</span><br><span class="line">			Handler:       _RouteGuide_RouteChat_Handler,</span><br><span class="line">			ServerStreams: true,</span><br><span class="line">			ClientStreams: true,</span><br><span class="line">		&#125;,</span><br><span class="line">	&#125;,</span><br><span class="line">	Metadata: &quot;route_guide.proto&quot;,</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="1-3-启动-gRPC-服务器"><a href="#1-3-启动-gRPC-服务器" class="headerlink" title="1.3 启动 gRPC 服务器"></a>1.3 启动 gRPC 服务器</h2><p>&emsp;&emsp;到这里整个服务器就已经准备好可以运行了，接下来调用 Serve() 开始监听客户端的调用即可。整个方法主体结构其实就是一个 for 循环来不断的监听客户端的连接并进行处理。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br></pre></td><td class="code"><pre><span class="line">func (s *Server) Serve(lis net.Listener) error &#123;</span><br><span class="line">	// 这里加锁，防止 listener 添加多次</span><br><span class="line">	s.mu.Lock()</span><br><span class="line">	fmt.Printf(&quot;serving\n&quot;)</span><br><span class="line">	s.serve = true</span><br><span class="line">	if s.lis == nil &#123;</span><br><span class="line">		// Serve called after Stop or GracefulStop.</span><br><span class="line">		s.mu.Unlock()</span><br><span class="line">		lis.Close()</span><br><span class="line">		return ErrServerStopped</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	s.serveWG.Add(1)</span><br><span class="line">	defer func() &#123;</span><br><span class="line">		s.serveWG.Done()</span><br><span class="line">		if s.quit.HasFired() &#123;</span><br><span class="line">			// Stop or GracefulStop called; block until done and return nil.</span><br><span class="line">			&lt;-s.done.Done()</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;()</span><br><span class="line">	// 将 lis 封装起来并保存在 Server 中</span><br><span class="line">	ls := &amp;listenSocket&#123;Listener: lis&#125;</span><br><span class="line">	s.lis[ls] = true</span><br><span class="line">	</span><br><span class="line">	s.mu.Unlock()</span><br><span class="line"></span><br><span class="line">	defer func() &#123;</span><br><span class="line">		s.mu.Lock()</span><br><span class="line">		if s.lis != nil &amp;&amp; s.lis[ls] &#123;</span><br><span class="line">			ls.Close()</span><br><span class="line">			delete(s.lis, ls)</span><br><span class="line">		&#125;</span><br><span class="line">		s.mu.Unlock()</span><br><span class="line">	&#125;()</span><br><span class="line"></span><br><span class="line">	var tempDelay time.Duration // how long to sleep on accept failure</span><br><span class="line">	// 使用一个 for 循环来接收消息</span><br><span class="line">	for &#123;</span><br><span class="line">		// 阻塞在 lis.Accept() 上，等待建立新的连接</span><br><span class="line">		rawConn, err := lis.Accept()</span><br><span class="line">		if err != nil &#123;</span><br><span class="line">			// 建立新连接的错误处理</span><br><span class="line">			if ne, ok := err.(interface &#123;</span><br><span class="line">				Temporary() bool</span><br><span class="line">			&#125;); ok &amp;&amp; ne.Temporary() &#123;</span><br><span class="line">				if tempDelay == 0 &#123;     // 第一次失败，延迟 5 毫秒</span><br><span class="line">					tempDelay = 5 * time.Millisecond</span><br><span class="line">				&#125; else &#123;</span><br><span class="line">					tempDelay *= 2      // 后面失败 *2</span><br><span class="line">				&#125;</span><br><span class="line">				if max := 1 * time.Second; tempDelay &gt; max &#123;  // 最多等待 1s</span><br><span class="line">					tempDelay = max</span><br><span class="line">				&#125;</span><br><span class="line">				s.mu.Lock()</span><br><span class="line">				s.printf(&quot;Accept error: %v; retrying in %v&quot;, err, tempDelay)</span><br><span class="line">				s.mu.Unlock()</span><br><span class="line">				// 睡眠一段时间</span><br><span class="line">				timer := time.NewTimer(tempDelay)</span><br><span class="line">				select &#123;</span><br><span class="line">				case &lt;-timer.C:</span><br><span class="line">				case &lt;-s.quit.Done():</span><br><span class="line">					timer.Stop()</span><br><span class="line">					return nil</span><br><span class="line">				&#125;</span><br><span class="line">				continue</span><br><span class="line">			&#125;</span><br><span class="line">			s.mu.Lock()</span><br><span class="line">			s.printf(&quot;done serving; Accept = %v&quot;, err)</span><br><span class="line">			s.mu.Unlock()</span><br><span class="line"></span><br><span class="line">			if s.quit.HasFired() &#123;</span><br><span class="line">				return nil</span><br><span class="line">			&#125;</span><br><span class="line">			return err</span><br><span class="line">		&#125;</span><br><span class="line">		tempDelay = 0</span><br><span class="line">		// 在 serveWG 加 1</span><br><span class="line">		s.serveWG.Add(1)</span><br><span class="line">		// 启动一个 goroutine 去处理这个新的连接的服务请求</span><br><span class="line">		go func() &#123;</span><br><span class="line">			s.handleRawConn(rawConn)</span><br><span class="line">			s.serveWG.Done()</span><br><span class="line">		&#125;()</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;在这个死循环中 Server 不断地从传入的 listener 监听新的连接。如果连接失败会进入短暂的睡眠(不超过 1s)，成功建立连接后清 0。连接建立成功后使用新的 goroutine 调用 handleRawConn() 处理新连接的客户端，Server 则继续去监听下一个新的连接。到这里我们已经创建了一个完整的 gRPC 服务端并进行客户端连接的监听。</p>
+<h1 id="2-处理客户端的连接"><a href="#2-处理客户端的连接" class="headerlink" title="2. 处理客户端的连接"></a>2. 处理客户端的连接</h1><h2 id="2-1-处理一个新的连接"><a href="#2-1-处理一个新的连接" class="headerlink" title="2.1 处理一个新的连接"></a>2.1 处理一个新的连接</h2><p>&emsp;&emsp;服务器接收一个新的连接后启动了一个协程来执行 handleRawConn 然后，其中会执行 newHTTP2Transport 完成 HTTP/2 的握手过程并返回一个 http2Server(实现了 ServerTransport 接口) 结构。之后会再起一个 goroutine 执行 serveStreams 方法。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">func (s *Server) handleRawConn(rawConn net.Conn) &#123;</span><br><span class="line">	if s.quit.HasFired() &#123;</span><br><span class="line">		rawConn.Close()</span><br><span class="line">		return</span><br><span class="line">	&#125;</span><br><span class="line">	// 默认超时时间为 120s</span><br><span class="line">	rawConn.SetDeadline(time.Now().Add(s.opts.connectionTimeout))</span><br><span class="line"></span><br><span class="line">	// 完成 HTTP/2 的握手过程</span><br><span class="line">	st := s.newHTTP2Transport(conn, authInfo)</span><br><span class="line">	if st == nil &#123;</span><br><span class="line">		return</span><br><span class="line">	&#125;</span><br><span class="line">	// 设置连接为阻塞模式</span><br><span class="line">	rawConn.SetDeadline(time.Time&#123;&#125;)</span><br><span class="line">	if !s.addConn(st) &#123;</span><br><span class="line">		return</span><br><span class="line">	&#125;</span><br><span class="line">	go func() &#123;</span><br><span class="line">		s.serveStreams(st)</span><br><span class="line">		s.removeConn(st)</span><br><span class="line">	&#125;()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>先把 serveStreams 放在一边，我们看一下整个新连接的处理过程可以发现整体结构如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Serve()&#123;</span><br><span class="line">	go &#123;</span><br><span class="line">		handleRawConn(st)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">handleRawConn(st)&#123;</span><br><span class="line">	addConn(st)</span><br><span class="line">	go &#123;</span><br><span class="line">		serveStreams(st)</span><br><span class="line">		removeConn(st)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;这里连用了两个 goroutine 来处理一个新的连接主要是将连接这个过程和连接后的数据处理两个部分进行分离。handleRawConn 中使用新的协程处理客户端的数据然后直接返回，此时表示连接已经建立完毕。</p>
+<h2 id="2-2-连接建立后的调用操作"><a href="#2-2-连接建立后的调用操作" class="headerlink" title="2.2 连接建立后的调用操作"></a>2.2 连接建立后的调用操作</h2><p>&emsp;&emsp;接下来继续看 serveStreams 操作,该操作结束后直接关闭连接。可以看到 serveStreams 调用 HandleStreams 并传入了两个函数，仔细看第一个函数发现真正处理操作的是 handleStream 函数。然后等待其运行结束即可。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">func (s *Server) serveStreams(st transport.ServerTransport) &#123;</span><br><span class="line">	defer st.Close()</span><br><span class="line">	var wg sync.WaitGroup</span><br><span class="line">	st.HandleStreams(</span><br><span class="line">		// 第一个闭包函数</span><br><span class="line">		func(stream *transport.Stream) &#123;</span><br><span class="line">			wg.Add(1)</span><br><span class="line">			go func() &#123;</span><br><span class="line">				defer wg.Done()</span><br><span class="line">				s.handleStream(st, stream, s.traceInfo(st, stream))</span><br><span class="line">			&#125;()</span><br><span class="line">		&#125;, </span><br><span class="line">		// 第二个闭包函数</span><br><span class="line">		func(ctx context.Context, method string) context.Context &#123;</span><br><span class="line">			if !EnableTracing &#123;</span><br><span class="line">				return ctx</span><br><span class="line">			&#125;</span><br><span class="line">			tr := trace.New(&quot;grpc.Recv.&quot;+methodFamily(method), method)</span><br><span class="line">			return trace.NewContext(ctx, tr)</span><br><span class="line">		&#125;</span><br><span class="line">	)</span><br><span class="line">	wg.Wait()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个函数删除了大部分的不关键的代码之后，重要的部分如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">func (s *Server) handleStream(t transport.ServerTransport, stream *transport.Stream, trInfo *traceInfo) &#123;</span><br><span class="line">	sm := stream.Method()</span><br><span class="line">	service := sm[:pos]</span><br><span class="line">	method := sm[pos+1:]</span><br><span class="line"></span><br><span class="line">	srv, knownService := s.m[service]</span><br><span class="line">	if knownService &#123;</span><br><span class="line">		if md, ok := srv.md[method]; ok &#123;</span><br><span class="line">			s.processUnaryRPC(t, stream, srv, md, trInfo)</span><br><span class="line">			return</span><br><span class="line">		&#125;</span><br><span class="line">		if sd, ok := srv.sd[method]; ok &#123;</span><br><span class="line">			s.processStreamingRPC(t, stream, srv, sd, trInfo)</span><br><span class="line">			return</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;可以看到先获取对应的服务，然后是服务对应的接口名，之后判断 Server 中是否存在对应的服务和接口。如果存在的话调用 processUnaryRPC 和 processStreamingRPC 进行处理即可。</p>
+<p>先看看 processUnaryRPC 传入的参数，主要内容如下：</p>
+<ul>
+<li>连接建立时创建的 ServerTransport 用来数据的传输</li>
+<li>每个不同 rpc 对应的流，里面的 method 字段包含了调用的接口。eg：”/routeguide.RouteGuide/GetFeature”</li>
+<li>md 就是客户端调用的方法</li>
+<li>trInfo 包含 RPC 的跟踪信息</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">func (s *Server) processUnaryRPC(t transport.ServerTransport, stream *transport.Stream, srv *service, md *MethodDesc, trInfo *traceInfo)</span><br></pre></td></tr></table></figure>
+
+<p>既然知道了 md 就是待调用的函数，翻翻 processUnaryRPC 函数就可以看到如下代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">reply, appErr := md.Handler(srv.server, ctx, df, s.opts.unaryInt)</span><br></pre></td></tr></table></figure>
+
+<p>调用了对应的方法之后获得 reply 通过如下代码发送给客户端。至此就完成了一个接口的调用和执行结果的返回。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">s.sendResponse(t, stream, reply, cp, opts, comp)</span><br></pre></td></tr></table></figure>
+
+<h1 id="3-小结"><a href="#3-小结" class="headerlink" title="3. 小结"></a>3. 小结</h1><p>&emsp;&emsp;本节简单介绍了 gRPC 服务器建立和启动的过程以及怎么处理客户端的连接并执行接口的调用。</p>
+<h1 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h1><p><a href="https://github.com/grpc/grpc-go/blob/master/server.go" target="_blank" rel="noopener">gRPC-go/server.go 源码</a><br><a href="https://github.com/lubanproj/grpc_read/blob/master/3-grpc%20hello%20world%20server%20%E8%A7%A3%E6%9E%90.md" target="_blank" rel="noopener">grpc hello world server 解析</a></p>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/RPC/" rel="tag"># RPC</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2020/02/11/RPC系列③-GRPC的使用/" rel="next" title="RPC系列③:gRPC-go的使用">
+                  <i class="fa fa-chevron-left"></i> RPC系列③:gRPC-go的使用
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-创建一个-gRPC-服务器"><span class="nav-text">1. 创建一个 gRPC 服务器</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-创建一个-Server"><span class="nav-text">1.1 创建一个 Server</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-服务注册"><span class="nav-text">1.2 服务注册</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-3-启动-gRPC-服务器"><span class="nav-text">1.3 启动 gRPC 服务器</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-处理客户端的连接"><span class="nav-text">2. 处理客户端的连接</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-处理一个新的连接"><span class="nav-text">2.1 处理一个新的连接</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-连接建立后的调用操作"><span class="nav-text">2.2 连接建立后的调用操作</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-小结"><span class="nav-text">3. 小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#reference"><span class="nav-text">reference</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">65</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>
