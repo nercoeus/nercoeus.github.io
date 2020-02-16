@@ -64,7 +64,7 @@
 <meta property="og:site_name" content="nercoeus">
 <meta property="og:description" content="1. 创建一个 gRPC 服务器&amp;emsp;&amp;emsp;上一节简单看了一下服务器和客户端代码的流程，这一节就从源码角度看一下 gRPC 内部是怎么创建一个 gRPC 服务器的。创建一个 gRPC 服务器很简单，通过如下的一些步骤即可创建：  创建一个 Server 对象 将服务注册到 Server 对象中 运行 Server 开始监听客户端的调用">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2020-02-12T09:00:24.719Z">
+<meta property="og:updated_time" content="2020-02-13T06:40:10.911Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="RPC系列④:gRPC-go服务器">
 <meta name="twitter:description" content="1. 创建一个 gRPC 服务器&amp;emsp;&amp;emsp;上一节简单看了一下服务器和客户端代码的流程，这一节就从源码角度看一下 gRPC 内部是怎么创建一个 gRPC 服务器的。创建一个 gRPC 服务器很简单，通过如下的一些步骤即可创建：  创建一个 Server 对象 将服务注册到 Server 对象中 运行 Server 开始监听客户端的调用">
@@ -238,11 +238,19 @@
                 
               
 
-              <time title="创建时间：2020-02-12 11:51:52 / 修改时间：17:00:24" itemprop="dateCreated datePublished" datetime="2020-02-12T11:51:52+08:00">2020-02-12</time>
+              <time title="创建时间：2020-02-12 11:51:52" itemprop="dateCreated datePublished" datetime="2020-02-12T11:51:52+08:00">2020-02-12</time>
             </span>
           
             
 
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-13 14:40:10" itemprop="dateModified" datetime="2020-02-13T14:40:10+08:00">2020-02-13</time>
+              </span>
             
           
             <span class="post-meta-item">
@@ -327,7 +335,10 @@
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">s.sendResponse(t, stream, reply, cp, opts, comp)</span><br></pre></td></tr></table></figure>
 
 <h1 id="3-小结"><a href="#3-小结" class="headerlink" title="3. 小结"></a>3. 小结</h1><p>&emsp;&emsp;本节简单介绍了 gRPC 服务器建立和启动的过程以及怎么处理客户端的连接并执行接口的调用。</p>
-<h1 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h1><p><a href="https://github.com/grpc/grpc-go/blob/master/server.go" target="_blank" rel="noopener">gRPC-go/server.go 源码</a><br><a href="https://github.com/lubanproj/grpc_read/blob/master/3-grpc%20hello%20world%20server%20%E8%A7%A3%E6%9E%90.md" target="_blank" rel="noopener">grpc hello world server 解析</a></p>
+<h1 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h1><ol>
+<li>[gRPC-go/server.go 源码] <a href="https://github.com/grpc/grpc-go/blob/master/server.go" target="_blank" rel="noopener">https://github.com/grpc/grpc-go/blob/master/server.go</a></li>
+<li>[grpc hello world server 解析] <a href="https://github.com/lubanproj/grpc_read/blob/master/3-grpc%20hello%20world%20server%20%E8%A7%A3%E6%9E%90.md" target="_blank" rel="noopener">https://github.com/lubanproj/grpc_read/blob/master/3-grpc%20hello%20world%20server%20%E8%A7%A3%E6%9E%90.md</a></li>
+</ol>
 
     </div>
 
@@ -362,6 +373,10 @@
             <span class="post-nav-divider"></span>
 
             <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2020/02/13/RPC系列⑤-gRPC-ClientConn/" rel="prev" title="RPC系列⑤:gRPC ClientConn">
+                  RPC系列⑤:gRPC ClientConn <i class="fa fa-chevron-right"></i>
+                </a>
               
             </div>
           </div>
@@ -425,7 +440,7 @@
         
           <a href="/archives/">
         
-          <span class="site-state-item-count">65</span>
+          <span class="site-state-item-count">66</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>

@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="客户端的创建&amp;emsp;&amp;emsp;上一节讲了 gRPC 服务器的构建和对连接的处理。既然服务器已经准别就绪了，下面就来看看客户端是怎么去调用服务器的接口的。同样根据官方例子中的 client.go 可以看出使用客户端去调用服务器接口的步骤如下：  创建一个和服务器的连接 ClientConn 连接成功后，使用这个连接创建对应服务的客户端 使用客户端去调用服务器提供的接口即可">
+<meta name="keywords" content="RPC">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RPC系列⑤:gRPC ClientConn">
+<meta property="og:url" content="http://yoursite.com/2020/02/13/RPC系列⑤-gRPC-ClientConn/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="客户端的创建&amp;emsp;&amp;emsp;上一节讲了 gRPC 服务器的构建和对连接的处理。既然服务器已经准别就绪了，下面就来看看客户端是怎么去调用服务器的接口的。同样根据官方例子中的 client.go 可以看出使用客户端去调用服务器接口的步骤如下：  创建一个和服务器的连接 ClientConn 连接成功后，使用这个连接创建对应服务的客户端 使用客户端去调用服务器提供的接口即可">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2020-02-16T11:50:08.953Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RPC系列⑤:gRPC ClientConn">
+<meta name="twitter:description" content="客户端的创建&amp;emsp;&amp;emsp;上一节讲了 gRPC 服务器的构建和对连接的处理。既然服务器已经准别就绪了，下面就来看看客户端是怎么去调用服务器的接口的。同样根据官方例子中的 client.go 可以看出使用客户端去调用服务器接口的步骤如下：  创建一个和服务器的连接 ClientConn 连接成功后，使用这个连接创建对应服务的客户端 使用客户端去调用服务器提供的接口即可">
+  <link rel="canonical" href="http://yoursite.com/2020/02/13/RPC系列⑤-gRPC-ClientConn/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>RPC系列⑤:gRPC ClientConn | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/02/13/RPC系列⑤-gRPC-ClientConn/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">RPC系列⑤:gRPC ClientConn
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2020-02-13 14:33:46" itemprop="dateCreated datePublished" datetime="2020-02-13T14:33:46+08:00">2020-02-13</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-16 19:50:08" itemprop="dateModified" datetime="2020-02-16T19:50:08+08:00">2020-02-16</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/RPC系列/" itemprop="url" rel="index"><span itemprop="name">RPC系列</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="客户端的创建"><a href="#客户端的创建" class="headerlink" title="客户端的创建"></a>客户端的创建</h1><p>&emsp;&emsp;上一节讲了 gRPC 服务器的构建和对连接的处理。既然服务器已经准别就绪了，下面就来看看客户端是怎么去调用服务器的接口的。同样根据官方例子中的 client.go 可以看出使用客户端去调用服务器接口的步骤如下：</p>
+<ol>
+<li>创建一个和服务器的连接 ClientConn</li>
+<li>连接成功后，使用这个连接创建对应服务的客户端</li>
+<li>使用客户端去调用服务器提供的接口即可</li>
+</ol>
+<a id="more"></a>
+<h2 id="1-ClientConn-结构"><a href="#1-ClientConn-结构" class="headerlink" title="1 ClientConn 结构"></a>1 ClientConn 结构</h2><p>&emsp;&emsp;gRPC 使用 ClientConn 来管理连接，表示一个到服务器的逻辑连接，因为里面可能包含多条和服务器的连接通过负载均衡，用来执行 RPCs 方法。一个 ClientConn 可以根据 配置，负载 建立多条和服务器之间的连接。ClientConn 封装了一系列的功能，其中包括 名称解析、TCP 连接的建立和 TLS 握手。如果已建立连接出现了错误会重新解析名称并重新连接服务器。ClientConn 结构体如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">type ClientConn struct &#123;</span><br><span class="line">	// 用来取消连接的 context,初始化后进行设置</span><br><span class="line">	ctx    context.Context</span><br><span class="line">	cancel context.CancelFunc</span><br><span class="line"></span><br><span class="line">	target       string</span><br><span class="line">	parsedTarget resolver.Target</span><br><span class="line">	authority    string</span><br><span class="line">    // 存储 dial 相关参数</span><br><span class="line">	dopts        dialOptions</span><br><span class="line">    // 连接状态管理器</span><br><span class="line">	csMgr        *connectivityStateManager</span><br><span class="line">    // 负载均衡相关字段</span><br><span class="line">	balancerBuildOpts balancer.BuildOptions</span><br><span class="line">	blockingpicker    *pickerWrapper</span><br><span class="line"></span><br><span class="line">	mu              sync.RWMutex</span><br><span class="line">	resolverWrapper *ccResolverWrapper</span><br><span class="line">	sc              *ServiceConfig</span><br><span class="line">	// 一系列的 addrConn</span><br><span class="line">	conns           map[*addrConn]struct&#123;&#125;</span><br><span class="line"></span><br><span class="line">	mkp             keepalive.ClientParameters</span><br><span class="line">	curBalancerName string</span><br><span class="line">	balancerWrapper *ccBalancerWrapper</span><br><span class="line">	retryThrottler  atomic.Value</span><br><span class="line"></span><br><span class="line">	firstResolveEvent *grpcsync.Event</span><br><span class="line"></span><br><span class="line">	channelzID int64</span><br><span class="line">	czData     *channelzData</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里比较重要的有：</p>
+<ul>
+<li>conns ：用来管理一系列的 addrConn addrConn 其实就是一个和服务器的真正连接。</li>
+<li>blockingpicker ：负载均衡管理器，通过 Pick() 来获取合适的连接执行调用。</li>
+</ul>
+<p>&emsp;&emsp;每个 ClientConn 对应多个 SubConn，然后基于 resolver 得到多个 SubConn。然后根据负载均衡获取使用的 SubConn。大致了解 ClientConn 后就看看客户端是怎么创建连接的。<br>客户端点通过调用 Dail() 来创建一个 ClientConn：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">func Dial(target string, opts ...DialOption) (*ClientConn, error) &#123;</span><br><span class="line">	return DialContext(context.Background(), target, opts...)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;由于 DialContext() 太长了，这里就不展示代码了，大致列一下 DialContext() 内部执行流程如下：</p>
+<ol>
+<li>初始化 ClientConn 结构体</li>
+<li>加载 Dail() 传入的配置参数</li>
+<li>如果 channlz 开启了，会执行客户端状态的统计准备工作</li>
+<li>根据 cc.dopts.insecure 验证的开启与否判断是否需要对认证信息进行初始化校验</li>
+<li>判断是否要处理服务端的相关配置</li>
+<li>初始化 Dailer 用来调用 rpc 请求</li>
+</ol>
+<h3 id="1-1-连接的添加和删除"><a href="#1-1-连接的添加和删除" class="headerlink" title="1.1 连接的添加和删除"></a>1.1 连接的添加和删除</h3><p>&emsp;&emsp;在 clientconn.go 文件中包含了所有 ClientConn 的方法。先来看看 ClientConn 是怎么对连接进行管理的。提供了 newAddrConn() 和 removeAddrConn() 用来添加和删除连接。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">// 添加一个连接</span><br><span class="line">func (cc *ClientConn) newAddrConn(addrs []resolver.Address, opts balancer.NewSubConnOptions) (*addrConn, error) &#123;</span><br><span class="line">	ac := &amp;addrConn&#123;</span><br><span class="line">		cc:           cc,</span><br><span class="line">		addrs:        addrs,</span><br><span class="line">		scopts:       opts,</span><br><span class="line">		dopts:        cc.dopts,</span><br><span class="line">		czData:       new(channelzData),</span><br><span class="line">		resetBackoff: make(chan struct&#123;&#125;),</span><br><span class="line">	&#125;</span><br><span class="line">	ac.ctx, ac.cancel = context.WithCancel(cc.ctx)</span><br><span class="line"></span><br><span class="line">	cc.mu.Lock()</span><br><span class="line">	if cc.conns == nil &#123;</span><br><span class="line">		cc.mu.Unlock()</span><br><span class="line">		return nil, ErrClientConnClosing</span><br><span class="line">	&#125;</span><br><span class="line">	cc.conns[ac] = struct&#123;&#125;&#123;&#125;</span><br><span class="line">	cc.mu.Unlock()</span><br><span class="line">	return ac, nil</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// 删除一个连接</span><br><span class="line">func (cc *ClientConn) removeAddrConn(ac *addrConn, err error) &#123;</span><br><span class="line">	cc.mu.Lock()</span><br><span class="line">	if cc.conns == nil &#123;</span><br><span class="line">		cc.mu.Unlock()</span><br><span class="line">		return</span><br><span class="line">	&#125;</span><br><span class="line">	delete(cc.conns, ac)</span><br><span class="line">	cc.mu.Unlock()</span><br><span class="line">	ac.tearDown(err)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-2-建立真正的物理连接"><a href="#1-2-建立真正的物理连接" class="headerlink" title="1.2 建立真正的物理连接"></a>1.2 建立真正的物理连接</h3><p>DialContext() 中和建立连接有关的代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">if cc.dopts.copts.Dialer == nil &#123;</span><br><span class="line">	cc.dopts.copts.Dialer = newProxyDialer(</span><br><span class="line">		func(ctx context.Context, addr string) (net.Conn, error) &#123;</span><br><span class="line">			network, addr := parseDialTarget(addr)</span><br><span class="line">			return (&amp;net.Dialer&#123;&#125;).DialContext(ctx, network, addr)</span><br><span class="line">		&#125;,</span><br><span class="line">	)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;这段代码封装了一个 func 到 dopts.copts.Dialer 中，搜索一下就可以知道 ClientConn 中的这个字段在 newHTTP2Client() 函数中执行 dail() 时作为参数传入进去。所以建立连接的过程是先封装一个函数至 ClientConn 中，然后在创建 newHTTPClient 时将其作为参数并使用 dail 来对目标地址建立一个 tcp 连接。其实再顺着 newHTTPClient() 函数网上找找就会发现最开始就是上面提到的 Pick() 函数一系列的操作调用了 newHTTPClient() 并创建了连接。同时也可以看到 HTTP/2 底层的确就是一个 TCP 的连接并包装成为一个 HTTP/2 的连接。</p>
+<h3 id="1-3-getTransport"><a href="#1-3-getTransport" class="headerlink" title="1.3 getTransport"></a>1.3 getTransport</h3><p>&emsp;&emsp;后面会讲到在客户端调用 rpc 接口时会调动 NewStream() 创建一个和服务器之间的数据流对象。这个对象在创建时会调用 ClientConn.getTransport() 来通过负载均衡的方式获取一个 SubConn 对象用来真正的服务于这个 rpc 调用的数据传输。可以看到 getTransport 中是通过 Pick() 去真正的获取一条连接。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">func (cc *ClientConn) getTransport(ctx context.Context, failfast bool, method string) (transport.ClientTransport, func(balancer.DoneInfo), error) &#123;</span><br><span class="line">	t, done, err := cc.blockingpicker.pick(ctx, failfast, balancer.PickOptions&#123;</span><br><span class="line">		FullMethodName: method,</span><br><span class="line">	&#125;)</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		return nil, nil, toRPCErr(err)</span><br><span class="line">	&#125;</span><br><span class="line">	return t, done, nil</span><br><span class="line">&#125;</span><br><span class="line">func pick()&#123;</span><br><span class="line">	subConn, done, err := p.Pick(ctx, opts)</span><br><span class="line">	acw, ok := subConn.(*acBalancerWrapper)</span><br><span class="line">	if t, ok := acw.getAddrConn().getReadyTransport(); ok &#123;</span><br><span class="line">		if channelz.IsOn() &#123;</span><br><span class="line">			return t, doneChannelzWrapper(acw, done), nil</span><br><span class="line">		&#125;</span><br><span class="line">		return t, done, nil</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>整个调用过程如下：</p>
+<ol>
+<li>rpc 调用接口 -&gt; </li>
+<li>grpc.NewClientStream() -&gt; </li>
+<li>ClientConn.NewStream() -&gt; </li>
+<li>newClientStream() -&gt; </li>
+<li>newAttemptLocked() -&gt; </li>
+<li>getTransport() -&gt; </li>
+<li>Pick()</li>
+</ol>
+<p>&emsp;&emsp;最后的 Pick() 根据注册的负载均衡器的不同实现也不相同，但结果就是返回一个 SubConn 用来作为 rpc 调用时的数据传输流。</p>
+<h2 id="2-使用连接创建一个客户端"><a href="#2-使用连接创建一个客户端" class="headerlink" title="2 使用连接创建一个客户端"></a>2 使用连接创建一个客户端</h2><p>&emsp;&emsp;这里调用的是 protobuf 生成的代码，通过将 ClientConn 包装到生成的 routeGuideClient 结构体中并返回。routeGuideClient 结构体实现了定义的接口，所以客户端通过调用 routeGuideClient 的方法，然后再由 routeGuideClient 中的方法具体去调用服务端的接口。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">func NewRouteGuideClient(cc *grpc.ClientConn) RouteGuideClient &#123;</span><br><span class="line">	return &amp;routeGuideClient&#123;cc&#125;</span><br><span class="line">&#125;</span><br><span class="line">type routeGuideClient struct &#123;</span><br><span class="line">	cc *grpc.ClientConn</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上面的代码是 proto 文件中的。</p>
+<h2 id="3-调用服务端的-rpc-接口"><a href="#3-调用服务端的-rpc-接口" class="headerlink" title="3 调用服务端的 rpc 接口"></a>3 调用服务端的 rpc 接口</h2><p>gRPC 服务器提供的接口总的来说分为两种，这两种接口的调用方式是不同的：</p>
+<ul>
+<li>普通 rpc 接口，请求-应答 模式</li>
+<li>带数据流的 rpc 接口</li>
+</ul>
+<h3 id="3-1-调用普通-rpc-接口"><a href="#3-1-调用普通-rpc-接口" class="headerlink" title="3.1 调用普通 rpc 接口"></a>3.1 调用普通 rpc 接口</h3><p>&emsp;&emsp;在生成的代码中，客户端通过 Invoke() 函数来发送 rpc 请求，并在收到应答后返回。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">c.cc.Invoke(ctx, &quot;/routeguide.RouteGuide/GetFeature&quot;, in, out, opts...)</span><br><span class="line"></span><br><span class="line">func (cc *ClientConn) Invoke(ctx context.Context, method string, args, reply interface&#123;&#125;, opts ...CallOption) error &#123;</span><br><span class="line">	opts = combine(cc.dopts.callOptions, opts)</span><br><span class="line"></span><br><span class="line">	if cc.dopts.unaryInt != nil &#123;</span><br><span class="line">		return cc.dopts.unaryInt(ctx, method, args, reply, cc, invoke, opts...)</span><br><span class="line">	&#125;</span><br><span class="line">	return invoke(ctx, method, args, reply, cc, opts...)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func invoke(ctx context.Context, method string, req, reply interface&#123;&#125;, cc *ClientConn, opts ...CallOption) error &#123;</span><br><span class="line">	cs, err := newClientStream(ctx, unaryStreamDesc, cc, method, opts...)</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		return err</span><br><span class="line">	&#125;</span><br><span class="line">	if err := cs.SendMsg(req); err != nil &#123;</span><br><span class="line">		return err</span><br><span class="line">	&#125;</span><br><span class="line">	return cs.RecvMsg(reply)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;顺着调用看下去发现其实一个普通 rpc 底层是通过创建了一个 ClientStream，然后通过其执行 SendMsg 和 RecvMsg 来进行请求的发送和应答的接收。</p>
+<h3 id="3-2-调用带流数据的-rpc-接口"><a href="#3-2-调用带流数据的-rpc-接口" class="headerlink" title="3.2 调用带流数据的 rpc 接口"></a>3.2 调用带流数据的 rpc 接口</h3><p>&emsp;&emsp;从代码里可以看到，客户端调用此类接口并没有使用 Invoke(),而是直接创建一个 ClientStream 并稍加包装后返回给客户端逻辑进行操作。带数据流的 rpc 接口细分的话可以分为三类，每个接口根据类型的不同以及请求和接收的数据类型区别会被包装成对应的生成结构。拿官方的一个例子看一下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">type RouteGuide_ListFeaturesClient interface &#123;</span><br><span class="line">	Recv() (*Feature, error)</span><br><span class="line">	grpc.ClientStream</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type routeGuideListFeaturesClient struct &#123;</span><br><span class="line">	grpc.ClientStream</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func (x *routeGuideListFeaturesClient) Recv() (*Feature, error) &#123;</span><br><span class="line">	m := new(Feature)</span><br><span class="line">	if err := x.ClientStream.RecvMsg(m); err != nil &#123;</span><br><span class="line">		return nil, err</span><br><span class="line">	&#125;</span><br><span class="line">	return m, nil</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func (c *routeGuideClient) RecordRoute(ctx context.Context, opts ...grpc.CallOption) (RouteGuide_RecordRouteClient, error) &#123;</span><br><span class="line">	stream, err := c.cc.NewStream(ctx, &amp;_RouteGuide_serviceDesc.Streams[1], &quot;/routeguide.RouteGuide/RecordRoute&quot;, opts...)</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		return nil, err</span><br><span class="line">	&#125;</span><br><span class="line">	x := &amp;routeGuideRecordRouteClient&#123;stream&#125;</span><br><span class="line">	return x, nil</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;这是一个服务器流式 rpc。可以看到生成的代码封装了 RecvMsg 为 Recv，且整个数据结构和 rpc 接口是强绑定的。之后将这个封装后的结构交给客户端逻辑进行使用即可。</p>
+<h3 id="3-3-ClientStream"><a href="#3-3-ClientStream" class="headerlink" title="3.3 ClientStream"></a>3.3 ClientStream</h3><p>其实看下来，不管是哪种 rpc 接口。底部都是 ClientStream 对象进行处理。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">type ClientStream interface &#123;</span><br><span class="line">	// 返回从服务器收到的头部元数据，未准备好会阻塞住</span><br><span class="line">	Header() (metadata.MD, error)</span><br><span class="line">	// 返回从服务器收到的尾部元数据，或是 stream.Recv 返回非 nil 错误</span><br><span class="line">	Trailer() metadata.MD</span><br><span class="line">	// 关闭流的发送方</span><br><span class="line">	CloseSend() error</span><br><span class="line">	// 返回流的上下文</span><br><span class="line">	Context() context.Context</span><br><span class="line">	// 向服务器发送数据</span><br><span class="line">	SendMsg(m interface&#123;&#125;) error</span><br><span class="line">	// 从服务器请求数据</span><br><span class="line">	RecvMsg(m interface&#123;&#125;) error</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="clientStream-SendMsg"><a href="#clientStream-SendMsg" class="headerlink" title="clientStream.SendMsg()"></a>clientStream.SendMsg()</h4><p>&emsp;&emsp;上面就是 ClientStream 提供的接口，这里我们先看一些较为重要的 SendMsg 和 RecvMsg 方法。SendMsg() 代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">func (cs *clientStream) SendMsg(m interface&#123;&#125;) (err error) &#123;</span><br><span class="line"></span><br><span class="line">	...</span><br><span class="line">	hdr, payload, data, err := prepareMsg(m, cs.codec, cs.cp, cs.comp)</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		return err</span><br><span class="line">	&#125;</span><br><span class="line">	msgBytes := data </span><br><span class="line">	op := func(a *csAttempt) error &#123;</span><br><span class="line">		err := a.sendMsg(m, hdr, payload, data)</span><br><span class="line">		m, data = nil, nil</span><br><span class="line">		return err</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	...</span><br><span class="line">	return</span><br><span class="line">&#125;</span><br><span class="line">func (a *csAttempt) sendMsg(m interface&#123;&#125;, hdr, payld, data []byte) error &#123;</span><br><span class="line"></span><br><span class="line">	a.t.Write(a.s, hdr, payld, &amp;transport.Options&#123;Last: !cs.desc.ClientStreams&#125;);</span><br><span class="line">	if a.statsHandler != nil &#123;</span><br><span class="line">		a.statsHandler.HandleRPC(cs.ctx, outPayload(true, m, data, payld, time.Now()))</span><br><span class="line">	&#125;</span><br><span class="line">	return nil</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;可以看出将数据传入 SendMsg() 中，然后调用 csAttempt.sendMsg()，最后使用 ClientTransport.Write() 发送数据给另一端。再往下看看就是将数据进一步包装之后存放到了 ClientTransport.controlBuf 中。放到这里等待后续的发送操作。</p>
+<h4 id="clientStream-RecvMsg"><a href="#clientStream-RecvMsg" class="headerlink" title="clientStream.RecvMsg()"></a>clientStream.RecvMsg()</h4><p>下面是 RecvMsg() 的执行流程：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">func (cs *clientStream) RecvMsg(m interface&#123;&#125;) error &#123;</span><br><span class="line"></span><br><span class="line">	...</span><br><span class="line">	err := cs.withRetry(func(a *csAttempt) error &#123;</span><br><span class="line">		return a.recvMsg(m, recvInfo)</span><br><span class="line">	&#125;, cs.commitAttemptLocked)</span><br><span class="line"></span><br><span class="line">	...</span><br><span class="line">	return err</span><br><span class="line">&#125;</span><br><span class="line">func (a *csAttempt) recvMsg(m interface&#123;&#125;, payInfo *payloadInfo) (err error) &#123;</span><br><span class="line">	</span><br><span class="line">	recv(a.p, cs.codec, a.s, a.dc, m, *cs.callInfo.maxReceiveMessageSize, payInfo, a.decomp)</span><br><span class="line"></span><br><span class="line">	if a.statsHandler != nil &#123;</span><br><span class="line">		a.statsHandler.HandleRPC(cs.ctx, &amp;stats.InPayload&#123;</span><br><span class="line">			Client:   true,</span><br><span class="line">			RecvTime: time.Now(),</span><br><span class="line">			Payload:  m,</span><br><span class="line">			// TODO truncate large payload.</span><br><span class="line">			Data:       payInfo.uncompressedBytes,</span><br><span class="line">			WireLength: payInfo.wireLength,</span><br><span class="line">			Length:     len(payInfo.uncompressedBytes),</span><br><span class="line">		&#125;)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	err = recv(a.p, cs.codec, a.s, a.dc, m, *cs.callInfo.maxReceiveMessageSize, nil, a.decomp)</span><br><span class="line">	</span><br><span class="line">	if err == io.EOF &#123;</span><br><span class="line">		return a.s.Status().Err() // non-server streaming Recv returns nil on success</span><br><span class="line">	&#125;</span><br><span class="line">	return toRPCErr(err)</span><br><span class="line">&#125;</span><br><span class="line">func recv(p *parser, c baseCodec, s *transport.Stream, dc Decompressor, m interface&#123;&#125;, maxReceiveMessageSize int, payInfo *payloadInfo, compressor encoding.Compressor) error &#123;</span><br><span class="line">	d, err := recvAndDecompress(p, s, dc, maxReceiveMessageSize, payInfo, compressor)</span><br><span class="line">	return nil</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从上面的整个执行流程来看，后面调用了 recv() 来从流中获取数据。</p>
+<h4 id="clientStream-CloseSend"><a href="#clientStream-CloseSend" class="headerlink" title="clientStream.CloseSend()"></a>clientStream.CloseSend()</h4><p>最后是 CloseSend() 方法的实现：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">func (cs *clientStream) CloseSend() error &#123;</span><br><span class="line">	if cs.sentLast &#123;</span><br><span class="line">		return nil</span><br><span class="line">	&#125;</span><br><span class="line">	cs.sentLast = true</span><br><span class="line">	op := func(a *csAttempt) error &#123;</span><br><span class="line">		a.t.Write(a.s, nil, nil, &amp;transport.Options&#123;Last: true&#125;)</span><br><span class="line">		return nil</span><br><span class="line">	&#125;</span><br><span class="line">	return nil</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从代码中可以看到整个方法就 2 步：</p>
+<ul>
+<li>设置 sentLast = true</li>
+<li>返回 nil 给另一端</li>
+</ul>
+<p>此时这个流就只能用来读数据即使用 RecvMsg()。</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>&emsp;&emsp;在 gRPC 中客户端通过使用 ClientConn 来管理和服务器之间的逻辑连接，每一个 ClientConn 包含至少一个 SubConn(物理连接)。数据流则使用 ClientStream 结构进行管理。底层使用的是 HTTP/2 协议进行数据的传输。</p>
+<h1 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h1><ol>
+<li>[grpc/grpc-go] <a href="https://github.com/grpc/grpc-go" target="_blank" rel="noopener">https://github.com/grpc/grpc-go</a></li>
+<li>[grpc 源码笔记 01： balancer] <a href="https://zhuanlan.zhihu.com/p/104060740" target="_blank" rel="noopener">https://zhuanlan.zhihu.com/p/104060740</a></li>
+<li>[grpc helloworld client 解析] <a href="https://github.com/lubanproj/grpc_read/blob/master/4-grpc%20hello%20world%20client%20%E8%A7%A3%E6%9E%90.md" target="_blank" rel="noopener">https://github.com/lubanproj/grpc_read/blob/master/4-grpc%20hello%20world%20client%20%E8%A7%A3%E6%9E%90.md</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/RPC/" rel="tag"># RPC</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2020/02/12/RPC系列④-gRPC-go服务器的创建/" rel="next" title="RPC系列④:gRPC-go服务器">
+                  <i class="fa fa-chevron-left"></i> RPC系列④:gRPC-go服务器
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#客户端的创建"><span class="nav-text">客户端的创建</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-ClientConn-结构"><span class="nav-text">1 ClientConn 结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-连接的添加和删除"><span class="nav-text">1.1 连接的添加和删除</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-建立真正的物理连接"><span class="nav-text">1.2 建立真正的物理连接</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-getTransport"><span class="nav-text">1.3 getTransport</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-使用连接创建一个客户端"><span class="nav-text">2 使用连接创建一个客户端</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-调用服务端的-rpc-接口"><span class="nav-text">3 调用服务端的 rpc 接口</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-调用普通-rpc-接口"><span class="nav-text">3.1 调用普通 rpc 接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-调用带流数据的-rpc-接口"><span class="nav-text">3.2 调用带流数据的 rpc 接口</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-ClientStream"><span class="nav-text">3.3 ClientStream</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#clientStream-SendMsg"><span class="nav-text">clientStream.SendMsg()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#clientStream-RecvMsg"><span class="nav-text">clientStream.RecvMsg()</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#clientStream-CloseSend"><span class="nav-text">clientStream.CloseSend()</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-text">小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#reference"><span class="nav-text">reference</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">66</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -64,7 +64,7 @@
 <meta property="og:site_name" content="nercoeus">
 <meta property="og:description" content="&amp;emsp;&amp;emsp;gRPC 使用的是经典的 Client/Server 模式，整个基本的使用过程简单来说分为三步：  编写 .proto 文件来定义服务 使用 protocol 工具生成客户端和服务端使用的代码 使用 gRPC 的 API 编写客户端和服务端的逻辑代码">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:updated_time" content="2020-02-12T03:53:31.125Z">
+<meta property="og:updated_time" content="2020-02-13T06:39:37.324Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="RPC系列③:gRPC-go的使用">
 <meta name="twitter:description" content="&amp;emsp;&amp;emsp;gRPC 使用的是经典的 Client/Server 模式，整个基本的使用过程简单来说分为三步：  编写 .proto 文件来定义服务 使用 protocol 工具生成客户端和服务端使用的代码 使用 gRPC 的 API 编写客户端和服务端的逻辑代码">
@@ -249,7 +249,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-02-12 11:53:31" itemprop="dateModified" datetime="2020-02-12T11:53:31+08:00">2020-02-12</time>
+                <time title="修改时间：2020-02-13 14:39:37" itemprop="dateModified" datetime="2020-02-13T14:39:37+08:00">2020-02-13</time>
               </span>
             
           
@@ -360,7 +360,9 @@
 
 <p>&emsp;&emsp;相比于前面的接口调用，双向流传输明显要复杂一些。执行 client.RouteChat 返回一个数据流对象，客户端和服务器均通过这一个对象进行数据的传输，但是这里使用了一个 goroutine 来异步的发送和接收数据，二者之间并不影响。发送和接收分别就是 Send() 和 Recv() 函数。最后客户端主动调用 CloseSend() 关闭写操作，并等待从 stream 中读取 EOF 才结束执行。</p>
 <h1 id="4-小结"><a href="#4-小结" class="headerlink" title="4. 小结"></a>4. 小结</h1><p>&emsp;&emsp;本篇文章基本翻译自 grpc 官网的教学篇，来了解一个简单的 gRPC 实例的各个部分以及整个编写步骤。还有很多 gRPC 的特性并没有使用到，后面可以一起看看更底层的东西。</p>
-<h1 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h1><p><a href="https://grpc.io/docs/tutorials/basic/go/" target="_blank" rel="noopener">gRPC Basics - Go</a></p>
+<h1 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h1><ol>
+<li>[gRPC Basics - Go] <a href="https://grpc.io/docs/tutorials/basic/go/" target="_blank" rel="noopener">https://grpc.io/docs/tutorials/basic/go/</a></li>
+</ol>
 
     </div>
 
@@ -462,7 +464,7 @@
         
           <a href="/archives/">
         
-          <span class="site-state-item-count">65</span>
+          <span class="site-state-item-count">66</span>
           <span class="site-state-item-name">日志</span>
         </a>
       </div>
