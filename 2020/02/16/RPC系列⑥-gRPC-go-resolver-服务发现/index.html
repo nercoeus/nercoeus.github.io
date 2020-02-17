@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+
+
+
+
+
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 3.9.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.4.0">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.4.0">
+  <link rel="mask-icon" href="/images/logo.svg?v=7.4.0" color="#222">
+  <link rel="alternate" href="/atom.xml" title="nercoeus" type="application/atom+xml">
+
+<link rel="stylesheet" href="/css/main.css?v=7.4.0">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.7.0">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '7.4.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    },
+    localsearch: {"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},
+    path: '',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    translation: {
+      copy_button: '复制',
+      copy_success: '复制成功',
+      copy_failure: '复制失败'
+    },
+    sidebarPadding: 40
+  };
+</script>
+
+  <meta name="description" content="1. 什么是服务发现&amp;emsp;&amp;emsp;客户端想要和服务端进行数据传输时需要知道服务器的地址：IP + port。如果服务器不经常变动的话，客户端可以从配置文件或类似的地方获取。但是在现在这种微服务应用来说，这明显是不现实的。随着微服务地址的动态分配，客户端要怎么获取服务器的地址呢？这就需要使用到服务发现技术。总的来说服务发现分为两种方式：  客户端发现模式 代理层发现模式(服务端发现模式)">
+<meta name="keywords" content="RPC">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RPC系列⑥:gRPC-go resolver(名称解析)">
+<meta property="og:url" content="http://yoursite.com/2020/02/16/RPC系列⑥-gRPC-go-resolver-服务发现/index.html">
+<meta property="og:site_name" content="nercoeus">
+<meta property="og:description" content="1. 什么是服务发现&amp;emsp;&amp;emsp;客户端想要和服务端进行数据传输时需要知道服务器的地址：IP + port。如果服务器不经常变动的话，客户端可以从配置文件或类似的地方获取。但是在现在这种微服务应用来说，这明显是不现实的。随着微服务地址的动态分配，客户端要怎么获取服务器的地址呢？这就需要使用到服务发现技术。总的来说服务发现分为两种方式：  客户端发现模式 代理层发现模式(服务端发现模式)">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="http://yoursite.com/2020/02/16/RPC系列⑥-gRPC-go-resolver-服务发现/1.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/16/RPC系列⑥-gRPC-go-resolver-服务发现/2.png">
+<meta property="og:image" content="http://yoursite.com/2020/02/16/RPC系列⑥-gRPC-go-resolver-服务发现/3.png">
+<meta property="og:updated_time" content="2020-02-17T08:11:18.734Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="RPC系列⑥:gRPC-go resolver(名称解析)">
+<meta name="twitter:description" content="1. 什么是服务发现&amp;emsp;&amp;emsp;客户端想要和服务端进行数据传输时需要知道服务器的地址：IP + port。如果服务器不经常变动的话，客户端可以从配置文件或类似的地方获取。但是在现在这种微服务应用来说，这明显是不现实的。随着微服务地址的动态分配，客户端要怎么获取服务器的地址呢？这就需要使用到服务发现技术。总的来说服务发现分为两种方式：  客户端发现模式 代理层发现模式(服务端发现模式)">
+<meta name="twitter:image" content="http://yoursite.com/2020/02/16/RPC系列⑥-gRPC-go-resolver-服务发现/1.png">
+  <link rel="canonical" href="http://yoursite.com/2020/02/16/RPC系列⑥-gRPC-go-resolver-服务发现/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true,
+    isPage: false,
+    isArchive: false
+  };
+</script>
+
+  <title>RPC系列⑥:gRPC-go resolver(名称解析) | nercoeus</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">nercoeus</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <p class="site-subtitle">勤奋、求实、进取、奉献</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+      
+      
+      
+        
+        <li class="menu-item menu-item-home">
+      
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-categories">
+      
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+      
+      
+      
+        
+        <li class="menu-item menu-item-archives">
+      
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+  </ul>
+
+</nav>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+            
+
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+      <article itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block post">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/02/16/RPC系列⑥-gRPC-go-resolver-服务发现/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="nercoeus">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="nercoeus">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">RPC系列⑥:gRPC-go resolver(名称解析)
+
+          
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              
+                
+              
+
+              <time title="创建时间：2020-02-16 22:41:19" itemprop="dateCreated datePublished" datetime="2020-02-16T22:41:19+08:00">2020-02-16</time>
+            </span>
+          
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-17 16:11:18" itemprop="dateModified" datetime="2020-02-17T16:11:18+08:00">2020-02-17</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/RPC系列/" itemprop="url" rel="index"><span itemprop="name">RPC系列</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="1-什么是服务发现"><a href="#1-什么是服务发现" class="headerlink" title="1. 什么是服务发现"></a>1. 什么是服务发现</h1><p>&emsp;&emsp;客户端想要和服务端进行数据传输时需要知道服务器的地址：IP + port。如果服务器不经常变动的话，客户端可以从配置文件或类似的地方获取。但是在现在这种微服务应用来说，这明显是不现实的。随着微服务地址的动态分配，客户端要怎么获取服务器的地址呢？这就需要使用到服务发现技术。总的来说服务发现分为两种方式：</p>
+<ul>
+<li>客户端发现模式</li>
+<li>代理层发现模式(服务端发现模式)<a id="more"></a>
+<h2 id="1-1-客户端发现模式"><a href="#1-1-客户端发现模式" class="headerlink" title="1.1 客户端发现模式"></a>1.1 客户端发现模式</h2>&emsp;&emsp;客户端服务发现，客户端来确定服务实例的网络位置，并和服务器创建连接。客户端通过从注册表中获取服务器的地址，并经过负载均衡选择一个可用的服务器地址并进行请求。下图展示了这一模式：<br><img src="/2020/02/16/RPC系列⑥-gRPC-go-resolver-服务发现/1.png" alt><br>&emsp;&emsp;基于这种模式，只需要服务器进行服务注册即可。并且因为客户端可以获取服务列表，所以可以执行特定的负载均衡策略。但是这种模式需要客户端和服务注册进行绑定。不同服务器的根据实现不同要兼容同一套服务注册操作。<h2 id="1-2-服务器发现模式"><a href="#1-2-服务器发现模式" class="headerlink" title="1.2 服务器发现模式"></a>1.2 服务器发现模式</h2>&emsp;&emsp;服务端服务发现,客户端通过路由或负载均衡器来发送请求，然后负载均衡器会查询注册表中可用的服务器地址并进行请求。示例图如下：<br><img src="/2020/02/16/RPC系列⑥-gRPC-go-resolver-服务发现/2.png" alt><br>&emsp;&emsp;这种模式下，客户端无需关注过多的细节，只需要和负载均衡器进行通信即可。缺点则是如果部署环境不提供负载均衡器的话，需要自己实现并管理一个高可用的系统组件。</li>
+</ul>
+<h1 id="2-gRPC-中的名称解析"><a href="#2-gRPC-中的名称解析" class="headerlink" title="2. gRPC 中的名称解析"></a>2. gRPC 中的名称解析</h1><p>&emsp;&emsp;在 gRPC 中使用的是客户端发现模式。我们可以使用 etcd、或者其余各种开源的方法实现服务发现。gRPC 针对不同的服务发现实现方式也提供了名称解析模块，用来对服务器的地址进行解析。gRPC 支持下面三种 name resolution 方式：</p>
+<ol>
+<li>dns: 基于域名解析的 resolver</li>
+<li>passthrough: 用来直接进行连接不经过任何处理，默认处理方式</li>
+<li>manual: 用户自定义的 resolver</li>
+</ol>
+<h2 id="2-1-resolver-注册"><a href="#2-1-resolver-注册" class="headerlink" title="2.1 resolver 注册"></a>2.1 resolver 注册</h2><p>既然 gRPC 支持多种 resolver，那么肯定有一个数据结构将它们管理起来：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">m = make(map[string]Builder)</span><br><span class="line">defaultScheme = &quot;passthrough&quot;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;从代码中可以看到使用了一个 map 结构来管理 resolver 表。并指定默认的方式为 passthrough。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">func init() &#123;</span><br><span class="line">	resolver.Register(NewBuilder())</span><br><span class="line">&#125;</span><br><span class="line">func init() &#123;</span><br><span class="line">	resolver.Register(&amp;passthroughBuilder&#123;&#125;)</span><br><span class="line">&#125;</span><br><span class="line">func Register(b Builder) &#123;</span><br><span class="line">	m[b.Scheme()] = b</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;可以看到在初始化时就进行了 resolver 的注册，并通过不同的 Scheme 进行区分。每个 Builder 是一个对应 resolver 的工厂类，实现了 Builder 接口：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">type Builder interface &#123;</span><br><span class="line">	Build(target Target, cc ClientConn, opts BuildOptions) (Resolver, error)</span><br><span class="line">	Scheme() string</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>接口仅实现了两个方法：</p>
+<ol>
+<li>Build() 创建对应的 resolver 对象</li>
+<li>Scheme() 返回工厂类对象的名字，用来区分 Builder</li>
+</ol>
+<p>所有的 init() 执行完毕后 m 中就包含提前设置的不同的 resolver 方式了，默认如下：<br><img src="/2020/02/16/RPC系列⑥-gRPC-go-resolver-服务发现/3.png" alt></p>
+<h2 id="2-2-resolver-及-resolverBuilder"><a href="#2-2-resolver-及-resolverBuilder" class="headerlink" title="2.2 resolver 及 resolverBuilder"></a>2.2 resolver 及 resolverBuilder</h2><p>&emsp;&emsp;先从简单的 passthrough 看起，其实所有 resolver 实现结构都是一样的。passthrough 文件内容如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">const scheme = &quot;passthrough&quot;</span><br><span class="line"></span><br><span class="line">type passthroughBuilder struct&#123;&#125;</span><br><span class="line"></span><br><span class="line">func (*passthroughBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) &#123;</span><br><span class="line">	r := &amp;passthroughResolver&#123;</span><br><span class="line">		target: target,</span><br><span class="line">		cc:     cc,</span><br><span class="line">	&#125;</span><br><span class="line">	r.start()</span><br><span class="line">	return r, nil</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func (*passthroughBuilder) Scheme() string &#123;</span><br><span class="line">	return scheme</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type passthroughResolver struct &#123;</span><br><span class="line">	target resolver.Target</span><br><span class="line">	cc     resolver.ClientConn</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func (r *passthroughResolver) start() &#123;</span><br><span class="line">	r.cc.UpdateState(resolver.State&#123;Addresses: []resolver.Address&#123;&#123;Addr: r.target.Endpoint&#125;&#125;&#125;)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">func (*passthroughResolver) ResolveNow(o resolver.ResolveNowOptions) &#123;&#125;</span><br><span class="line"></span><br><span class="line">func (*passthroughResolver) Close() &#123;&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;可以看到整个文件分为两个部分，第一部分是 passthroughBuilder 即工厂类，第二部分便是 passthroughResolver。第一部分前面已经说过了，下面来看第二部分实现的接口：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">type Resolver interface &#123;</span><br><span class="line">	ResolveNow(ResolveNowOptions)</span><br><span class="line">	Close()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>gRPC 使用 ResolveNow() 尝试解析目标名称。</p>
+<h1 id="3-name-resolver-使用流程"><a href="#3-name-resolver-使用流程" class="headerlink" title="3. name resolver 使用流程"></a>3. name resolver 使用流程</h1><p>&emsp;&emsp;还记得调用 RPC 会执行 DailContext() 方法，其中传入的 target 中就包含协议名，可以用来查询对应的 resolverBuilder 来生成特定的 resolver。没有的话就使用默认的 resolver。DailContext() 中相关代码如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">func DialContext(ctx context.Context, target string, opts ...DialOption) (conn *ClientConn, err error) &#123;</span><br><span class="line">    if cc.dopts.resolverBuilder == nil &#123;</span><br><span class="line">		cc.parsedTarget = parseTarget(cc.target)</span><br><span class="line">		cc.dopts.resolverBuilder = resolver.Get(cc.parsedTarget.Scheme)</span><br><span class="line">		if cc.dopts.resolverBuilder == nil &#123;</span><br><span class="line">			cc.parsedTarget = resolver.Target&#123;</span><br><span class="line">				Scheme:   resolver.GetDefaultScheme(),</span><br><span class="line">				Endpoint: target,</span><br><span class="line">			&#125;</span><br><span class="line">			cc.dopts.resolverBuilder = resolver.Get(cc.parsedTarget.Scheme)</span><br><span class="line">		&#125;</span><br><span class="line">	&#125; else &#123;</span><br><span class="line">		cc.parsedTarget = resolver.Target&#123;Endpoint: target&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	rWrapper, err := newCCResolverWrapper(cc)</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		return nil, fmt.Errorf(&quot;failed to build resolver: %v&quot;, err)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	cc.mu.Lock()</span><br><span class="line">	cc.resolverWrapper = rWrapper</span><br><span class="line">	cc.mu.Unlock()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;尝试从 target 中把协议解析出来，如果有的话就获取对应的 resolverBuilder。随后调用 newCCResolverWrapper() 创建对应的 resolver。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">func newCCResolverWrapper(cc *ClientConn) (*ccResolverWrapper, error) &#123;</span><br><span class="line">	rb := cc.dopts.resolverBuilder</span><br><span class="line">	if rb == nil &#123;</span><br><span class="line">		return nil, fmt.Errorf(&quot;could not get resolver for scheme: %q&quot;, cc.parsedTarget.Scheme)</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	ccr := &amp;ccResolverWrapper&#123;</span><br><span class="line">		cc:   cc,</span><br><span class="line">		done: grpcsync.NewEvent(),</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	var credsClone credentials.TransportCredentials</span><br><span class="line">	if creds := cc.dopts.copts.TransportCredentials; creds != nil &#123;</span><br><span class="line">		credsClone = creds.Clone()</span><br><span class="line">	&#125;</span><br><span class="line">	rbo := resolver.BuildOptions&#123;</span><br><span class="line">		DisableServiceConfig: cc.dopts.disableServiceConfig,</span><br><span class="line">		DialCreds:            credsClone,</span><br><span class="line">		CredsBundle:          cc.dopts.copts.CredsBundle,</span><br><span class="line">		Dialer:               cc.dopts.copts.Dialer,</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	var err error</span><br><span class="line">	ccr.resolver, err = rb.Build(cc.parsedTarget, ccr, rbo)</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		return nil, err</span><br><span class="line">	&#125;</span><br><span class="line">	return ccr, nil</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;其实就是调用 Build() 创建对应的 resolver 并返回保存到 ClientConn.resolverWrapper 中。既然已经得到了 resolver，后面直接调用它的 resolveNow() 方法进行解析即可。</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>&emsp;&emsp;本节并没有详细研究 dns resolver 的底层实现，但是初步的将整个 gRPC 中关于 resolver 的设计进行了展示，通过注册工厂类并根据协议的不同可以使用不同的 resolver 进行命名解析。<br>整个流程总结如下：</p>
+<ol>
+<li>客户端启动时，注册所有的 resolverBuilder</li>
+<li>客户端通过 Dail() 构造 ClientConn</li>
+<li>执行 DailContext() 方法内部根据协议选择对应的 resolverBuild</li>
+<li>通过获得的 resolverBuild，执行 Build() 获取对应的 resolver</li>
+</ol>
+<p>&emsp;&emsp;gRPC 提供两种 resolver 方式，并且支持自定义的服务发现方式的 resolver。并采用插件的方式进行管理。通过在 init() 中注册 resolverBuilder，用来创建 resolver 对象。</p>
+<h1 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h1><ol>
+<li>[什么是服务发现] <a href="https://www.jianshu.com/p/4828f90674b3" target="_blank" rel="noopener">https://www.jianshu.com/p/4828f90674b3</a></li>
+<li>[grpc_read/5-grpc 服务发现] <a href="https://github.com/lubanproj/grpc_read/blob/master/5-grpc%20%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0.md" target="_blank" rel="noopener">https://github.com/lubanproj/grpc_read/blob/master/5-grpc%20%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0.md</a></li>
+<li>[小米出品——gRPC Name Resolver 原理及实践] <a href="https://blog.csdn.net/RA681t58CJxsgCkJ31/article/details/104079070" target="_blank" rel="noopener">https://blog.csdn.net/RA681t58CJxsgCkJ31/article/details/104079070</a></li>
+<li>[Leveraging Consul as Service Discovery, Health Checking, and Key Value (KV) Store in Go Microservices] <a href="https://medium.com/@didiyudhaperwira/leveraging-consul-as-service-discovery-health-checking-and-key-value-kv-store-in-go-d68a2e074aea" target="_blank" rel="noopener">https://medium.com/@didiyudhaperwira/leveraging-consul-as-service-discovery-health-checking-and-key-value-kv-store-in-go-d68a2e074aea</a></li>
+</ol>
+
+    </div>
+
+    
+    
+    
+        
+      
+
+      <footer class="post-footer">
+          
+            
+          
+          <div class="post-tags">
+            
+              <a href="/tags/RPC/" rel="tag"># RPC</a>
+            
+          </div>
+        
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-next post-nav-item">
+              
+                <a href="/2020/02/13/RPC系列⑤-gRPC-ClientConn/" rel="next" title="RPC系列⑤:gRPC ClientConn">
+                  <i class="fa fa-chevron-left"></i> RPC系列⑤:gRPC ClientConn
+                </a>
+              
+            </div>
+
+            <span class="post-nav-divider"></span>
+
+            <div class="post-nav-prev post-nav-item">
+              
+                <a href="/2020/02/16/RPC系列⑦-gRPC-go-balancer-负载均衡/" rel="prev" title="RPC系列⑦:gRPC-go balancer(负载均衡)">
+                  RPC系列⑦:gRPC-go balancer(负载均衡) <i class="fa fa-chevron-right"></i>
+                </a>
+              
+            </div>
+          </div>
+        
+      </footer>
+    
+  </div>
+  
+  
+  
+  </article>
+
+  </div>
+
+
+          </div>
+          
+
+        </div>
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+        
+        
+        
+        
+      
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-什么是服务发现"><span class="nav-text">1. 什么是服务发现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-1-客户端发现模式"><span class="nav-text">1.1 客户端发现模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-2-服务器发现模式"><span class="nav-text">1.2 服务器发现模式</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#2-gRPC-中的名称解析"><span class="nav-text">2. gRPC 中的名称解析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#2-1-resolver-注册"><span class="nav-text">2.1 resolver 注册</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-2-resolver-及-resolverBuilder"><span class="nav-text">2.2 resolver 及 resolverBuilder</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#3-name-resolver-使用流程"><span class="nav-text">3. name resolver 使用流程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#小结"><span class="nav-text">小结</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#reference"><span class="nav-text">reference</span></a></li></ol></div>
+        
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">nercoeus</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+  <nav class="site-state motion-element">
+      <div class="site-state-item site-state-posts">
+        
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">68</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-categories">
+        
+          
+            <a href="/categories/">
+          
+        
+        <span class="site-state-item-count">6</span>
+        <span class="site-state-item-name">分类</span>
+        </a>
+      </div>
+    
+      
+      
+      <div class="site-state-item site-state-tags">
+        
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span>
+        
+      </div>
+    
+  </nav>
+  <div class="feed-link motion-element">
+    <a href="/atom.xml" rel="alternate">
+      <i class="fa fa-rss"></i>RSS
+    </a>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">nercoeus</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.9.0</div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Pisces</a> v7.4.0</div>
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+  </div>
+
+  
+
+
+  <script src="/lib/anime.min.js?v=3.1.0"></script>
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+<script src="/js/utils.js?v=7.4.0"></script><script src="/js/motion.js?v=7.4.0"></script>
+<script src="/js/schemes/pisces.js?v=7.4.0"></script>
+<script src="/js/next-boot.js?v=7.4.0"></script>
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+</body>
+</html>
