@@ -236,6 +236,31 @@
               <time title="创建时间：2020-02-16 22:41:49" itemprop="dateCreated datePublished" datetime="2020-02-16T22:41:49+08:00">2020-02-16</time>
             </span>
           
+            
+
+            
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-19 00:42:24" itemprop="dateModified" datetime="2020-02-19T00:42:24+08:00">2020-02-19</time>
+              </span>
+            
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/RPC系列/" itemprop="url" rel="index"><span itemprop="name">RPC系列</span></a></span>
+
+                
+                
+              
+            </span>
+          
 
           
 
@@ -248,7 +273,59 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          
+          <h1 id="1-负载均衡"><a href="#1-负载均衡" class="headerlink" title="1. 负载均衡"></a>1. 负载均衡</h1><p>&emsp;&emsp;负载均衡是一种计算机技术，用来在多个计算机，网络连接，CPU，磁盘驱动器或其他资源中分配负载，已达到最优化资源使用，最大化吞吐率，最小化响应时间，同时避免过载的目的。负载均衡服务通常有专用软件和硬件来完成。主要作用是将大量作业合理分配到多个操作单元上进行执行，并能避免单点故障。用于解决互联网架构中的高可用和高并发问题。</p>
+<h2 id="1-1-负载均衡实现算法"><a href="#1-1-负载均衡实现算法" class="headerlink" title="1.1 负载均衡实现算法"></a>1.1 负载均衡实现算法</h2><p>常见的负载均衡算法有以下几种：</p>
+<ol>
+<li>Round Robin：轮询的方式选择服务器，也就是第一个请求使用第一台服务器，第二个请求使用第二个服务器后面以此类推。每个服务器请求一轮之后重头开始</li>
+<li>Least Connections：选择当前所欲可用服务器中连接最少的服务器</li>
+<li>IP hash：将请求通过 IP hash 后的值进行取模并分配给服务器。这种方式保证了用户在可用服务器不变的情况下会一直分配给同一台服务器。</li>
+</ol>
+<h2 id="1-2-负载均衡架构"><a href="#1-2-负载均衡架构" class="headerlink" title="1.2 负载均衡架构"></a>1.2 负载均衡架构</h2><h3 id="代理模型-Proxy-Model"><a href="#代理模型-Proxy-Model" class="headerlink" title="代理模型(Proxy Model)"></a>代理模型(Proxy Model)</h3><p>&emsp;&emsp;使用一个可靠的代理来实现负载均衡操作，但是会存在网络延迟以及需要很多资源才可运行。结构如下：<br><img src="/2020/02/16/RPC系列⑦-gRPC-go-balancer-负载均衡/1.png" alt></p>
+<h3 id="客户端负载均衡模式-Balancing-aware-Client"><a href="#客户端负载均衡模式-Balancing-aware-Client" class="headerlink" title="客户端负载均衡模式(Balancing-aware Client)"></a>客户端负载均衡模式(Balancing-aware Client)</h3><p>&emsp;&emsp;针对第一种方式的不足，这种方式将负载均衡模块集成到客户端进程中。这种方式需要一个服务注册表配合支持服务自注册和自发现，服务器端启动时首先会注册服务。客户端会自动的在服务注册表中进行查找到可用服务器列表后。然后以选定好的负载均衡算法获取一个可用的服务器地址。最后向目标服务发起请求。这一方案对服务注册表的可用性要求很高，一般可以使用 etcd、Zookeeper、Consul 等。<br><img src="/2020/02/16/RPC系列⑦-gRPC-go-balancer-负载均衡/2.png" alt><br>&emsp;&emsp;因为负载均衡模块直接集成到客户端中，多以这种模式的想能来说是很高的。但是也因为这种强耦合的关系导致根据不同的服务器实现需要配合开发多种客户端。</p>
+<h3 id="外部负载均衡服务-External-Load-Balancing-Service"><a href="#外部负载均衡服务-External-Load-Balancing-Service" class="headerlink" title="外部负载均衡服务(External Load Balancing Service)"></a>外部负载均衡服务(External Load Balancing Service)</h3><p>&emsp;&emsp;第三种方案对上面两种方式进行了折中。和第二种不同的是将 LB 中客户端进程中移除了出来，变成一个独立进程。客户端的一个或多个服务需要访问目标服务时，均通过一个 LB 去做服务发现和负载均衡。<br><img src="/2020/02/16/RPC系列⑦-gRPC-go-balancer-负载均衡/3.png" alt></p>
+<h1 id="2-gRPC-balancer"><a href="#2-gRPC-balancer" class="headerlink" title="2. gRPC balancer"></a>2. gRPC balancer</h1><p>&emsp;&emsp;和 resolver 类似，gRPC 中的 balancer 也是采用插件式进行安装的。其中 gRPC 包含 roundrobin 和 grpclb 两种 balancer。关于插件化结构这里就不做过多的叙述了，可以参考上一小节 <a href="https://nercoeus.github.io/2020/02/16/RPC%E7%B3%BB%E5%88%97%E2%91%A5-gRPC-go-resolver-%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0/" target="_blank" rel="noopener">resolver</a> 中的内容。</p>
+<h2 id="2-1-gRPC-中负载均衡的工作流程"><a href="#2-1-gRPC-中负载均衡的工作流程" class="headerlink" title="2.1 gRPC 中负载均衡的工作流程"></a>2.1 gRPC 中负载均衡的工作流程</h2><p><img src="/2020/02/16/RPC系列⑦-gRPC-go-balancer-负载均衡/4.png" alt><br>&emsp;&emsp;上图是官方文档中 gRPC 的负载均衡工作流程。对比上面的三种模式可以看出 gRPC 使用的是外部负载均衡模式。通过外部的负载均衡器为客户端提供最新可用的服务器列表。<br>整个过程归纳为以下步骤：</p>
+<ol>
+<li>启动时：gRPC 客户端发出服务器名称的 resolve 请求。解析获得一个或者多个地址。每个 IP 地址会标识它是一个服务器地址还是一个负载平衡地址，或者是一个服务配置(指示使用哪个客户端负载均衡策略：round_robin 或 grpclb)</li>
+<li>客户端实现其负载均衡策略</li>
+<li>负载均衡器对每一个 IP 地址创建一个数据流(subchannel)(除 grpclb 策略外)</li>
+<li>对于每个 rpc 请求，负载均衡策略决定发送到那个数据流进行处理</li>
+</ol>
+<p>&emsp;&emsp;对于 grpclb 策略，处理会有所不同，第三步时，客户端会根据名字解析返回的服务器列表，请求负载均衡器，由负载均衡器决定请求哪个 subConn，然后再打开数据流。</p>
+<h2 id="2-2-gRPC-balancer-源码"><a href="#2-2-gRPC-balancer-源码" class="headerlink" title="2.2 gRPC balancer 源码"></a>2.2 gRPC balancer 源码</h2><p>直接看看注册完成后的初始化 gRPC balancers：<br><img src="/2020/02/16/RPC系列⑦-gRPC-go-balancer-负载均衡/5.jpg" alt><br>&emsp;&emsp;注册完成后可以看到注册了 round_robin 和 pick_first 两种策略。根据上图的流程第一步是从 resolver 中获取服务器地址。</p>
+<h3 id="ClientConn-balancerWrapper-初始化"><a href="#ClientConn-balancerWrapper-初始化" class="headerlink" title="ClientConn.balancerWrapper 初始化"></a>ClientConn.balancerWrapper 初始化</h3><p>&emsp;&emsp;利用 dns resolver 来做说明，通过 dns_resolver 的 watcher()中的 lookup 可以获得一个服务器列表。后面调用 ClientConn.NewAddress() 来添加服务器列表：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">func (ccr *ccResolverWrapper) NewAddress(addrs []resolver.Address) &#123;</span><br><span class="line">	if ccr.done.HasFired() &#123;</span><br><span class="line">		return</span><br><span class="line">	&#125;</span><br><span class="line">	ccr.curState.Addresses = addrs</span><br><span class="line">	ccr.poll(ccr.cc.updateResolverState(ccr.curState, nil))</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;从 updateResolverState 继续往下找可以发现执行了 switchBalancer()，通过 newCCBalancerWrapper() 返回一个 balancer 包装后的结构体，这个对象实现了 balancer.ClientConn 接口。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">func newCCBalancerWrapper(cc *ClientConn, b balancer.Builder, bopts balancer.BuildOptions) *ccBalancerWrapper &#123;</span><br><span class="line">	ccb := &amp;ccBalancerWrapper&#123;</span><br><span class="line">		cc:       cc,</span><br><span class="line">		scBuffer: buffer.NewUnbounded(),</span><br><span class="line">		done:     grpcsync.NewEvent(),</span><br><span class="line">		subConns: make(map[*acBalancerWrapper]struct&#123;&#125;),</span><br><span class="line">	&#125;</span><br><span class="line">	go ccb.watcher()</span><br><span class="line">	ccb.balancer = b.Build(ccb, bopts)</span><br><span class="line">	return ccb</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;通过调用 Build() 来创建对应的 balancer，根据不同的负载平衡策略返回不同的对象。</p>
+<h3 id="rpc-请求时进行寻址"><a href="#rpc-请求时进行寻址" class="headerlink" title="rpc 请求时进行寻址"></a>rpc 请求时进行寻址</h3><p>&emsp;&emsp;前几小节可以了解到在 rpc 请求调用中会执行 newClientStream 来创建传输流。它会执行 getTransport() 来获取一条连接。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">func (cc *ClientConn) getTransport(ctx context.Context, failfast bool, method string) (transport.ClientTransport, func(balancer.DoneInfo), error) &#123;</span><br><span class="line">	t, done, err := cc.blockingpicker.pick(ctx, failfast, balancer.PickOptions&#123;</span><br><span class="line">		FullMethodName: method,</span><br><span class="line">	&#125;)</span><br><span class="line">	if err != nil &#123;</span><br><span class="line">		return nil, nil, toRPCErr(err)</span><br><span class="line">	&#125;</span><br><span class="line">	return t, done, nil</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;最后看到其实还是执行了 pick()。到这里就知道根据 balancer 的不同，实现的 pick 方式也不同，下面展示的是 round_robin 的 Pick() 方法：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">func (p *rrPicker) Pick(ctx context.Context, opts balancer.PickOptions) (balancer.SubConn, func(balancer.DoneInfo), error) &#123;</span><br><span class="line">	p.mu.Lock()</span><br><span class="line">	sc := p.subConns[p.next]</span><br><span class="line">	p.next = (p.next + 1) % len(p.subConns)</span><br><span class="line">	p.mu.Unlock()</span><br><span class="line">	return sc, nil, nil</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>代码里逻辑就可以看出这是一个轮询返回的操作。</p>
+<h3 id="发起-request"><a href="#发起-request" class="headerlink" title="发起 request"></a>发起 request</h3><p>&emsp;&emsp;上一步执行完毕后，我们获得了一个包含 server 地址列表的 SubConn，顺着 Pick() 继续向下看:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">      acw, ok := subConn.(*acBalancerWrapper)</span><br><span class="line">if !ok &#123;</span><br><span class="line">	grpclog.Error(&quot;subconn returned from pick is not *acBalancerWrapper&quot;)</span><br><span class="line">	continue</span><br><span class="line">&#125;</span><br><span class="line">if t, ok := acw.getAddrConn().getReadyTransport(); ok &#123;</span><br><span class="line">	return t, done, nil</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>将 SubConn 转换为 acBalancerWrapper 后执行 getReadyTransport()。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">func (ac *addrConn) getReadyTransport() (transport.ClientTransport, bool) &#123;</span><br><span class="line">	ac.mu.Lock()</span><br><span class="line">	if ac.state == connectivity.Ready &amp;&amp; ac.transport != nil &#123;</span><br><span class="line">		t := ac.transport</span><br><span class="line">		ac.mu.Unlock()</span><br><span class="line">		return t, true</span><br><span class="line">	&#125;</span><br><span class="line">	var idle bool</span><br><span class="line">	if ac.state == connectivity.Idle &#123;</span><br><span class="line">		idle = true</span><br><span class="line">	&#125;</span><br><span class="line">	ac.mu.Unlock()</span><br><span class="line">	// Trigger idle ac to connect.</span><br><span class="line">	if idle &#123;</span><br><span class="line">		ac.connect()</span><br><span class="line">	&#125;</span><br><span class="line">	return nil, false</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个方法如果找到了一个 Ready 的连接直接返回，如果是 Idle 状态的则会执行 connect 进行连接。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">func (ac *addrConn) connect() error &#123;</span><br><span class="line">	ac.mu.Lock()</span><br><span class="line">	if ac.state != connectivity.Idle &#123;</span><br><span class="line">		ac.mu.Unlock()</span><br><span class="line">		return nil</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	ac.updateConnectivityState(connectivity.Connecting)</span><br><span class="line">	ac.mu.Unlock()</span><br><span class="line"></span><br><span class="line">	go ac.resetTransport()</span><br><span class="line">	return nil</span><br><span class="line">&#125;</span><br><span class="line">func (ac *addrConn) tryAllAddrs(addrs []resolver.Address, connectDeadline time.Time) (transport.ClientTransport, resolver.Address, *grpcsync.Event, error) &#123;</span><br><span class="line">	for _, addr := range addrs &#123;</span><br><span class="line">		newTr, reconnect, err := ac.createTransport(addr, copts, connectDeadline)</span><br><span class="line">		if err == nil &#123;</span><br><span class="line">			return newTr, addr, reconnect, nil</span><br><span class="line">		&#125;</span><br><span class="line">		ac.cc.blockingpicker.updateConnectionError(err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>&emsp;&emsp;通过调用 connect()，采取异步的方式对 SubConn 中的所有地址建立连接。传统的 client 是现实对某个服务器建立 connect。而 stream 的实质是对一批 server 的地址进行轮训并建立 connect。</p>
+<h1 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h1><p>&emsp;&emsp;gRPC 的负载均衡是基于每次请求调用上，而不是每条连接的。所以即使是同一台客户端发出的请求，也会负载均衡到不同的服务器上进行调用。虽然 gRPC 内置了负载均衡策略的 API，但是并不推荐使用这种方式。建议用户在外部负载均衡器中完成负载均衡策略。<br>&emsp;&emsp;由于 gRPC 支持插件式的 balancer，所以可以自己定义特定的 balancer，例如 grpc-lb。使用时提前将 balancerBuilder 注册到列表中，然后将对应的名称作为参数传入 Dail() 函数即可。实现的接口也就是 Picker 即可。</p>
+<h1 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h1><ol>
+<li>【Wiki/负载均衡】<a href="https://zh.wikipedia.org/wiki/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1" target="_blank" rel="noopener">https://zh.wikipedia.org/wiki/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1</a></li>
+<li>【liyue201/grpc-lb】<a href="https://github.com/liyue201/grpc-lb" target="_blank" rel="noopener">https://github.com/liyue201/grpc-lb</a></li>
+<li>【深入理解负载均衡】<a href="https://juejin.im/post/5b39eea0e51d4558c1010e36" target="_blank" rel="noopener">https://juejin.im/post/5b39eea0e51d4558c1010e36</a></li>
+<li>【Load Balancing in gRPC】<a href="https://github.com/grpc/grpc/blob/master/doc/load-balancing.md" target="_blank" rel="noopener">https://github.com/grpc/grpc/blob/master/doc/load-balancing.md</a></li>
+<li>【实施微服务需要哪些基础框架｜技术热点 】<a href="http://www.sohu.com/a/139280081_711529" target="_blank" rel="noopener">http://www.sohu.com/a/139280081_711529</a></li>
+</ol>
+
         
       
     </div>
@@ -312,7 +389,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-02-17 16:11:18" itemprop="dateModified" datetime="2020-02-17T16:11:18+08:00">2020-02-17</time>
+                <time title="修改时间：2020-02-17 16:19:35" itemprop="dateModified" datetime="2020-02-17T16:19:35+08:00">2020-02-17</time>
               </span>
             
           

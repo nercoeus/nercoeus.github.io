@@ -67,7 +67,7 @@
 <meta property="og:image" content="http://yoursite.com/2020/02/16/RPC系列⑥-gRPC-go-resolver-服务发现/1.png">
 <meta property="og:image" content="http://yoursite.com/2020/02/16/RPC系列⑥-gRPC-go-resolver-服务发现/2.png">
 <meta property="og:image" content="http://yoursite.com/2020/02/16/RPC系列⑥-gRPC-go-resolver-服务发现/3.png">
-<meta property="og:updated_time" content="2020-02-17T08:11:18.734Z">
+<meta property="og:updated_time" content="2020-02-17T08:19:35.741Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="RPC系列⑥:gRPC-go resolver(名称解析)">
 <meta name="twitter:description" content="1. 什么是服务发现&amp;emsp;&amp;emsp;客户端想要和服务端进行数据传输时需要知道服务器的地址：IP + port。如果服务器不经常变动的话，客户端可以从配置文件或类似的地方获取。但是在现在这种微服务应用来说，这明显是不现实的。随着微服务地址的动态分配，客户端要怎么获取服务器的地址呢？这就需要使用到服务发现技术。总的来说服务发现分为两种方式：  客户端发现模式 代理层发现模式(服务端发现模式)">
@@ -253,7 +253,7 @@
                   <i class="fa fa-calendar-check-o"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2020-02-17 16:11:18" itemprop="dateModified" datetime="2020-02-17T16:11:18+08:00">2020-02-17</time>
+                <time title="修改时间：2020-02-17 16:19:35" itemprop="dateModified" datetime="2020-02-17T16:19:35+08:00">2020-02-17</time>
               </span>
             
           
@@ -332,10 +332,10 @@
 </ol>
 <p>&emsp;&emsp;gRPC 提供两种 resolver 方式，并且支持自定义的服务发现方式的 resolver。并采用插件的方式进行管理。通过在 init() 中注册 resolverBuilder，用来创建 resolver 对象。</p>
 <h1 id="reference"><a href="#reference" class="headerlink" title="reference"></a>reference</h1><ol>
-<li>[什么是服务发现] <a href="https://www.jianshu.com/p/4828f90674b3" target="_blank" rel="noopener">https://www.jianshu.com/p/4828f90674b3</a></li>
-<li>[grpc_read/5-grpc 服务发现] <a href="https://github.com/lubanproj/grpc_read/blob/master/5-grpc%20%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0.md" target="_blank" rel="noopener">https://github.com/lubanproj/grpc_read/blob/master/5-grpc%20%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0.md</a></li>
-<li>[小米出品——gRPC Name Resolver 原理及实践] <a href="https://blog.csdn.net/RA681t58CJxsgCkJ31/article/details/104079070" target="_blank" rel="noopener">https://blog.csdn.net/RA681t58CJxsgCkJ31/article/details/104079070</a></li>
-<li>[Leveraging Consul as Service Discovery, Health Checking, and Key Value (KV) Store in Go Microservices] <a href="https://medium.com/@didiyudhaperwira/leveraging-consul-as-service-discovery-health-checking-and-key-value-kv-store-in-go-d68a2e074aea" target="_blank" rel="noopener">https://medium.com/@didiyudhaperwira/leveraging-consul-as-service-discovery-health-checking-and-key-value-kv-store-in-go-d68a2e074aea</a></li>
+<li>【什么是服务发现】 <a href="https://www.jianshu.com/p/4828f90674b3" target="_blank" rel="noopener">https://www.jianshu.com/p/4828f90674b3</a></li>
+<li>【grpc_read/5-grpc 服务发现】 <a href="https://github.com/lubanproj/grpc_read/blob/master/5-grpc%20%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0.md" target="_blank" rel="noopener">https://github.com/lubanproj/grpc_read/blob/master/5-grpc%20%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0.md</a></li>
+<li>【小米出品——gRPC Name Resolver 原理及实践】 <a href="https://blog.csdn.net/RA681t58CJxsgCkJ31/article/details/104079070" target="_blank" rel="noopener">https://blog.csdn.net/RA681t58CJxsgCkJ31/article/details/104079070</a></li>
+<li>【Leveraging Consul as Service Discovery, Health Checking, and Key Value (KV) Store in Go Microservices】 <a href="https://medium.com/@didiyudhaperwira/leveraging-consul-as-service-discovery-health-checking-and-key-value-kv-store-in-go-d68a2e074aea" target="_blank" rel="noopener">https://medium.com/@didiyudhaperwira/leveraging-consul-as-service-discovery-health-checking-and-key-value-kv-store-in-go-d68a2e074aea</a></li>
 </ol>
 
     </div>
