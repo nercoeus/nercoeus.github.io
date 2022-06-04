@@ -6,6 +6,16 @@
     <description>Recent content in Tags on nercoeus-blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <copyright>© Athul</copyright><atom:link href="https://nercoeus.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <copyright>© nercoeus</copyright>
+    <lastBuildDate>Fri, 03 Jun 2022 23:31:48 +0800</lastBuildDate><atom:link href="https://nercoeus.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>CSAPP-读书笔记</title>
+      <link>https://nercoeus.github.io/tags/csapp-%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/</link>
+      <pubDate>Fri, 03 Jun 2022 23:31:48 +0800</pubDate>
+      
+      <guid>https://nercoeus.github.io/tags/csapp-%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/</guid>
+      <description></description>
+    </item>
+    
   </channel>
 </rss>
