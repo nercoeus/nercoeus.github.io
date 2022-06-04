@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>UNP_21_组播 - nercoeus-blog</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="21.1 概述
+单播地址：单个 IP 接口
+组播地址：一组 IP 接口
+广播地址：所有 IP 接口（当前局域网中）" />
+	<meta property="og:image" content=""/>
+	<meta property="og:title" content="UNP_21_组播" />
+<meta property="og:description" content="21.1 概述
+单播地址：单个 IP 接口
+组播地址：一组 IP 接口
+广播地址：所有 IP 接口（当前局域网中）" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://nercoeus.github.io/post/unp_21_%E7%BB%84%E6%92%AD/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2020-03-21T23:31:48&#43;08:00" />
+<meta property="article:modified_time" content="2020-03-21T23:31:48&#43;08:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="UNP_21_组播"/>
+<meta name="twitter:description" content="21.1 概述
+单播地址：单个 IP 接口
+组播地址：一组 IP 接口
+广播地址：所有 IP 接口（当前局域网中）"/>
+<script src="https://nercoeus.github.io/js/feather.min.js"></script>
+	
+	
+        <link href="https://nercoeus.github.io/css/fonts.b685ac6f654695232de7b82a9143a46f9e049c8e3af3a21d9737b01f4be211d1.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="https://nercoeus.github.io/css/main.40ca3a860425083862b7ebd55447caec5c4384573f0cb098b8d06a91e8dace2e.css" />
+	
+	
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="https://nercoeus.github.io/">nercoeus-blog</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+	<article>
+		<div class="title">
+			<h1 class="title">UNP_21_组播</h1>
+			<div class="meta">Posted on Mar 21, 2020</div>
+		</div>
+		
+
+		<section class="body">
+			<h2 id="211-概述">21.1 概述</h2>
+<p>单播地址：单个 IP 接口<br>
+组播地址：一组 IP 接口<br>
+广播地址：所有 IP 接口（当前局域网中）</p>
+<p>  组播是单播和广播的一种折中方案。组播数据报仅由对它感兴趣的接口才会接收，由运行相应组播会话应用系统的主机上的接口接收。广播一般仅在局域网中进行使用，组播即可以支持局域网又支持广域网。<br>
+  套接字 API 对组播的支持增加了 9 个套接字选项，其中 3 个影响目的地址为组播地址的 UDP 数据报的发送，另外 6 个影响主机对于组播数据报的接收。<br>
+  为了接收目的地址为某个组地址且目的端口为某个端口的多播数据组，进程必须加入该多播组，并捆绑该端口到某个UDP套接字。此两操作是截然不同的，不过都是必需的。多播组加入操作告知所在主机的IP层和数据链路层接收发往该组的多播数据报。端口捆绑操作则是应用进程向UDP指示它想接收发往该端口的数据报的手段。</p>
+<h2 id="212-组播地址">21.2 组播地址</h2>
+<p>我们需要了解 IPv4 的组播和 IPv6 的组播的不同</p>
+<h3 id="ipv4-的-d-类地址">IPv4 的 D 类地址</h3>
+<p>IPv4 的 D 类地址（从 224.0.0.0 到 239.255.255.255）是 IPv4 组播地址。D 类地址的低序 28 位构成组播组 ID，整个 32 位地址称为组地址。<br>
+IPv4 的以太网多播地址的高 24 位总是 01:00:5e.下一位总是 0，底序的 23 位复制自多播组 ID 的低序 23 位。多播组 ID 的高序 5 位在映射过程中被忽略。这意谓着 32 个多播地址映射成单个以太网地址，因此这个映射关系不是一对一的。<br>
+以太网地址首字节的低序 2 位标明地址是一个统一管理的组地址。<strong>统一管理</strong>属性位意味着以太网地址的高序 24 位由 IEEE 分配，组地址属性位由接收接口识别并进行特殊处理。</p>
+<h4 id="几个特殊的-ipv4-多播地址">几个特殊的 IPv4 多播地址：</h4>
+<ul>
+<li>224.0.0.1 是所有主机组。子网上所有具有多播能力的节点（主机，路由器或打印机等）必须在所有具有多播能力的接口上加入该组。</li>
+<li>224.0.0.2 是所有路由器组。子网上所有多播路由器必须在所有具有多播能力的接口上加上该组<br>
+<strong>介于 224.0.0.0 - 224.0.0.255 之间的地址（224.0.0.0/24）称为链路局部的组播地址。这些地址式为低级拓扑发现和维护协议保留的。多播路由器从不转发以些地址为目的的地址的数据报。</strong></li>
+</ul>
+<h3 id="ipv6-多播地址">IPv6 多播地址</h3>
+<p>IPv6 组播地址的高序字节值为 ff。其中 112 位组 ID 的低序 32 位复制到以太网地址的低序 32 位。以太网地址的高序 2 字节为 33:33。<br>
+以太网地址首字节低序 2 位标明该地址是一个局部管理的组地址。<strong>局部管理</strong>意味着不能保证该地址对于 IPv6 的唯一性。可能有 IPv6 以外的其它的协议族共享同一网络使用同样的以太网高位 2 字节值。</p>
+<h3 id="多播地址的范围">多播地址的范围：</h3>
+<p>IPv6 多播地址显示的存在一个 4 位的范围字段，用于指定多播数据报能够游走的范围。IPv6 分组还有一个跳限字段，用于限制分组被路由器转发的次数</p>
+<h3 id="多播会话">多播会话：</h3>
+<p>一个多播地址（IPv4 or IPv6 地址）和一个传输层端口（通常是 UDP 端口）组合为一个会话。举例来说，一个音频/视频电话可能使用两个会话，一个用于音频，一个用于视频，这些会话一般使用相同的端口</p>
+<h2 id="213-局域网上组播和广播的比较">21.3 局域网上组播和广播的比较</h2>
+<p>接收端需要加入对应的组播，但是发送端并不需要。</p>
+<h2 id="214-广域网上的组播">21.4 广域网上的组播</h2>
+<h2 id="215-原特定组播">21.5 原特定组播</h2>
+<h2 id="216-组播套接字选项">21.6 组播套接字选项</h2>
+<p>关于组播的套接字选项这里不做展示，参看 UNP-21.6节</p>
+<h2 id="217-mcast_join-和相关函数">21.7 mcast_join 和相关函数</h2>
+<h2 id="218-使用组播的-dg_cli-函数">21.8 使用组播的 dg_cli 函数</h2>
+<h2 id="219-接收-ip-组播基础设施会话声明">21.9 接收 ip 组播基础设施会话声明</h2>
+<h2 id="2110-发送和接受">21.10 发送和接受</h2>
+<h2 id="2111-sntp简单网络时间协议">21.11 sntp：简单网络时间协议</h2>
+<h2 id="小结">小结</h2>
+		</section>
+
+		<div class="post-tags">
+			
+			
+			<nav class="nav tags">
+				<ul class="tags">
+					
+					<li><a href="/tags/unp-book-notes">UNP-book-notes</a></li>
+					
+				</ul>
+			</nav>
+			
+			
+		</div>
+	</article>
+</main>
+<footer>
+  <div style="display:flex"><a class="soc" href="https://github.com/nercoeus" title="GitHub"><i data-feather="github"></i></a><a class="soc" href="https://twitter.com/nercoeus/" title="Twitter"><i data-feather="twitter"></i></a><a class="soc" href="nercoeus@gmail.com" title="Email"><i data-feather="mail"></i></a></div>
+  <div class="footer-info">
+    2022  © nercoeus |  Built with <a
+      href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+
+<script>
+  feather.replace()
+</script></div>
+    </body>
+</html>

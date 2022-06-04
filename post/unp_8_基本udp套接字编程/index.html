@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>UNP_8_基本UDP套接字编程 - nercoeus-blog</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="8.1 概述
+  在使用 TCP 编写的程序和 UDP 编写的程序之间存在本质的差别，这两种协议的传输层存在差别：UDP 是无连接不可靠的数据报协议，不同于 TCP 提供的面向连接的可靠字节流。相比 TCP 有些场合更加适合使用 UDP,例如 DNS，NFS，SNMP系统等等
+  客户和服务器之间的数据传输可以使用  sendto，recvfrom 两个函数来进行通讯，其中，sendto 必须指定目的地址，同理 recvfrom 会一并收到客户端的协议地址，所以服务器可以正确的对客户端进行响应
+  本章还会介绍在 UDP 协议中使用 connect 的影响" />
+	<meta property="og:image" content=""/>
+	<meta property="og:title" content="UNP_8_基本UDP套接字编程" />
+<meta property="og:description" content="8.1 概述
+  在使用 TCP 编写的程序和 UDP 编写的程序之间存在本质的差别，这两种协议的传输层存在差别：UDP 是无连接不可靠的数据报协议，不同于 TCP 提供的面向连接的可靠字节流。相比 TCP 有些场合更加适合使用 UDP,例如 DNS，NFS，SNMP系统等等
+  客户和服务器之间的数据传输可以使用  sendto，recvfrom 两个函数来进行通讯，其中，sendto 必须指定目的地址，同理 recvfrom 会一并收到客户端的协议地址，所以服务器可以正确的对客户端进行响应
+  本章还会介绍在 UDP 协议中使用 connect 的影响" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://nercoeus.github.io/post/unp_8_%E5%9F%BA%E6%9C%ACudp%E5%A5%97%E6%8E%A5%E5%AD%97%E7%BC%96%E7%A8%8B/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2020-03-08T23:31:48&#43;08:00" />
+<meta property="article:modified_time" content="2020-03-08T23:31:48&#43;08:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="UNP_8_基本UDP套接字编程"/>
+<meta name="twitter:description" content="8.1 概述
+  在使用 TCP 编写的程序和 UDP 编写的程序之间存在本质的差别，这两种协议的传输层存在差别：UDP 是无连接不可靠的数据报协议，不同于 TCP 提供的面向连接的可靠字节流。相比 TCP 有些场合更加适合使用 UDP,例如 DNS，NFS，SNMP系统等等
+  客户和服务器之间的数据传输可以使用  sendto，recvfrom 两个函数来进行通讯，其中，sendto 必须指定目的地址，同理 recvfrom 会一并收到客户端的协议地址，所以服务器可以正确的对客户端进行响应
+  本章还会介绍在 UDP 协议中使用 connect 的影响"/>
+<script src="https://nercoeus.github.io/js/feather.min.js"></script>
+	
+	
+        <link href="https://nercoeus.github.io/css/fonts.b685ac6f654695232de7b82a9143a46f9e049c8e3af3a21d9737b01f4be211d1.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="https://nercoeus.github.io/css/main.40ca3a860425083862b7ebd55447caec5c4384573f0cb098b8d06a91e8dace2e.css" />
+	
+	
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="https://nercoeus.github.io/">nercoeus-blog</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+	<article>
+		<div class="title">
+			<h1 class="title">UNP_8_基本UDP套接字编程</h1>
+			<div class="meta">Posted on Mar 8, 2020</div>
+		</div>
+		
+
+		<section class="body">
+			<h2 id="81-概述">8.1 概述</h2>
+<p>  在使用 TCP 编写的程序和 UDP 编写的程序之间存在本质的差别，这两种协议的传输层存在差别：UDP 是无连接不可靠的数据报协议，不同于 TCP 提供的面向连接的可靠字节流。相比 TCP 有些场合更加适合使用 UDP,例如 DNS，NFS，SNMP系统等等</p>
+<p>  客户和服务器之间的数据传输可以使用  sendto，recvfrom 两个函数来进行通讯，其中，sendto 必须指定目的地址，同理 recvfrom 会一并收到客户端的协议地址，所以服务器可以正确的对客户端进行响应</p>
+<p>  本章还会介绍在 UDP 协议中使用 connect 的影响</p>
+<h2 id="82-recvfrom-和-sendto-函数">8.2 recvfrom 和 sendto 函数</h2>
+<p>类似于标准的 read 和 write 函数，但是需要额外的三个参数</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;sys/socket.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>ssize_t <span style="color:#a6e22e">recvfrom</span>(<span style="color:#66d9ef">int</span> sockfd, <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>buff, size_t nbytes, 
+                 <span style="color:#66d9ef">int</span> flags, <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr</span> <span style="color:#f92672">*</span>from, socklen_t <span style="color:#f92672">*</span>addrlen);
+
+ssize_t <span style="color:#a6e22e">sendto</span>(<span style="color:#66d9ef">int</span> sockfd, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>buff, size_t nbytes, 
+                 <span style="color:#66d9ef">int</span> flags, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr</span> <span style="color:#f92672">*</span>to, socklen_t addrlen);
+                 <span style="color:#75715e">// 若成功均返回读或写的字节数，出错返回 -1
+</span><span style="color:#75715e"></span>                 <span style="color:#75715e">// 与标准 read，write 不同，可以返回 0 代表只读 0 字节
+</span><span style="color:#75715e"></span>                 <span style="color:#75715e">// 但是在 TCP 中 read 返回 0 代表对端关闭连接
+</span></code></pre></div><p>参数解析：</p>
+<ul>
+<li>sockfd：描述符</li>
+<li>buff：指向读入或输出的缓冲区指针</li>
+<li>nbytes：读写字节数</li>
+<li>flags：后面进行讨论</li>
+<li>to/from：指向一个协议地址（例如 IP 地址和端口号）的套接字地址结构，大小由 addrlen 参数决定</li>
+</ul>
+<h3 id="注意sendto-最后一个参数是一个值类型而-recvfrom-是一个指针类型">注意：sendto 最后一个参数是一个值类型，而 recvfrom 是一个指针类型</h3>
+<h4 id="如果-recvfrom-的地址指针是一个空指针那么长度指针也必须是一个空指针代表并不关心是哪里发来的数据">如果 recvfrom 的地址指针是一个空指针，那么长度指针也必须是一个空指针，代表并不关心是哪里发来的数据</h4>
+<h2 id="83-udp-回射服务器程序main-函数">8.3 UDP 回射服务器程序：main 函数</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span> argv){
+    <span style="color:#66d9ef">int</span> sockfd;
+    <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_in</span> servaddr, chiladdr;
+    <span style="color:#75715e">// 创建 UDP 套接字指定 SOCK_DGRAM
+</span><span style="color:#75715e"></span>    sockfd <span style="color:#f92672">=</span> Socket(AF_INET, SOCK_DGRAM, <span style="color:#ae81ff">0</span>);
+
+    bzero(<span style="color:#f92672">&amp;</span>servaddr, <span style="color:#66d9ef">sizeof</span>(servaddr));
+    aervaddr.sin_family <span style="color:#f92672">=</span> AF_INET;
+    aervaddr.sin_addr.s_addr <span style="color:#f92672">=</span> htonl(INADDR_ANY);
+    aervaddr.sin_port <span style="color:#f92672">=</span> htons(SERV_PORT);
+    <span style="color:#75715e">// 绑定本机地址
+</span><span style="color:#75715e"></span>    Bind(sockfd, (SA<span style="color:#f92672">*</span>)<span style="color:#f92672">&amp;</span>servaddr, <span style="color:#66d9ef">sizeof</span>(servaddr));
+    <span style="color:#75715e">// 执行服务器回射逻辑
+</span><span style="color:#75715e"></span>    dg_echo(sockfd, (SA<span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>cliaddr, <span style="color:#66d9ef">sizeof</span>(cliaddr));
+}
+</code></pre></div><h1 id="84-udp-回射服务器程序dg_echo-函数">8.4 UDP 回射服务器程序：dg_echo 函数</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">dg_echo</span>(<span style="color:#66d9ef">int</span> sockfd, SA <span style="color:#f92672">*</span>pcliaddr, socklen_t clilen)
+{
+	<span style="color:#66d9ef">int</span>			n;
+	socklen_t	len;
+	<span style="color:#66d9ef">char</span>		mesg[MAXLINE];
+
+	<span style="color:#66d9ef">for</span> ( ; ; ) {
+		len <span style="color:#f92672">=</span> clilen;
+        <span style="color:#75715e">// 使用 recvfrom 读取下一个到达端口的数据报，在使用 sendto 发送回发送者
+</span><span style="color:#75715e"></span>		n <span style="color:#f92672">=</span> Recvfrom(sockfd, mesg, MAXLINE, <span style="color:#ae81ff">0</span>, pcliaddr, <span style="color:#f92672">&amp;</span>len);
+
+		Sendto(sockfd, mesg, n, <span style="color:#ae81ff">0</span>, pcliaddr, len);
+	}
+}
+</code></pre></div><ul>
+<li>这个函数永远不会终止，因为 UDP 是一个无连接的协议，没有像 TCP 中 EOF 之类的东西</li>
+<li>该服务器是一个迭代服务器，并没有使用 fork，所以一个服务器进程就可以处理所有的客户。一般来说大多数 TCP 服务器是并发的，大多数 UDP 服务器是迭代的</li>
+<li>每一个 UDP 套接字均有一个接收缓冲区，当进程调用 recvfrom 时，缓冲区下一个数据报以 FIFO 方式返回给进程。使用 SO_RCVBUF 可以修改接收缓冲区</li>
+</ul>
+<p>  上面的两个函数，main 函数是协议相关的（创建 AF_INET 套接字，分配并初始化一个 Ipv4 套接字地址结构），dg_echo 是协议无关的，因为 dg_echo 并不查看传入的地址只进行使用。</p>
+<h2 id="85-udp-回射客户程序main-函数">8.5 UDP 回射客户程序：main 函数</h2>
+<p>UDP 客户端的 main 函数</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>argv)
+{
+	<span style="color:#66d9ef">int</span>					sockfd;
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_in</span>	servaddr;
+
+	<span style="color:#66d9ef">if</span> (argc <span style="color:#f92672">!=</span> <span style="color:#ae81ff">2</span>)
+		err_quit(<span style="color:#e6db74">&#34;usage: udpcli &lt;IPaddress&gt;&#34;</span>);
+    <span style="color:#75715e">// 把服务器的 IP + port 填入一个地址结构，将该结构发送给 dg_cli，用来表示数据发送到哪里
+</span><span style="color:#75715e"></span>	bzero(<span style="color:#f92672">&amp;</span>servaddr, <span style="color:#66d9ef">sizeof</span>(servaddr));
+	servaddr.sin_family <span style="color:#f92672">=</span> AF_INET;
+	servaddr.sin_port <span style="color:#f92672">=</span> htons(SERV_PORT);
+	Inet_pton(AF_INET, argv[<span style="color:#ae81ff">1</span>], <span style="color:#f92672">&amp;</span>servaddr.sin_addr);
+    <span style="color:#75715e">// 创建一个 UDP 套接字，调用 dg_cli
+</span><span style="color:#75715e"></span>	sockfd <span style="color:#f92672">=</span> Socket(AF_INET, SOCK_DGRAM, <span style="color:#ae81ff">0</span>);
+
+	dg_cli(stdin, sockfd, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>servaddr, <span style="color:#66d9ef">sizeof</span>(servaddr));
+
+	exit(<span style="color:#ae81ff">0</span>);
+}
+</code></pre></div><h2 id="86-udp-回射客户程序dg_cli-函数">8.6 UDP 回射客户程序：dg_cli 函数</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">dg_cli</span>(FILE <span style="color:#f92672">*</span>fp, <span style="color:#66d9ef">int</span> sockfd, <span style="color:#66d9ef">const</span> SA <span style="color:#f92672">*</span>pservaddr, socklen_t servlen)
+{
+	<span style="color:#66d9ef">int</span>	n;
+	<span style="color:#66d9ef">char</span>	sendline[MAXLINE], recvline[MAXLINE <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>];
+    <span style="color:#75715e">// 从标准输入接收数据
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">while</span> (Fgets(sendline, MAXLINE, fp) <span style="color:#f92672">!=</span> NULL) {
+        <span style="color:#75715e">// 发送给服务器
+</span><span style="color:#75715e"></span>		Sendto(sockfd, sendline, strle n(sendline), <span style="color:#ae81ff">0</span>, pservaddr, servlen);
+        <span style="color:#75715e">// 从服务器获取回射的数据
+</span><span style="color:#75715e"></span>		n <span style="color:#f92672">=</span> Recvfrom(sockfd, recvline, MAXLINE, <span style="color:#ae81ff">0</span>, NULL, NULL);
+        <span style="color:#75715e">// 把数据的末尾置为 \0
+</span><span style="color:#75715e"></span>		recvline[n] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;	<span style="color:#75715e">/* null terminate */</span>
+        <span style="color:#75715e">// 打印出来
+</span><span style="color:#75715e"></span>		Fputs(recvline, stdout);
+	}
+}
+</code></pre></div><ul>
+<li>我们的客户端并没有指定 port，对于 UDP 套接字，在进程首次调用 sendto 的时候会由内核默认选择一个临时端口。和 TCP 一样，客户可以显示的调用 bind，几乎不会这么使用</li>
+<li>dg_cli 也是协议无关的函数，客户的 main 函数是协议相关的，main 函数初始化一个某种协议类型的地址结构，并将其发送给 dg_cli</li>
+</ul>
+<h2 id="87-数据报的丢失">8.7 数据报的丢失</h2>
+<pre><code>    这个 UDP 客户端和服务器不可靠，如果一个客户端的数据丢失，客户端将永远阻塞在 recvfrom 调用上，防止这种情况一般是给 recvfrom 设置一个超时  
+    但是超时并不能很好的解决问题，我们不能判断超时原因是数据没有到达服务器，还是服务器的应答没有回到客户。
+</code></pre>
+<h2 id="88-验证接收到的响应">8.8 验证接收到的响应</h2>
+<pre><code>    因为客户端发送的数据是随机端口的，所以我们收到的数据报可能是多个进程互相混乱。暂时的方法是记录发送时的 IP 和 port，这样接收到数据时，仅需要进行判断，相同的地址则保留，忽略任何其他数据报。
+</code></pre>
+<p>  我们修改 servaddr.sin_port = htons(SERV_PORT) 转换为 servaddr.sin_port = htons(7）<br>
+  重写 dg_cli 函数以分配另一个套接字地址结构用来存放 recvfrom 返回的结构</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">dg_cli</span>(FILE <span style="color:#f92672">*</span>fp, <span style="color:#66d9ef">int</span> sockfd, <span style="color:#66d9ef">const</span> SA <span style="color:#f92672">*</span>pservaddr, socklen_t servlen)
+{
+	<span style="color:#66d9ef">int</span>				n;
+	<span style="color:#66d9ef">char</span>			sendline[MAXLINE], recvline[MAXLINE <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>];
+	socklen_t		len;
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr</span>	<span style="color:#f92672">*</span>preply_addr;
+    <span style="color:#75715e">// 分配一个地址结构
+</span><span style="color:#75715e"></span>	preply_addr <span style="color:#f92672">=</span> Malloc(servlen);
+
+	<span style="color:#66d9ef">while</span> (Fgets(sendline, MAXLINE, fp) <span style="color:#f92672">!=</span> NULL) {
+
+		Sendto(sockfd, sendline, strlen(sendline), <span style="color:#ae81ff">0</span>, pservaddr, servlen);
+
+		len <span style="color:#f92672">=</span> servlen;
+		n <span style="color:#f92672">=</span> Recvfrom(sockfd, recvline, MAXLINE, <span style="color:#ae81ff">0</span>, preply_addr, <span style="color:#f92672">&amp;</span>len);
+        <span style="color:#75715e">// 判断目标地址和回来的数据报的发送地址是否一致，不一致的话就忽略
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> (len <span style="color:#f92672">!=</span> servlen <span style="color:#f92672">||</span> memcmp(pservaddr, preply_addr, len) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>) {
+			printf(<span style="color:#e6db74">&#34;reply from %s (ignored)</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,
+					Sock_ntop(preply_addr, len));
+			<span style="color:#66d9ef">continue</span>;
+		}
+
+		recvline[n] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;	<span style="color:#75715e">/* null terminate */</span>
+		Fputs(recvline, stdout);
+	}
+}
+</code></pre></div><p>  如果这个程序仅运行在一个只有单个 IP 地址的服务器上，工作正常。但是服务器是多个 IP 的话，可能返回时的地址和发送的目的地址不一样，但都是一个服务器</p>
+<ul>
+<li>解决办法一：得到 recvfrom 返回的地址之后，使用 DNS 查找服务器主机的名字来验证主机的域名（而不是 IP 地址）</li>
+<li>解决办法二：UDP 服务器个体每个 IP 地址创建一个套接字服务器，用 bind 进行捆绑。然后使用 select 进行等待，之后根据不同的 IP 地址，进行发送即可，这就保证了应答的源地址和请求的目的地址相同</li>
+</ul>
+<h2 id="89-服务器进程未运行">8.9 服务器进程未运行</h2>
+<pre><code>    在不启动服务器的情况下启动客户的话，因为是 UDP 所以并不能直到服务器的状态，所以当客户端发送一个数据报时，会阻塞在 recvfrom 处，有超时会等待超时  
+    当客户主机发送 UDP 数据报之前，需要一次 ARP 请求和应答的交换。  
+    如果服务器没有启动，ARP 请求会返回一个 客户端不可达 的 ICMP 报错，但是并不会返回给客户端进程  
+    这种错误是 异步错误，该错误由 sendto 引起，但是 sendto 本身却成功返回。我们知道 UDP 输出操作成功返回仅仅表示接口输出队列中具有存放所形成 IP 数据包的空间。但是错误在一段时间后返回，这就是异步的原因  
+</code></pre>
+<h3 id="一个基本规则对于一个-udp-套接字它引发的异步错误并不返回给它除非它已连接">一个基本规则：对于一个 UDP 套接字，它引发的异步错误并不返回给它，除非它已连接。</h3>
+<h2 id="810-udp-程序例子小结">8.10 UDP 程序例子小结</h2>
+<pre><code>    客户需要给 sendto 指定服务器的 IP + port，由内核自动选择客户端的 IP + port，客户端也可以使用 bind 来指定它们。客户的临时端口是在第一次调用 sendto 时由内核指定的，并且不可以进行改变；但是客户端的IP 地址可以每次调用 sendto 时进行随机选择。如果客户端时多宿的，那么客户端可以在多个 IP 地址之间反复横跳  
+    如果客户捆绑一个 IP 地址到其套接字上，但是内核决定外出数据报必须从另一个数据链路发出，这种情况下， IP 数据报将包含一个不同于外出链路 IP 地址的源 IP 地址。  
+    TCP 服务器，可以很容易的获取 源 IP + port 和 目的 IP + port。并且保持不变。对于 UDP 要想获取需要使用 IP_RECVDSTADDR 套接字并调用 recvmsg 函数来进行获取  
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>来自客户的 IP 数据报</th>
+<th>TCP 服务器</th>
+<th>UDP 服务器</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>源 IP 地址</td>
+<td>accept</td>
+<td>recvfrom</td>
+</tr>
+<tr>
+<td>源 port</td>
+<td>accept</td>
+<td>recvfrom</td>
+</tr>
+<tr>
+<td>目的 IP 地址</td>
+<td>getsockname</td>
+<td>recvmsg</td>
+</tr>
+<tr>
+<td>目的 port</td>
+<td>getsockname</td>
+<td>getsockname</td>
+</tr>
+</tbody>
+</table>
+<h3 id="emspemsp服务器可从到达的-ip-数据报中获取的信息">  服务器可从到达的 IP 数据报中获取的信息</h3>
+<h2 id="811-udp-的-connect-函数">8.11 UDP 的 connect 函数</h2>
+<p>  对 UDP 调用 connect 函数的效果和 TCP 存在极大的差别。没有三路握手的过程，内核仅仅检查是否存在立即可知的错误（例如存在一个明显不可以到达的目的地），记录对端的 IP 地址和端口号（取自传递给 connect 的套接字地址结构），之后便返回。</p>
+<ul>
+<li>未连接 UDP 套接字：新创建的 UDP 套接字默认状态</li>
+<li>已连接 UDP 套接字：对 UDP 套接字调用 connect 的结果
+对于已经连接的 UDP 套接字和未连接的相比不同点如下：</li>
+</ul>
+<ol>
+<li>我们不能给输出操作指定目的地址，即不可以使用 sendto，应该使用 write 或 send。写到已连接套接字上的任何内容均自动发送给 connect 连接的目的地址，非要使用 sendto 也可以，但是目的地址参数必须是空指针。</li>
+<li>不必使用 recvfrom 用来获取数据报的发送者，而改用 read，recv 或 recvmsg。在一个已经连接的 UDP 套接字上，由内核为输入操作的数据报只来自那些由 connect 所指定的协议地址数据报。</li>
+<li>由已连接 UDP 套接字引发的异步错误会返回给他们所在的进程，而未连接 UDP 套接字不接受任何异步错误</li>
+</ol>
+<h4 id="我们说-udp-客户端或者服务器仅在使用自己的-udp-套接字与确定的唯一对端进行通信时才可以调用-connect一般通常是客户端进行-connect-调用">我们说 UDP 客户端或者服务器仅在使用自己的 UDP 套接字与确定的唯一对端进行通信时，才可以调用 connect，一般通常是客户端进行 connect 调用。</h4>
+<h3 id="1-给一个-udp-套接字多次调用-connect">1. 给一个 UDP 套接字多次调用 connect</h3>
+<p>由以下两个目的会多次使用 connect</p>
+<ul>
+<li>指定新的套接字地址（IP + port）</li>
+<li>断开套接字</li>
+</ul>
+<h4 id="注意对-tcp-只能调用一次-connect">注意对 TCP 只能调用一次 connect</h4>
+<h4 id="为了断开一个已连接-udp-套接字下一次调用-connect-时需要指定套接字地址参数为-af_unspec可能会返回-eafnosupport-错误但是不用处理">为了断开一个已连接 UDP 套接字，下一次调用 connect 时需要指定套接字地址参数为 AF_UNSPEC，可能会返回 EAFNOSUPPORT 错误，但是不用处理</h4>
+<h3 id="2-性能">2. 性能</h3>
+<p>在一个未连接 UDP 套接字使用 sendto 发送数据步骤如下：</p>
+<ul>
+<li>连接套接字</li>
+<li>输出第一个数据报</li>
+<li>断开套接字连接</li>
+<li>连接套接字</li>
+<li>输出第二个数据报</li>
+<li>断开套接字连接</li>
+</ul>
+<p>当应用给一个唯一的地址发送数据时，显示连接地质结构效率更高，已连接 UDP 套接字发送数据如下：</p>
+<ul>
+<li>连接套接字</li>
+<li>输出第一个数据报</li>
+<li>输出第二个数据报</li>
+</ul>
+<p>内核仅复制一次目的地质结构，未连接的需要复制多次，已连接 UDP 套接字所需开销仅占未连接 UDP 套接字的三分之一</p>
+<h2 id="812-dg_cli-函数修订版">8.12 dg_cli 函数（修订版）</h2>
+<p>使用 connect 函数来重写 dg_cli 函数</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">dg_cli</span>(FILE <span style="color:#f92672">*</span>fp, <span style="color:#66d9ef">int</span> sockfd, <span style="color:#66d9ef">const</span> SA <span style="color:#f92672">*</span>pservaddr, socklen_t servlen)
+{
+	<span style="color:#66d9ef">int</span>		n;
+	<span style="color:#66d9ef">char</span>	sendline[MAXLINE], recvline[MAXLINE <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>];
+    <span style="color:#75715e">// 对 UDP 套接字使用 connect
+</span><span style="color:#75715e"></span>	Connect(sockfd, (SA <span style="color:#f92672">*</span>) pservaddr, servlen);
+
+	<span style="color:#66d9ef">while</span> (Fgets(sendline, MAXLINE, fp) <span style="color:#f92672">!=</span> NULL) {
+        <span style="color:#75715e">// 把传递函数换为 write 和 read
+</span><span style="color:#75715e"></span>		Write(sockfd, sendline, strlen(sendline));
+
+		n <span style="color:#f92672">=</span> Read(sockfd, recvline, MAXLINE);
+
+		recvline[n] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;	<span style="color:#75715e">/* null terminate */</span>
+		Fputs(recvline, stdout);
+	}
+}
+</code></pre></div><h4 id="有些内核会将-icmp-返回的错误立即发送给已连接的-udp-套接字可惜的是有的内核并不会">有些内核会将 ICMP 返回的错误立即发送给已连接的 UDP 套接字，可惜的是有的内核并不会</h4>
+<h2 id="813-udp-缺乏流量控制">8.13 UDP 缺乏流量控制</h2>
+<p>  UDP 的客户端可以通过大量发送数据轻易的淹没一个接收缓慢的服务端，并且无法知道丢失的是那些进程的数据</p>
+<h4 id="udp-套接字接收缓冲区">UDP 套接字接收缓冲区</h4>
+<p>  UDP 连接的传输受接收缓冲区的影响，所以可以使用 SO_RCVBUF 套接字选项修改接收缓冲区的大小，可以一定程度的改善接受状况，但是并不能从根本上解决问题，治标不治本</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp">	n <span style="color:#f92672">=</span> <span style="color:#ae81ff">220</span> <span style="color:#f92672">*</span> <span style="color:#ae81ff">1024</span>;
+    <span style="color:#75715e">// 设置新的缓冲区大小为 n
+</span><span style="color:#75715e"></span>	Setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, <span style="color:#f92672">&amp;</span>n, <span style="color:#66d9ef">sizeof</span>(n));
+</code></pre></div><h2 id="814-udp-中的外出接口的确定">8.14 UDP 中的外出接口的确定</h2>
+<p>  已连接 UDP 套接字可以确定某个特定目的地的外出接口。这是 connect 的副作用：内核选择本 IP 地址（假设进程没有使用 bind 显式指定）。这个本地 IP 地址通过目的地 IP 地址搜索路由表得到外出接口，然后选用该接口的主 IP 地址而选定（不太懂。。。）</p>
+<h1 id="815-使用-select-函数的-tcp-和-udp-回射服务器程序">8.15 使用 select 函数的 TCP 和 UDP 回射服务器程序</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>argv)
+{
+	<span style="color:#66d9ef">int</span>					listenfd, connfd, udpfd, nready, maxfdp1;
+	<span style="color:#66d9ef">char</span>				mesg[MAXLINE];
+	pid_t				childpid;
+	fd_set				rset;
+	ssize_t				n;
+	socklen_t			len;
+	<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span>			on <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_in</span>	cliaddr, servaddr;
+	<span style="color:#66d9ef">void</span>				sig_chld(<span style="color:#66d9ef">int</span>);
+
+		<span style="color:#75715e">/* 4create listening TCP socket */</span>
+    <span style="color:#75715e">// 创建一个监听 TCP 套接字
+</span><span style="color:#75715e"></span>	listenfd <span style="color:#f92672">=</span> Socket(AF_INET, SOCK_STREAM, <span style="color:#ae81ff">0</span>);
+
+	bzero(<span style="color:#f92672">&amp;</span>servaddr, <span style="color:#66d9ef">sizeof</span>(servaddr));
+	servaddr.sin_family      <span style="color:#f92672">=</span> AF_INET;
+	servaddr.sin_addr.s_addr <span style="color:#f92672">=</span> htonl(INADDR_ANY);
+	servaddr.sin_port        <span style="color:#f92672">=</span> htons(SERV_PORT);
+
+	Setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, <span style="color:#f92672">&amp;</span>on, <span style="color:#66d9ef">sizeof</span>(on));
+	Bind(listenfd, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>servaddr, <span style="color:#66d9ef">sizeof</span>(servaddr));
+
+	Listen(listenfd, LISTENQ);
+
+		<span style="color:#75715e">/* 4create UDP socket */</span>
+    <span style="color:#75715e">// 创建一个 UDP 套接字并绑定和 TCP 相同的端口，并不需要设置端口重用套接字选项，因为 TCP 和 UDP 端口是重用的
+</span><span style="color:#75715e"></span>	udpfd <span style="color:#f92672">=</span> Socket(AF_INET, SOCK_DGRAM, <span style="color:#ae81ff">0</span>);
+
+	bzero(<span style="color:#f92672">&amp;</span>servaddr, <span style="color:#66d9ef">sizeof</span>(servaddr));
+	servaddr.sin_family      <span style="color:#f92672">=</span> AF_INET;
+	servaddr.sin_addr.s_addr <span style="color:#f92672">=</span> htonl(INADDR_ANY);
+	servaddr.sin_port        <span style="color:#f92672">=</span> htons(SERV_PORT);
+
+	Bind(udpfd, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>servaddr, <span style="color:#66d9ef">sizeof</span>(servaddr));
+<span style="color:#75715e">/* end udpservselect01 */</span>
+
+<span style="color:#75715e">/* include udpservselect02 */</span>
+    <span style="color:#75715e">// TCP 部分创建的子进程结束的信号处理部分
+</span><span style="color:#75715e"></span>	Signal(SIGCHLD, sig_chld);	<span style="color:#75715e">/* must call waitpid() */</span>
+    <span style="color:#75715e">// 为 select 初始化一个描述符集，取最大的描述符值加一
+</span><span style="color:#75715e"></span>	FD_ZERO(<span style="color:#f92672">&amp;</span>rset);
+	maxfdp1 <span style="color:#f92672">=</span> max(listenfd, udpfd) <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>;
+	<span style="color:#66d9ef">for</span> ( ; ; ) {
+		FD_SET(listenfd, <span style="color:#f92672">&amp;</span>rset);
+		FD_SET(udpfd, <span style="color:#f92672">&amp;</span>rset);
+        <span style="color:#75715e">// 使用 select 判断 TCP 和 UDP 套接字是否可读
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> ( (nready <span style="color:#f92672">=</span> select(maxfdp1, <span style="color:#f92672">&amp;</span>rset, NULL, NULL, NULL)) <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>) {
+			<span style="color:#66d9ef">if</span> (errno <span style="color:#f92672">==</span> EINTR)
+            <span style="color:#75715e">// sig_chil 信号处理发送的错误，处理一下即可
+</span><span style="color:#75715e"></span>				<span style="color:#66d9ef">continue</span>;		<span style="color:#75715e">/* back to for() */</span>
+			<span style="color:#66d9ef">else</span>
+				err_sys(<span style="color:#e6db74">&#34;select error&#34;</span>);
+		}
+        <span style="color:#75715e">// TCP 可读时，accept + fork + str_echo
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> (FD_ISSET(listenfd, <span style="color:#f92672">&amp;</span>rset)) {
+			len <span style="color:#f92672">=</span> <span style="color:#66d9ef">sizeof</span>(cliaddr);
+			connfd <span style="color:#f92672">=</span> Accept(listenfd, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>cliaddr, <span style="color:#f92672">&amp;</span>len);
+	
+			<span style="color:#66d9ef">if</span> ( (childpid <span style="color:#f92672">=</span> Fork()) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) {	<span style="color:#75715e">/* child process */</span>
+				Close(listenfd);	<span style="color:#75715e">/* close listening socket */</span>
+				str_echo(connfd);	<span style="color:#75715e">/* process the request */</span>
+				exit(<span style="color:#ae81ff">0</span>);
+			}
+			Close(connfd);			<span style="color:#75715e">/* parent closes connected socket */</span>
+		}
+        <span style="color:#75715e">// 如果 UDP 套接字可读，那么就有一个数据报到达，使用 recvfrom 读取，在使用 sendto 发回给客户
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> (FD_ISSET(udpfd, <span style="color:#f92672">&amp;</span>rset)) {
+			len <span style="color:#f92672">=</span> <span style="color:#66d9ef">sizeof</span>(cliaddr);
+			n <span style="color:#f92672">=</span> Recvfrom(udpfd, mesg, MAXLINE, <span style="color:#ae81ff">0</span>, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>cliaddr, <span style="color:#f92672">&amp;</span>len);
+
+			Sendto(udpfd, mesg, n, <span style="color:#ae81ff">0</span>, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>cliaddr, len);
+		}
+	}
+}
+</code></pre></div><h2 id="小结">小结</h2>
+<ul>
+<li>UDP 连接相比 TCP 连接缺少很多特性，比如检测丢失分组的重传，验证响应是否来自正确的对端等等</li>
+<li>UDP 套接字可能产生异步错误，它们是在分组发送完一段时间才报告的错误。TCP 套接字总是将错误发送给相应的进程，但是 UDP 套接字必须已连接上才会进行报错</li>
+<li>UDP 没有流量控制，但是在 UDP 的应用场景中，这并不是大问题</li>
+</ul>
+		</section>
+
+		<div class="post-tags">
+			
+			
+			<nav class="nav tags">
+				<ul class="tags">
+					
+					<li><a href="/tags/unp-book-notes">UNP-book-notes</a></li>
+					
+				</ul>
+			</nav>
+			
+			
+		</div>
+	</article>
+</main>
+<footer>
+  <div style="display:flex"><a class="soc" href="https://github.com/nercoeus" title="GitHub"><i data-feather="github"></i></a><a class="soc" href="https://twitter.com/nercoeus/" title="Twitter"><i data-feather="twitter"></i></a><a class="soc" href="nercoeus@gmail.com" title="Email"><i data-feather="mail"></i></a></div>
+  <div class="footer-info">
+    2022  © nercoeus |  Built with <a
+      href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+
+<script>
+  feather.replace()
+</script></div>
+    </body>
+</html>

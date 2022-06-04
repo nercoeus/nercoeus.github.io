@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>UNP_24_带外数据 - nercoeus-blog</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="24.1 概述
+  许多传输层有带外数据的概念，它有时也称为经加速数据。其想法是一个已连接某端发生重要的事情，而且该端希望迅速通告其对端（也就是比正在缓冲区排队的数据还要快）带外数据的优先级高于普通数据。带外数据不会新建立连接，会被映射到已有连接中。
+  UDP 没有办法实现带外数据，所以我们仅仅关心 TCP 的带外数据模型。" />
+	<meta property="og:image" content=""/>
+	<meta property="og:title" content="UNP_24_带外数据" />
+<meta property="og:description" content="24.1 概述
+  许多传输层有带外数据的概念，它有时也称为经加速数据。其想法是一个已连接某端发生重要的事情，而且该端希望迅速通告其对端（也就是比正在缓冲区排队的数据还要快）带外数据的优先级高于普通数据。带外数据不会新建立连接，会被映射到已有连接中。
+  UDP 没有办法实现带外数据，所以我们仅仅关心 TCP 的带外数据模型。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://nercoeus.github.io/post/unp_24_%E5%B8%A6%E5%A4%96%E6%95%B0%E6%8D%AE/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2020-03-24T23:31:48&#43;08:00" />
+<meta property="article:modified_time" content="2020-03-24T23:31:48&#43;08:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="UNP_24_带外数据"/>
+<meta name="twitter:description" content="24.1 概述
+  许多传输层有带外数据的概念，它有时也称为经加速数据。其想法是一个已连接某端发生重要的事情，而且该端希望迅速通告其对端（也就是比正在缓冲区排队的数据还要快）带外数据的优先级高于普通数据。带外数据不会新建立连接，会被映射到已有连接中。
+  UDP 没有办法实现带外数据，所以我们仅仅关心 TCP 的带外数据模型。"/>
+<script src="https://nercoeus.github.io/js/feather.min.js"></script>
+	
+	
+        <link href="https://nercoeus.github.io/css/fonts.b685ac6f654695232de7b82a9143a46f9e049c8e3af3a21d9737b01f4be211d1.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="https://nercoeus.github.io/css/main.40ca3a860425083862b7ebd55447caec5c4384573f0cb098b8d06a91e8dace2e.css" />
+	
+	
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="https://nercoeus.github.io/">nercoeus-blog</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+	<article>
+		<div class="title">
+			<h1 class="title">UNP_24_带外数据</h1>
+			<div class="meta">Posted on Mar 24, 2020</div>
+		</div>
+		
+
+		<section class="body">
+			<h2 id="241-概述">24.1 概述</h2>
+<p>  许多传输层有带外数据的概念，它有时也称为<strong>经加速数据</strong>。其想法是一个已连接某端发生重要的事情，而且该端希望迅速通告其对端（也就是比正在缓冲区排队的数据还要快）带外数据的优先级高于普通数据。带外数据不会新建立连接，会被映射到已有连接中。<br>
+  UDP 没有办法实现带外数据，所以我们仅仅关心 TCP 的带外数据模型。</p>
+<h2 id="242-tcp-带外数据">24.2 tcp 带外数据</h2>
+<p>  TCP 没有真正的带外数据，不过提供了<strong>紧急模式</strong>。<br>
+eg：send(fd,&ldquo;a&rdquo;,1 MSG_OOB); // 写入一个字节的带外数据<br>
+  TCP 会把这个数据放在缓冲区待发送数据之后，并把该连接的 TCP 紧急指针设置成在下一个可用位置，会把带外字节标记为 OOB。<br>
+  TCP 紧急模式的特点：TCP 首部指出发送端进入紧急模式，但是紧急指针所指的实际数据并不一定会发出。</p>
+<h3 id="接收端视角">接收端视角：</h3>
+<ol>
+<li>当接受到一个设置了URG标志的分节时，接受端检查紧急指针，确定它是否指向新的带外数据，比如：前面发送了两个包，只有第一个才会通知接受进程有新的带外数据到达。</li>
+<li>当有新的紧急指针到达时，接受进程被通知到。首先，内核会给接受套接字的属主进程发送SIGURG信号，前提是接受进程调用了 fcntl或者ioctl为这个套接字建立了属主，并且该属主进程为该信号建立了信号处理函数 。</li>
+<li>只有一个OOB标记，如果新的OOB字节在旧的OOB字节之前到达，旧的OOB字节就会被丢弃。
+4.当由紧急指针指向的实际数据字节到达接受端TCP时，数据字节会有两个存储地区：一个是和普通数据一样的在线留存，另外一个是独立的单字节带外缓冲区，接受进程从这个单字节带外缓冲区读入数据的唯一方法是指定MSG_OOB调用recv，recvfrom，recvmsg。如果放在和普通数据一起的带内区域，接受进程就得通过检查该连接的带外标记OOB来获悉何时访问带这个数据字节。两个区域的使用通过套接字选项SO_OOBLINE来使用，默认情况下将带外数据字节放入独立的单字节带外缓冲区内。</li>
+</ol>
+<h3 id="可能发生的错误">可能发生的错误：</h3>
+<ol>
+<li>如果接受进程请求读入数据（通过MSG_OOB标志），但是对端并没有发送任何带外数据，读入操作将返回EINVAL。</li>
+<li>在接受进程已被告知对端发送了一个带外字节（SIGURG和select）的前提下，如果接受进程试图读入该字节，但是该字节尚未到达，读入操作返回EWOULDBLOCK。接受进程此时做的就是从缓冲区中读入数据，腾出空间，以允许对端TCP发送出那个带外字节。</li>
+<li>如果接受进程试图多次读入同一个带外字节，读入操作返回EINVAL。</li>
+<li>如果开启了SO_OOBINLINE套接字选项，接受进程如果还是通过MSG_OOB读入带外数据，读入操作将返回EINVAL 。</li>
+</ol>
+<p>※ 下面介绍了两个发送接收带外数据的例子</p>
+<h2 id="243-sockatmark-函数">24.3 sockatmark 函数</h2>
+<p>  本小节提供了多个例子来解释带外数据的发送接收情况，并说明了带外数据的以下两个特性：</p>
+<ol>
+<li>带外标记总是指向带外数据最后一个字节的下一个位置</li>
+<li>读操作总是停止在带外数据上</li>
+</ol>
+<h2 id="244-tcp-带外数据小结">24.4 tcp 带外数据小结</h2>
+<p>  带外数据概念实际上时向接收端传送三个不同的信息：</p>
+<ol>
+<li>发送端进入紧急模式这个事实。接收进程得以通知这个事实的手段不外乎SIGURG信号或select调用。本通知在发送进程发送带外字节后由发送端TCP立即发送，即使往接收端的任何数据发送因流量控制而停止了，TCP仍然发送本通知。本通知可能导致接收端进入某种特殊处理模式，以处理接收的任何后继数据。</li>
+<li>带外字节的位置，也就是它相对于来自发送端的其余数据的发送位置：带外标记。</li>
+<li>带外字节的实际值。既然TCP是一个不解释应用进程所发送数据的字节流协议，带外字节就可以是任何8位值。</li>
+</ol>
+<p>  对于TCP的紧急模式，我们可以认为URG标志时通知（信息1），紧急指针是带外标记（信息2），数据字节是其本身（信息3）。</p>
+<h3 id="带外数据概念相关的问题有">带外数据概念相关的问题有：</h3>
+<ul>
+<li>每个连接只有一个TCP紧急指针；</li>
+<li>每个连接只有一个带外标记；</li>
+<li>每个连接只有一个单字节的带外缓冲区（该缓冲区只有在数据非在线读入时才需考虑）。</li>
+</ul>
+<p>  如果带外数据是在线读入的，那么当心的带外数据到达时，先前的带外字节字节并未丢失，不过他们的标记却因此被新的标记取代而丢失了。<br>
+  带外数据的一个常见的用途体现在rlogin程序中。当客户中断运行在服务器主机上的程序时，服务器需要告知客户丢弃所有已在服务器排队的输出，因为已经排队等着从服务器发送到客户的输出最多有一个窗口的大小。服务器向客户发送一个特殊字节，告知后者清刷所有这些输出（在客户看来是输入），这个特殊字节就作为带外数据发送。客户收到由带外数据引发的SIGURG信号后，就从套接字中读入直到碰到带外数据发送。客户收到由带外数据引发的SIGURG信号后，就从套接字中读入直到碰到带外标记，并丢弃到标记之前的所有数据。这种情形下即使服务器相继地快速发送多个带外字节，客户也不受影响，因为客户只是读到最后一个标记为止，并丢弃所有读入的数据。<br>
+  总之，带外数据是否有用取决于应用程序使用它的目的。如果目的是告知对端丢弃直到标记处得普通数据，那么丢失一个中间带外字节及其相应的标记不会有什么不良后果。但是如果不丢失带外字节本身很重要，那么必须在线收到这些数据。另外，作为带外数据发送的数据字节应该区别于普通数据，因为当前新的标记到达时，中间的标记将被覆写，从而事实上把带外字节混杂在普通数据之中。举例来说，telnet在客户和服务器之间普通的数据流中发送telnet自己的命令，手段是把值为255的一个字节作为telnet命令的前缀字节。（值为255的单个字节作为数据发送需要2个相继地值为255的字节。）这么做使得telnet能够区分其命令和普通用户数据，不过要求客户进程和服务器进程处理每个数据字节以寻找命令。</p>
+<h2 id="245-客户服务器心搏函数">24.5 客户/服务器心搏函数</h2>
+<p>  给出一个例子模拟 KEPPALIVE 选项的操作，但是避免了其一些不好的特性（时间过长，只能对内核进行操作，不能判断短暂断开连接）<br>
+  我们会使用 TCP 的紧急模式轮询对端，客户端每秒发送一个带外字节，服务端进行应答返回一个带外字节</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// 客户端部分
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">int</span>		servfd;
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">int</span>		nsec;			<span style="color:#75715e">/* #seconds betweeen each alarm */</span>
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">int</span>		maxnprobes;		<span style="color:#75715e">/* #probes w/no response before quit */</span>
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">int</span>		nprobes;		<span style="color:#75715e">/* #probes since last server response */</span>
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span>	<span style="color:#a6e22e">sig_urg</span>(<span style="color:#66d9ef">int</span>), sig_alrm(<span style="color:#66d9ef">int</span>);
+
+<span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">heartbeat_cli</span>(<span style="color:#66d9ef">int</span> servfd_arg, <span style="color:#66d9ef">int</span> nsec_arg, <span style="color:#66d9ef">int</span> maxnprobes_arg)
+{
+	servfd <span style="color:#f92672">=</span> servfd_arg;		<span style="color:#75715e">/* set globals for signal handlers */</span>
+	<span style="color:#66d9ef">if</span> ( (nsec <span style="color:#f92672">=</span> nsec_arg) <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">1</span>)
+		nsec <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+	<span style="color:#66d9ef">if</span> ( (maxnprobes <span style="color:#f92672">=</span> maxnprobes_arg) <span style="color:#f92672">&lt;</span> nsec)
+		maxnprobes <span style="color:#f92672">=</span> nsec;
+	nprobes <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+
+	Signal(SIGURG, sig_urg);
+	Fcntl(servfd, F_SETOWN, getpid());
+
+	Signal(SIGALRM, sig_alrm);
+	alarm(nsec);
+}
+
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">sig_urg</span>(<span style="color:#66d9ef">int</span> signo)
+{
+	<span style="color:#66d9ef">int</span>		n;
+	<span style="color:#66d9ef">char</span>	c;
+ 
+	<span style="color:#66d9ef">if</span> ( (n <span style="color:#f92672">=</span> recv(servfd, <span style="color:#f92672">&amp;</span>c, <span style="color:#ae81ff">1</span>, MSG_OOB)) <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>) {
+		<span style="color:#66d9ef">if</span> (errno <span style="color:#f92672">!=</span> EWOULDBLOCK)
+			err_sys(<span style="color:#e6db74">&#34;recv error&#34;</span>);
+	}
+	nprobes <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;			<span style="color:#75715e">/* reset counter */</span>
+	<span style="color:#66d9ef">return</span>;					<span style="color:#75715e">/* may interrupt client code */</span>
+}
+
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">sig_alrm</span>(<span style="color:#66d9ef">int</span> signo)
+{
+	<span style="color:#66d9ef">if</span> (<span style="color:#f92672">++</span>nprobes <span style="color:#f92672">&gt;</span> maxnprobes) {
+		fprintf(stderr, <span style="color:#e6db74">&#34;server is unreachable</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+		exit(<span style="color:#ae81ff">0</span>);
+	}
+	Send(servfd, <span style="color:#e6db74">&#34;1&#34;</span>, <span style="color:#ae81ff">1</span>, MSG_OOB);
+	alarm(nsec);
+	<span style="color:#66d9ef">return</span>;					<span style="color:#75715e">/* may interrupt client code */</span>
+}
+
+<span style="color:#75715e">// 服务器部分
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">int</span>	servfd;
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">int</span>	nsec;			<span style="color:#75715e">/* #seconds between each alarm */</span>
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">int</span>	maxnalarms;		<span style="color:#75715e">/* #alarms w/no client probe before quit */</span>
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">int</span>	nprobes;		<span style="color:#75715e">/* #alarms since last client probe */</span>
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span>	<span style="color:#a6e22e">sig_urg</span>(<span style="color:#66d9ef">int</span>), sig_alrm(<span style="color:#66d9ef">int</span>);
+
+<span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">heartbeat_serv</span>(<span style="color:#66d9ef">int</span> servfd_arg, <span style="color:#66d9ef">int</span> nsec_arg, <span style="color:#66d9ef">int</span> maxnalarms_arg)
+{
+	servfd <span style="color:#f92672">=</span> servfd_arg;		<span style="color:#75715e">/* set globals for signal handlers */</span>
+	<span style="color:#66d9ef">if</span> ( (nsec <span style="color:#f92672">=</span> nsec_arg) <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">1</span>)
+		nsec <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+	<span style="color:#66d9ef">if</span> ( (maxnalarms <span style="color:#f92672">=</span> maxnalarms_arg) <span style="color:#f92672">&lt;</span> nsec)
+		maxnalarms <span style="color:#f92672">=</span> nsec;
+
+	Signal(SIGURG, sig_urg);
+	Fcntl(servfd, F_SETOWN, getpid());
+
+	Signal(SIGALRM, sig_alrm);
+	alarm(nsec);
+}
+
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">sig_urg</span>(<span style="color:#66d9ef">int</span> signo)
+{
+	<span style="color:#66d9ef">int</span>		n;
+	<span style="color:#66d9ef">char</span>	c;
+ 
+	<span style="color:#66d9ef">if</span> ( (n <span style="color:#f92672">=</span> recv(servfd, <span style="color:#f92672">&amp;</span>c, <span style="color:#ae81ff">1</span>, MSG_OOB)) <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>) {
+		<span style="color:#66d9ef">if</span> (errno <span style="color:#f92672">!=</span> EWOULDBLOCK)
+			err_sys(<span style="color:#e6db74">&#34;recv error&#34;</span>);
+	}
+	Send(servfd, <span style="color:#f92672">&amp;</span>c, <span style="color:#ae81ff">1</span>, MSG_OOB);	<span style="color:#75715e">/* echo back out-of-band byte */</span>
+
+	nprobes <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;			<span style="color:#75715e">/* reset counter */</span>
+	<span style="color:#66d9ef">return</span>;					<span style="color:#75715e">/* may interrupt server code */</span>
+}
+
+<span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">sig_alrm</span>(<span style="color:#66d9ef">int</span> signo)
+{
+	<span style="color:#66d9ef">if</span> (<span style="color:#f92672">++</span>nprobes <span style="color:#f92672">&gt;</span> maxnalarms) {
+		printf(<span style="color:#e6db74">&#34;no probes from client</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+		exit(<span style="color:#ae81ff">0</span>);
+	}
+	alarm(nsec);
+	<span style="color:#66d9ef">return</span>;					<span style="color:#75715e">/* may interrupt server code */</span>
+}
+</code></pre></div><h2 id="小结">小结</h2>
+<p>  TCP 没有真正的带外数据，不过提供了紧急模式和紧急指针。一旦发送端进入紧急模式，紧急指针就出现在发送端的分节中的 TCP 首部中。对端的接收端收取该指针是在告知接收进程发送端已经进入紧急模式，并且该指针指向紧急数据的最后一个字节。然而所有数据的发送依然遵循 TCP 的流量控制。<br>
+  套接字 API 把 TCP 的紧急模式映射为带外数据，发送进程指定 MSG_OOB 发送带外数据。TCP 接收端收到后通过发送 SIGURG 信号或者 select 出错处理来通知接收进程。<br>
+  带外数据并未得到广泛的使用。tenlent 和 rlogin 使用，FTP 也是用。它们使用带外数据是为了通知对端异常情况发生，并且服务器丢弃带外标记前的所有数据。</p>
+		</section>
+
+		<div class="post-tags">
+			
+			
+			<nav class="nav tags">
+				<ul class="tags">
+					
+					<li><a href="/tags/unp-book-notes">UNP-book-notes</a></li>
+					
+				</ul>
+			</nav>
+			
+			
+		</div>
+	</article>
+</main>
+<footer>
+  <div style="display:flex"><a class="soc" href="https://github.com/nercoeus" title="GitHub"><i data-feather="github"></i></a><a class="soc" href="https://twitter.com/nercoeus/" title="Twitter"><i data-feather="twitter"></i></a><a class="soc" href="nercoeus@gmail.com" title="Email"><i data-feather="mail"></i></a></div>
+  <div class="footer-info">
+    2022  © nercoeus |  Built with <a
+      href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+
+<script>
+  feather.replace()
+</script></div>
+    </body>
+</html>

@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>UNP_13_守护进程和inetd超级服务器 - nercoeus-blog</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="13.1 概述
+  守护进程：是在后台运行且不与任何控制终端关联的进程。Unix 系统通常有很多守护进程在后台运行（20~50）执行不同的管理任务
+  守护进程没有终端，通常是因为他们由开机时的脚本进行启动。但是守护进程也可能从某个终端由用户在 shell 提示符下键入命令行进行启动，这样的守护进程必须亲自脱离与控制终端的关联，从而避免与作业控制，终端会话管理，终端产生信号等发生不希望的交互,也防止后台的守护进程输出到终端" />
+	<meta property="og:image" content=""/>
+	<meta property="og:title" content="UNP_13_守护进程和inetd超级服务器" />
+<meta property="og:description" content="13.1 概述
+  守护进程：是在后台运行且不与任何控制终端关联的进程。Unix 系统通常有很多守护进程在后台运行（20~50）执行不同的管理任务
+  守护进程没有终端，通常是因为他们由开机时的脚本进行启动。但是守护进程也可能从某个终端由用户在 shell 提示符下键入命令行进行启动，这样的守护进程必须亲自脱离与控制终端的关联，从而避免与作业控制，终端会话管理，终端产生信号等发生不希望的交互,也防止后台的守护进程输出到终端" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://nercoeus.github.io/post/unp_13_%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E5%92%8Cinetd%E8%B6%85%E7%BA%A7%E6%9C%8D%E5%8A%A1%E5%99%A8/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2020-03-13T23:31:48&#43;08:00" />
+<meta property="article:modified_time" content="2020-03-13T23:31:48&#43;08:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="UNP_13_守护进程和inetd超级服务器"/>
+<meta name="twitter:description" content="13.1 概述
+  守护进程：是在后台运行且不与任何控制终端关联的进程。Unix 系统通常有很多守护进程在后台运行（20~50）执行不同的管理任务
+  守护进程没有终端，通常是因为他们由开机时的脚本进行启动。但是守护进程也可能从某个终端由用户在 shell 提示符下键入命令行进行启动，这样的守护进程必须亲自脱离与控制终端的关联，从而避免与作业控制，终端会话管理，终端产生信号等发生不希望的交互,也防止后台的守护进程输出到终端"/>
+<script src="https://nercoeus.github.io/js/feather.min.js"></script>
+	
+	
+        <link href="https://nercoeus.github.io/css/fonts.b685ac6f654695232de7b82a9143a46f9e049c8e3af3a21d9737b01f4be211d1.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="https://nercoeus.github.io/css/main.40ca3a860425083862b7ebd55447caec5c4384573f0cb098b8d06a91e8dace2e.css" />
+	
+	
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="https://nercoeus.github.io/">nercoeus-blog</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+	<article>
+		<div class="title">
+			<h1 class="title">UNP_13_守护进程和inetd超级服务器</h1>
+			<div class="meta">Posted on Mar 13, 2020</div>
+		</div>
+		
+
+		<section class="body">
+			<h2 id="131-概述">13.1 概述</h2>
+<p>  <strong>守护进程</strong>：是在后台运行且不与任何控制终端关联的进程。Unix 系统通常有很多守护进程在后台运行（20~50）执行不同的管理任务<br>
+  守护进程没有终端，通常是因为他们由开机时的脚本进行启动。但是守护进程也可能从某个终端由用户在 shell 提示符下键入命令行进行启动，这样的守护进程必须亲自脱离与控制终端的关联，从而避免与作业控制，终端会话管理，终端产生信号等发生不希望的交互,也防止后台的守护进程输出到终端</p>
+<h3 id="守护进程的启动方式">守护进程的启动方式：</h3>
+<ul>
+<li>在系统阶段进行启动，许多守护进程由系统初始化脚本进行启动，脚本通常位于 /etc 等目录，这些脚本启动的守护进程开始就拥有超级用户权限（inetd，Web，sendmail，syslogd 等等）</li>
+<li>许多网络服务器由 inetd 超级服务器进行启动。Inetd 监听网络请求，每当有一个请求到达，启动相应的实际服务器（Telnet，FTP&hellip;）</li>
+<li>cron 守护进程按规则定期执行一些程序。这些程序的时刻到来时，corn 执行的程序通常也是守护进行的方式运行</li>
+<li>at 命令用于指定将来某个时刻的程序执行，时间到达时，通常使用 corn 来进行执行</li>
+<li>守护进程还可以从用户的终端在前台或者后台进行启动。这么做往往是测试守护进程或者重启关闭的守护进程。</li>
+</ul>
+<p><strong>因为守护进程没有终端，所以他们的消息使用 syslog 进行处理，即使用 syslog 函数，将消息发送给 syslogd 进程</strong></p>
+<h2 id="132-syslodg-守护进程">13.2 syslodg 守护进程</h2>
+<p>syslogd 守护进程通常由系统初始化脚本进行启动，并在系统工作时间一直运行，启动步骤如下：</p>
+<ol>
+<li>读取配置文件，在 /etc/syslog.conf 配置文件指定守护进程收取的各种日志消息应如何处理。可能添加到一个文件中，或被写到用户的登录窗口，或被转发给另一个主机上的 syslogd 进程</li>
+<li>创建 Unix 域数据报套接字，给它捆绑路径名 /var/run/log</li>
+<li>创建 UDP 套接字，捆绑 514 端口，接收别的主机发送过来的日志</li>
+<li>打开路径名 /dev/klog。来自内核的任何出错消息从这个设备输入
+  syslog 使用 select 来监听上面 2，3，4 步的描述符来接受日志，并按照配置文件进行处理。如果守护进程读取 SIGHUP 信号，就重新读取配置文件
+  <strong>最新的系统不建议开启 514 端口，会遭到攻击</strong></li>
+</ol>
+<h2 id="133-syslog-函数">13.3 syslog 函数</h2>
+<p>守护进程没有终端，所以不能把消息 fprintf 到 stderr 上。从守护进程中登记消息的常用技巧是调用 syslog 函数</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;syslog.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">syslog</span>(<span style="color:#66d9ef">int</span> priority, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> message, ...);
+</code></pre></div><p>参数解析：</p>
+<ul>
+<li>priority：级别和设施两者的组合体</li>
+<li>message：类似 printf 格式串，增加了 %m 规范代表当前 errno 值</li>
+</ul>
+<p>  当 syslog 被应用进程首次调用时，它创建一个 Unix 域数据报套接字，然后调用 connect 连接到由 syslogd 守护进程创建的 Unix 域数据报套接字的众所周知的路径名。这个套接字一直打开，直到进程终止关闭</p>
+<h4 id="logger-命令在-shell-脚本中以向-syslogd-发送消息">logger 命令在 shell 脚本中以向 syslogd 发送消息</h4>
+<h2 id="134-daemon_init-函数">13.4 daemon_init 函数</h2>
+<p>编写一个守护进程的创建函数，有些系统提供 daemon 函数用来创建守护进程，和本程序类似</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span>	<span style="color:#75715e">&#34;unp.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span>	<span style="color:#75715e">&lt;syslog.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#define	MAXFD	64
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">int</span>	daemon_proc;	<span style="color:#75715e">/* defined in error.c */</span>
+
+<span style="color:#66d9ef">int</span>
+<span style="color:#a6e22e">daemon_init</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>pname, <span style="color:#66d9ef">int</span> facility)
+{
+	<span style="color:#66d9ef">int</span>		i;
+	pid_t	pid;
+    <span style="color:#75715e">// 调用 fork 创建子进程，然后直接终止父进程，留下子进程继续执行。如果是在 shell 中执行的程序，父进程终止，shell 会认为程序已经结束了，子进程就可以在后台执行了
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 子进程继承父进程的进程组 ID，但它有自己的进程 ID，这就保证了子进程不是一个进程组的头进程，这是接下来调用 setsid 的必要条件
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> ( (pid <span style="color:#f92672">=</span> Fork()) <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>)
+		<span style="color:#66d9ef">return</span> (<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>);
+	<span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (pid)
+		_exit(<span style="color:#ae81ff">0</span>);			<span style="color:#75715e">/* parent terminates */</span>
+
+	<span style="color:#75715e">/* child 1 continues... */</span>
+    <span style="color:#75715e">// setsid 用来创建一个新的会话。当前进程变为新会话的会话头进程以及新进程组的进程组头进程，从而不再有控制终端
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> (setsid() <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>)			<span style="color:#75715e">/* become session leader */</span>
+		<span style="color:#66d9ef">return</span> (<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>);
+    <span style="color:#75715e">// 忽略 SIGHUP 信号，并再次调用 fork。该函数返回时，同样只使用子进程，父进程返回
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 再次 fork 是为了确保本守护进程将来即使打开一个新的终端，也不会自动获得控制终端。当没有终端的一个会话头进程打开终端时，该终端自动成为这个头进程的控制终端。再次调用 fork，产生的子进程不是会话头进程，就不会自动获得一个控制终端。这里必须忽略 SIGHUP 信号，当会话头进程终止时，所有会话子进程都会收到 SIGHUP 信号
+</span><span style="color:#75715e"></span>	Signal(SIGHUP, SIG_IGN);
+	<span style="color:#66d9ef">if</span> ( (pid <span style="color:#f92672">=</span> Fork()) <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>)
+		<span style="color:#66d9ef">return</span> (<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>);
+	<span style="color:#66d9ef">else</span> <span style="color:#66d9ef">if</span> (pid)
+		_exit(<span style="color:#ae81ff">0</span>);			<span style="color:#75715e">/* child 1 terminates */</span>
+
+	<span style="color:#75715e">/* child 2 continues... */</span>
+    <span style="color:#75715e">// 把全局变量 daemon_proc 设置为非 0 值，这个变量由 err_XXX 函数使用，不为 0 是为了告诉他们将 fprintf 输出替换为调用 syslog 函数
+</span><span style="color:#75715e"></span>	daemon_proc <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;			<span style="color:#75715e">/* for err_XXX() functions */</span>
+    <span style="color:#75715e">// 改变工作目录到根目录
+</span><span style="color:#75715e"></span>	chdir(<span style="color:#e6db74">&#34;/&#34;</span>);				<span style="color:#75715e">/* change working directory */</span>
+
+	<span style="color:#75715e">/* close off file descriptors */</span>
+    <span style="color:#75715e">// 关闭所有打开的描述符，直接关闭前 64 个，这里不考虑太多
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">for</span> (i <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>; i <span style="color:#f92672">&lt;</span> MAXFD; i<span style="color:#f92672">++</span>)
+		close(i);
+
+	<span style="color:#75715e">/* redirect stdin, stdout, and stderr to /dev/null */</span>
+    <span style="color:#75715e">// 将 stdin stdout stderr 重定向到 /dev/null
+</span><span style="color:#75715e"></span>	open(<span style="color:#e6db74">&#34;/dev/null&#34;</span>, O_RDONLY);
+	open(<span style="color:#e6db74">&#34;/dev/null&#34;</span>, O_RDWR);
+	open(<span style="color:#e6db74">&#34;/dev/null&#34;</span>, O_RDWR);
+    <span style="color:#75715e">// 使用 syslogd 处理错误
+</span><span style="color:#75715e"></span>	openlog(pname, LOG_PID, facility);
+
+	<span style="color:#66d9ef">return</span> (<span style="color:#ae81ff">0</span>);				<span style="color:#75715e">/* success */</span>
+}
+</code></pre></div><p>  守护进程在没有终端的环境下运行，不会接收 SIGHUP 信号。许多守护进程把这个信号可以当作系统发送的通知，表示配置文件发送了变化，应重新读取配置文件，类似的还有 SIGINT SINGWINCH 信号</p>
+<h2 id="135-inetd-守护进程">13.5 inetd 守护进程</h2>
+<p>  通过 inetd 简化一系列服务器进程的启动流程，这些服务器程序流程相似，并且大部分时间处于睡眠，交给 inetd 守护进程来进行处理，既可以简化编写的代码，又可以对每次客户端的请求单独响应，并不需要每个服务器一直等待客户端，因为他们大多数时间都处于休眠状态。只需要 inetd 循环等待客户端的请求即可，来了请求，为对应的客户创建需要的服务器子进程即可。</p>
+<h4 id="当使用-inetd-调用一个程序时程序名作为第一个参数进行传递">当使用 inetd 调用一个程序时，程序名作为第一个参数进行传递。</h4>
+<h3 id="inetd-工作流程">inetd 工作流程</h3>
+<ol>
+<li>启动阶段，读取配置文件，并给文件中每个类型服务器创建一个适当的类型（TCP or UDP&hellip;）的套接字。inetd 能够处理的服务器最大个数取决于 inetd 能够创建的描述符最大个数，使用 select 对所有描述符进行集中</li>
+<li>为每个套接字调用 bind，指定 IP + port。端口通过 getservbyname 获取</li>
+<li>对于 TCP 套接字，调用 listen 来进行监听，UDP 不用执行</li>
+<li>使用 select 对所有套接字描述符进行监听，inetd 大部分时间都花在这里</li>
+<li>如果可读的是 TCP 套接字描述符，调用 accept 来进行连接</li>
+<li>调用 fork 创建子进程来处理不同的请求，类似于并发服务器</li>
+<li>如果第 5 步返回字节流套接字，父进程要关闭已连接套接字，就是 accept 的套接字，类似于 TCP 并发服务器</li>
+</ol>
+<h2 id="136-daemon_inetd-函数">13.6 daemon_inetd 函数</h2>
+<p>该函数可以用在 inetd 启动的服务器程序中</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span>	<span style="color:#75715e">&#34;unp.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span>	<span style="color:#75715e">&lt;syslog.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">int</span>	daemon_proc;	<span style="color:#75715e">/* defined in error.c */</span>
+
+<span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">daemon_inetd</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>pname, <span style="color:#66d9ef">int</span> facility)
+{
+	daemon_proc <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;		<span style="color:#75715e">/* for our err_XXX() functions */</span>
+	openlog(pname, LOG_PID, facility);
+}
+</code></pre></div><p>所有的步骤已经由 inetd 在启动时执行完毕，本函数仅仅处理错误函数设置 daemon_proc 标志，并调用 openlog 函数</p>
+<h4 id="由-inetd-作为守护进程启动时间获取服务器程序">由 inetd 作为守护进程启动时间获取服务器程序</h4>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span>	<span style="color:#75715e">&#34;unp.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span>	<span style="color:#75715e">&lt;time.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">int</span>
+<span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>argv)
+{
+	socklen_t		len;
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr</span>	<span style="color:#f92672">*</span>cliaddr;
+	<span style="color:#66d9ef">char</span>			buff[MAXLINE];
+	time_t			ticks;
+
+	daemon_inetd(argv[<span style="color:#ae81ff">0</span>], <span style="color:#ae81ff">0</span>);
+
+	cliaddr <span style="color:#f92672">=</span> Malloc(<span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_storage</span>));
+	len <span style="color:#f92672">=</span> <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_storage</span>);
+	Getpeername(<span style="color:#ae81ff">0</span>, cliaddr, <span style="color:#f92672">&amp;</span>len);
+	err_msg(<span style="color:#e6db74">&#34;connection from %s&#34;</span>, Sock_ntop(cliaddr, len));
+
+    ticks <span style="color:#f92672">=</span> time(NULL);
+    snprintf(buff, <span style="color:#66d9ef">sizeof</span>(buff), <span style="color:#e6db74">&#34;%.24s</span><span style="color:#ae81ff">\r\n</span><span style="color:#e6db74">&#34;</span>, ctime(<span style="color:#f92672">&amp;</span>ticks));
+    Write(<span style="color:#ae81ff">0</span>, buff, strlen(buff));
+
+	Close(<span style="color:#ae81ff">0</span>);	<span style="color:#75715e">/* close TCP connection */</span>
+	exit(<span style="color:#ae81ff">0</span>);
+}
+</code></pre></div><h2 id="小结">小结</h2>
+<p>  守护进程是在后台运行并独立与所有终端的进程，许多网络服务器作为守护进程运行。守护进程所产生的输出调用 syslog 函数交给 syslogd 守护进程处理
+启动任意一个程序并将其变为守护进程步骤如下：</p>
+<ol>
+<li>调用 fork 到后台运行</li>
+<li>调用 setsid 创建一个新会话，并让前一步的子进程成为会话头进程</li>
+<li>再次 fork 防止会话头进程自动获取控制终端</li>
+<li>改变工作目录</li>
+<li>创建模式掩码</li>
+<li>关闭所有非必要描述符
+许多 Unix 服务器由 inetd 守护进程启动。它处理所有守护进程需要的步骤，当启动真正的服务器时，套接字已在标准输入，标准输出，标准错误上打开。这样就不用调用 socket，bind，accept，这些步骤已经由 inetd 完成。</li>
+</ol>
+		</section>
+
+		<div class="post-tags">
+			
+			
+			<nav class="nav tags">
+				<ul class="tags">
+					
+					<li><a href="/tags/unp-book-notes">UNP-book-notes</a></li>
+					
+				</ul>
+			</nav>
+			
+			
+		</div>
+	</article>
+</main>
+<footer>
+  <div style="display:flex"><a class="soc" href="https://github.com/nercoeus" title="GitHub"><i data-feather="github"></i></a><a class="soc" href="https://twitter.com/nercoeus/" title="Twitter"><i data-feather="twitter"></i></a><a class="soc" href="nercoeus@gmail.com" title="Email"><i data-feather="mail"></i></a></div>
+  <div class="footer-info">
+    2022  © nercoeus |  Built with <a
+      href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+
+<script>
+  feather.replace()
+</script></div>
+    </body>
+</html>

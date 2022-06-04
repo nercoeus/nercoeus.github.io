@@ -54,43 +54,25 @@
 				
 				
 				<section class="list-item">
-					<h1 class="title"><a href="/post/csapp_1_%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F%E6%BC%AB%E6%B8%B8/">CSAPP_1_计算机系统漫游</a></h1>
-					<time>Jun 3, 2022</time>
+					<h1 class="title"><a href="/post/unp_3_%E5%A5%97%E6%8E%A5%E5%AD%97%E7%BC%96%E7%A8%8B%E7%AE%80%E4%BB%8B/">UNP_3_套接字编程简介</a></h1>
+					<time>Mar 3, 2020</time>
 					<br><div class="description">
 						
-						<h2 id="the-goal-got-this-book-is-to-help-you-underestand-what-happens-and-why-when-you-run-programmer-on-a-system">The goal got this book is to help you underestand what happens and why when you run programmer on a system.</h2>&hellip;
+						<p>套接字编程简介</p>&hellip;
 						
 					</div>
-					<a class="readmore" href="/post/csapp_1_%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F%E6%BC%AB%E6%B8%B8/">Read more ⟶</a>
+					<a class="readmore" href="/post/unp_3_%E5%A5%97%E6%8E%A5%E5%AD%97%E7%BC%96%E7%A8%8B%E7%AE%80%E4%BB%8B/">Read more ⟶</a>
 				</section>
 				
 				<section class="list-item">
-					<h1 class="title"><a href="/post/unp_27_ip%E9%80%89%E9%A1%B9/">UNP_27_IP选项</a></h1>
-					<time>Mar 27, 2020</time>
+					<h1 class="title"><a href="/post/go%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB_channel/">go源码阅读_Channel</a></h1>
+					<time>Jan 13, 2020</time>
 					<br><div class="description">
 						
-						<h2 id="271-概述">27.1 概述</h2>
-<p>  IPv4 允许在 20 字节首部固定部分之后跟最多 40 个字节的选项。尽管已经定义的 IPv4 选项共有 10 种，常用的确实源路径选项。这些选项访问途径是存取 IP_OPTIONS 套接字选项。<br>
-  IPv6 允许在固定长度的 40 字节 IPv6 首部和传输层首部之间出现扩展首部。目前定义了 6 种不同的扩展首部。不同于 Ipv4 的是，IPv6 扩展首部的访问途径是函数接口。</p>&hellip;
+						<p>  最近代码中出现了一个十分诡异的 bug,找了半天才发现原来是因为 channel 的使用不当所导的.channel 有一个特性是读一个有缓冲区且已关闭的 channel 时,会一直返回默认值.可能是 0,&quot;&quot;,或 nil,因为我使用了一个 for{select &lt;-message}直接导致程序无限触发.要想更好的使用 channel 我们需要了解它内部的实现原理,下面就一起看看 channel 的实现.因为网上关于 channel 的文章十分之多,所以这里主要做的还是个人学习总结的为主.</p>&hellip;
 						
 					</div>
-					<a class="readmore" href="/post/unp_27_ip%E9%80%89%E9%A1%B9/">Read more ⟶</a>
-				</section>
-				
-				<section class="list-item">
-					<h1 class="title"><a href="/post/unp_26_%E7%BA%BF%E7%A8%8B/">UNP_26_线程</a></h1>
-					<time>Mar 26, 2020</time>
-					<br><div class="description">
-						
-						<h1 id="261-概念">26.1 概念</h1>
-<p>  在 Unix 上使用 fork 来创建子进程一直以来有一些问题：</p>
-<ul>
-<li>fork 是昂贵的。fork 要把父进程的内存映像复制到子进程，并在子进程中复制所有描述符，等等。现在的实现是 copy-on-write 技术，用以避免在子进程切实需要自己的副本之前把父进程的数据空间复制到子进程，但是就算如此，fork 依旧是昂贵的。</li>
-<li>fork 返回之后父子进程之间信息的传递需要进程间通信 IPC 机制。调用 fork 之前父进程尚未存在的子进程传递信息相当容易，因为子进程将从父进程数据空间及所有描述符的一个副本开始运行。然而从子进程中返回数据较为繁琐。</li>
-</ul>&hellip;
-						
-					</div>
-					<a class="readmore" href="/post/unp_26_%E7%BA%BF%E7%A8%8B/">Read more ⟶</a>
+					<a class="readmore" href="/post/go%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB_channel/">Read more ⟶</a>
 				</section>
 				
 				
@@ -98,10 +80,10 @@
 <ul class="pagination">
 	<span class="page-item page-prev">
 	
+    <a href="/page/7/" class="page-link" aria-label="Previous"><span aria-hidden="true">← Prev</span></a>
+	
 	</span>
 	<span class="page-item page-next">
-	
-    <a href="/page/2/" class="page-link" aria-label="Next"><span aria-hidden="true">Next →</span></a>
 	
 	</span>
 </ul>

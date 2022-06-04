@@ -54,43 +54,47 @@
 				
 				
 				<section class="list-item">
-					<h1 class="title"><a href="/post/csapp_1_%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F%E6%BC%AB%E6%B8%B8/">CSAPP_1_计算机系统漫游</a></h1>
-					<time>Jun 3, 2022</time>
+					<h1 class="title"><a href="/post/unp_12_ipv4%E5%92%8Cipv6%E7%9A%84%E4%BA%92%E6%93%8D%E4%BD%9C%E6%80%A7/">UNP_12_IPv4和IPv6的互操作性</a></h1>
+					<time>Mar 12, 2020</time>
 					<br><div class="description">
 						
-						<h2 id="the-goal-got-this-book-is-to-help-you-underestand-what-happens-and-why-when-you-run-programmer-on-a-system">The goal got this book is to help you underestand what happens and why when you run programmer on a system.</h2>&hellip;
+						<h2 id="121-概述">12.1 概述</h2>
+<p>  未来，因特网会逐渐从 IPv4 转换到 IPv6，所以引用程序能够对两种协议协同工作是很重要的，我们将讨论 IPv4 应用如何与 IPv6 进行通信</p>&hellip;
 						
 					</div>
-					<a class="readmore" href="/post/csapp_1_%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F%E6%BC%AB%E6%B8%B8/">Read more ⟶</a>
+					<a class="readmore" href="/post/unp_12_ipv4%E5%92%8Cipv6%E7%9A%84%E4%BA%92%E6%93%8D%E4%BD%9C%E6%80%A7/">Read more ⟶</a>
 				</section>
 				
 				<section class="list-item">
-					<h1 class="title"><a href="/post/unp_27_ip%E9%80%89%E9%A1%B9/">UNP_27_IP选项</a></h1>
-					<time>Mar 27, 2020</time>
+					<h1 class="title"><a href="/post/unp_8_%E5%9F%BA%E6%9C%ACudp%E5%A5%97%E6%8E%A5%E5%AD%97%E7%BC%96%E7%A8%8B/">UNP_8_基本UDP套接字编程</a></h1>
+					<time>Mar 8, 2020</time>
 					<br><div class="description">
 						
-						<h2 id="271-概述">27.1 概述</h2>
-<p>  IPv4 允许在 20 字节首部固定部分之后跟最多 40 个字节的选项。尽管已经定义的 IPv4 选项共有 10 种，常用的确实源路径选项。这些选项访问途径是存取 IP_OPTIONS 套接字选项。<br>
-  IPv6 允许在固定长度的 40 字节 IPv6 首部和传输层首部之间出现扩展首部。目前定义了 6 种不同的扩展首部。不同于 Ipv4 的是，IPv6 扩展首部的访问途径是函数接口。</p>&hellip;
+						<h2 id="81-概述">8.1 概述</h2>
+<p>  在使用 TCP 编写的程序和 UDP 编写的程序之间存在本质的差别，这两种协议的传输层存在差别：UDP 是无连接不可靠的数据报协议，不同于 TCP 提供的面向连接的可靠字节流。相比 TCP 有些场合更加适合使用 UDP,例如 DNS，NFS，SNMP系统等等</p>
+<p>  客户和服务器之间的数据传输可以使用  sendto，recvfrom 两个函数来进行通讯，其中，sendto 必须指定目的地址，同理 recvfrom 会一并收到客户端的协议地址，所以服务器可以正确的对客户端进行响应</p>
+<p>  本章还会介绍在 UDP 协议中使用 connect 的影响</p>&hellip;
 						
 					</div>
-					<a class="readmore" href="/post/unp_27_ip%E9%80%89%E9%A1%B9/">Read more ⟶</a>
+					<a class="readmore" href="/post/unp_8_%E5%9F%BA%E6%9C%ACudp%E5%A5%97%E6%8E%A5%E5%AD%97%E7%BC%96%E7%A8%8B/">Read more ⟶</a>
 				</section>
 				
 				<section class="list-item">
-					<h1 class="title"><a href="/post/unp_26_%E7%BA%BF%E7%A8%8B/">UNP_26_线程</a></h1>
-					<time>Mar 26, 2020</time>
+					<h1 class="title"><a href="/post/unp_7_%E5%A5%97%E6%8E%A5%E5%AD%97%E9%80%89%E9%A1%B9/">UNP_7_套接字选项</a></h1>
+					<time>Mar 7, 2020</time>
 					<br><div class="description">
 						
-						<h1 id="261-概念">26.1 概念</h1>
-<p>  在 Unix 上使用 fork 来创建子进程一直以来有一些问题：</p>
+						<h2 id="71-概述">7.1 概述</h2>
+<p>  有很多方法来获取和设置影响套接字的选项</p>
 <ul>
-<li>fork 是昂贵的。fork 要把父进程的内存映像复制到子进程，并在子进程中复制所有描述符，等等。现在的实现是 copy-on-write 技术，用以避免在子进程切实需要自己的副本之前把父进程的数据空间复制到子进程，但是就算如此，fork 依旧是昂贵的。</li>
-<li>fork 返回之后父子进程之间信息的传递需要进程间通信 IPC 机制。调用 fork 之前父进程尚未存在的子进程传递信息相当容易，因为子进程将从父进程数据空间及所有描述符的一个副本开始运行。然而从子进程中返回数据较为繁琐。</li>
-</ul>&hellip;
+<li>getsockopt() 和 setsockopt() 函数</li>
+<li>fcntl() 函数</li>
+<li>ioctl() 函数</li>
+</ul>
+<p>  fcntl 函数是把套接字设置为非阻塞式 I/O 型或信号驱动式 I/O 型以及设置套接字的方法</p>&hellip;
 						
 					</div>
-					<a class="readmore" href="/post/unp_26_%E7%BA%BF%E7%A8%8B/">Read more ⟶</a>
+					<a class="readmore" href="/post/unp_7_%E5%A5%97%E6%8E%A5%E5%AD%97%E9%80%89%E9%A1%B9/">Read more ⟶</a>
 				</section>
 				
 				
@@ -98,10 +102,12 @@
 <ul class="pagination">
 	<span class="page-item page-prev">
 	
+    <a href="/page/5/" class="page-link" aria-label="Previous"><span aria-hidden="true">← Prev</span></a>
+	
 	</span>
 	<span class="page-item page-next">
 	
-    <a href="/page/2/" class="page-link" aria-label="Next"><span aria-hidden="true">Next →</span></a>
+    <a href="/page/7/" class="page-link" aria-label="Next"><span aria-hidden="true">Next →</span></a>
 	
 	</span>
 </ul>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	<meta name="generator" content="Hugo 0.83.1" />
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>nercoeus-blog | Home </title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="" />
+	<meta property="og:image" content=""/>
+	<link rel="alternate" type="application/rss+xml" href="https://nercoeus.github.io/index.xml" title="nercoeus-blog" />
+	<meta property="og:title" content="nercoeus-blog" />
+<meta property="og:description" content="" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://nercoeus.github.io/" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="nercoeus-blog"/>
+<meta name="twitter:description" content=""/>
+<script src="https://nercoeus.github.io/js/feather.min.js"></script>
+	
+	
+        <link href="https://nercoeus.github.io/css/fonts.b685ac6f654695232de7b82a9143a46f9e049c8e3af3a21d9737b01f4be211d1.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="https://nercoeus.github.io/css/main.40ca3a860425083862b7ebd55447caec5c4384573f0cb098b8d06a91e8dace2e.css" />
+	
+	
+</head>
+
+	<body>
+		<div class="content">
+			<header>
+	<div class="main">
+		<a href="https://nercoeus.github.io/">nercoeus-blog</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		
+	</nav>
+</header>
+
+			
+			<main class="list">
+				<div class="site-description"><p>个人生活学习随笔日记</p></div>
+				
+				
+				
+				<section class="list-item">
+					<h1 class="title"><a href="/post/unp_15_unix%E5%9F%9F%E5%8D%8F%E8%AE%AE/">UNP_15_Unix域协议</a></h1>
+					<time>Mar 15, 2020</time>
+					<br><div class="description">
+						
+						<h2 id="151-概述">15.1 概述</h2>
+<p>  Unix 域协议并不是一个实际的协议族，而是在单个主机上执行客户/服务器通信的一种方法。所用 API 就是不同主机通信的 API，Unix 域协议也可以看作 IPC 方法之一。<br>
+  Unix 域协议提供两类套接字：字节流套接字（类似 TCP）和数据报套接字（类似 UDP）<br>
+使用 Unix 域协议的原因：</p>
+<ol>
+<li>同主机使用 Unix 域协议性能比普通 TCP 套接字快出一倍</li>
+<li>Unix 域套接字可用于同一主机上的不同进程之间传递描述符</li>
+<li>Unix 域套接字新的实现把客户的凭证提供给服务器，这样可以提供额外的安全措施检查</li>
+</ol>&hellip;
+						
+					</div>
+					<a class="readmore" href="/post/unp_15_unix%E5%9F%9F%E5%8D%8F%E8%AE%AE/">Read more ⟶</a>
+				</section>
+				
+				<section class="list-item">
+					<h1 class="title"><a href="/post/unp_14_%E9%AB%98%E7%BA%A7io%E5%87%BD%E6%95%B0/">UNP_14_高级IO函数</a></h1>
+					<time>Mar 14, 2020</time>
+					<br><div class="description">
+						
+						<h2 id="141-概述">14.1 概述</h2>
+<p>  本章讨论 I/O 的高级操作，首先是在 I/O 上设置超时，这里有三种方法。然后是 read 和 write 的三个变体：</p>
+<ol>
+<li>recv 和 send 允许通过第四个参数从进程到内核传递标志</li>
+<li>readv 和 writev 允许指定往其中输入数据或从其中输出数据的缓冲区向量</li>
+<li>recvmsg 和 sendmsg 结合了其他 I/O 函数的所有特性，并具备接收和发送辅助数据的新能力</li>
+</ol>&hellip;
+						
+					</div>
+					<a class="readmore" href="/post/unp_14_%E9%AB%98%E7%BA%A7io%E5%87%BD%E6%95%B0/">Read more ⟶</a>
+				</section>
+				
+				<section class="list-item">
+					<h1 class="title"><a href="/post/unp_13_%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E5%92%8Cinetd%E8%B6%85%E7%BA%A7%E6%9C%8D%E5%8A%A1%E5%99%A8/">UNP_13_守护进程和inetd超级服务器</a></h1>
+					<time>Mar 13, 2020</time>
+					<br><div class="description">
+						
+						<h2 id="131-概述">13.1 概述</h2>
+<p>  <strong>守护进程</strong>：是在后台运行且不与任何控制终端关联的进程。Unix 系统通常有很多守护进程在后台运行（20~50）执行不同的管理任务<br>
+  守护进程没有终端，通常是因为他们由开机时的脚本进行启动。但是守护进程也可能从某个终端由用户在 shell 提示符下键入命令行进行启动，这样的守护进程必须亲自脱离与控制终端的关联，从而避免与作业控制，终端会话管理，终端产生信号等发生不希望的交互,也防止后台的守护进程输出到终端</p>&hellip;
+						
+					</div>
+					<a class="readmore" href="/post/unp_13_%E5%AE%88%E6%8A%A4%E8%BF%9B%E7%A8%8B%E5%92%8Cinetd%E8%B6%85%E7%BA%A7%E6%9C%8D%E5%8A%A1%E5%99%A8/">Read more ⟶</a>
+				</section>
+				
+				
+
+<ul class="pagination">
+	<span class="page-item page-prev">
+	
+    <a href="/page/4/" class="page-link" aria-label="Previous"><span aria-hidden="true">← Prev</span></a>
+	
+	</span>
+	<span class="page-item page-next">
+	
+    <a href="/page/6/" class="page-link" aria-label="Next"><span aria-hidden="true">Next →</span></a>
+	
+	</span>
+</ul>
+
+
+			</main>
+			<footer>
+  <div style="display:flex"><a class="soc" href="https://github.com/nercoeus" title="GitHub"><i data-feather="github"></i></a><a class="soc" href="https://twitter.com/nercoeus/" title="Twitter"><i data-feather="twitter"></i></a><a class="soc" href="nercoeus@gmail.com" title="Email"><i data-feather="mail"></i></a></div>
+  <div class="footer-info">
+    2022  © nercoeus |  Built with <a
+      href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+
+<script>
+  feather.replace()
+</script>
+		</div>
+		
+	</body>
+</html>

@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>UNP_18_路由套接字 - nercoeus-blog</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="18.1 概述
+  内核中的 Unix 路由表传统上一直使用 ioctl 命令进行访问，但是没有 ioctl 命令可以获得所有路由表，相反，类似 netstat 等程序通过读取内核的内存获取路由表的内容。
+
+进程可以通过写出到路由套接字而往内核发送消息。路径的增加和删除采用这种操作实现
+进程可以通过从路由套接字读入而自内核接收消息。内核采用这种操作通知进程已收到并处理一个 ICMP 重定向消息，或者请求外部路由进程解析一个消息
+进程可以使用 sysctl 函数获取所有路由表或所有已配置的接口
+
+前两种操作需要超级用户权限，最后一种只需要普通用户权限" />
+	<meta property="og:image" content=""/>
+	<meta property="og:title" content="UNP_18_路由套接字" />
+<meta property="og:description" content="18.1 概述
+  内核中的 Unix 路由表传统上一直使用 ioctl 命令进行访问，但是没有 ioctl 命令可以获得所有路由表，相反，类似 netstat 等程序通过读取内核的内存获取路由表的内容。
+
+进程可以通过写出到路由套接字而往内核发送消息。路径的增加和删除采用这种操作实现
+进程可以通过从路由套接字读入而自内核接收消息。内核采用这种操作通知进程已收到并处理一个 ICMP 重定向消息，或者请求外部路由进程解析一个消息
+进程可以使用 sysctl 函数获取所有路由表或所有已配置的接口
+
+前两种操作需要超级用户权限，最后一种只需要普通用户权限" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://nercoeus.github.io/post/unp_18_%E8%B7%AF%E7%94%B1%E5%A5%97%E6%8E%A5%E5%AD%97/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2020-03-18T23:31:48&#43;08:00" />
+<meta property="article:modified_time" content="2020-03-18T23:31:48&#43;08:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="UNP_18_路由套接字"/>
+<meta name="twitter:description" content="18.1 概述
+  内核中的 Unix 路由表传统上一直使用 ioctl 命令进行访问，但是没有 ioctl 命令可以获得所有路由表，相反，类似 netstat 等程序通过读取内核的内存获取路由表的内容。
+
+进程可以通过写出到路由套接字而往内核发送消息。路径的增加和删除采用这种操作实现
+进程可以通过从路由套接字读入而自内核接收消息。内核采用这种操作通知进程已收到并处理一个 ICMP 重定向消息，或者请求外部路由进程解析一个消息
+进程可以使用 sysctl 函数获取所有路由表或所有已配置的接口
+
+前两种操作需要超级用户权限，最后一种只需要普通用户权限"/>
+<script src="https://nercoeus.github.io/js/feather.min.js"></script>
+	
+	
+        <link href="https://nercoeus.github.io/css/fonts.b685ac6f654695232de7b82a9143a46f9e049c8e3af3a21d9737b01f4be211d1.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="https://nercoeus.github.io/css/main.40ca3a860425083862b7ebd55447caec5c4384573f0cb098b8d06a91e8dace2e.css" />
+	
+	
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="https://nercoeus.github.io/">nercoeus-blog</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+	<article>
+		<div class="title">
+			<h1 class="title">UNP_18_路由套接字</h1>
+			<div class="meta">Posted on Mar 18, 2020</div>
+		</div>
+		
+
+		<section class="body">
+			<h2 id="181-概述">18.1 概述</h2>
+<p>  内核中的 Unix 路由表传统上一直使用 ioctl 命令进行访问，但是没有 ioctl 命令可以获得所有路由表，相反，类似 netstat 等程序通过读取内核的内存获取路由表的内容。</p>
+<ol>
+<li>进程可以通过写出到路由套接字而往内核发送消息。路径的增加和删除采用这种操作实现</li>
+<li>进程可以通过从路由套接字读入而自内核接收消息。内核采用这种操作通知进程已收到并处理一个 ICMP 重定向消息，或者请求外部路由进程解析一个消息</li>
+<li>进程可以使用 sysctl 函数获取所有路由表或所有已配置的接口</li>
+</ol>
+<p><strong>前两种操作需要超级用户权限，最后一种只需要普通用户权限</strong></p>
+<h2 id="182-数据链路套接字地址结构">18.2 数据链路套接字地址结构</h2>
+<p>通过路由套接字返回一些消息中含有作为返回值给出的数据链路套接字地址结构，结构如下：</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_dl</span> {
+  <span style="color:#66d9ef">uint8_t</span>      sdl_len;
+  sa_family_t  sdl_family; <span style="color:#75715e">/* AF_LINK */</span> 
+  <span style="color:#66d9ef">uint16_t</span>     sdl_index; <span style="color:#75715e">/* system assigned index, if &gt; 0 */</span> 
+  <span style="color:#66d9ef">uint8_t</span>      sdl_type; <span style="color:#75715e">/* IFT_ETHER, etc. from  */</span> 
+  <span style="color:#66d9ef">uint8_t</span>      sdl_nlen; <span style="color:#75715e">/* name length, starting in sdl_data[0] */</span>           
+  <span style="color:#66d9ef">uint8_t</span>      sdl_alen; <span style="color:#75715e">/* link-layer address length */</span> 
+  <span style="color:#66d9ef">uint8_t</span>      sdl_slen; <span style="color:#75715e">/* link-layer selector length */</span> 
+  <span style="color:#66d9ef">char</span>         sdl_data[<span style="color:#ae81ff">12</span>]; <span style="color:#75715e">/* minimum work area, can be larger; 
+</span><span style="color:#75715e">                      contains i/f name and link-layer address */</span> 
+};
+</code></pre></div><ul>
+<li>每个接口都有一个唯一的正值索引，返回索引的方法有：if_nametoindex 和 if_nameindex 函数，还有不同协议对应的套接字选项</li>
+<li>sdl_data 成员含有名字和链路地址。名字从 sdl_data[0] 开始，而且不以空字符结尾。链路层地址从 sdl_data[sdl_nlen] 开始</li>
+<li>数据链路套接字地址结构的长度是可变的。如果链路层地址和名字超过 12 字节，结构将大于 20 字节</li>
+</ul>
+<h2 id="183-读和写">18.3 读和写</h2>
+<p>  创建一个路由套接字后，进程可以通过写到该套接字向核和发送命令，通过读自该套接字的内核接受信息。路由域套接字共有 12 个路有消息，其中 5 个可以由进程发出，具体消息和数据结构参照 UNP 图18-2，图18-3<br>
+  每个结构有相同的前 3 个成员：本消息的长度，版本和类型。</p>
+<h2 id="184-sysct-操作">18.4 sysct 操作</h2>
+<p>  我们对路由套接字的主要兴趣在于使用 sysctl 函数检查路由表和接口列表。创建路由套接字（一个 AF_ROUTE 域的原始套接字）需要超级用户权限，然而使用 sysctl 检查路由表和接口列表的进程普通用户也可以操作</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span><span style="color:#75715e">&lt;sys/param.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span><span style="color:#75715e">&lt;sys/sysctl.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">sysctl</span>(<span style="color:#66d9ef">int</span><span style="color:#f92672">*</span> name, u_int namelen, <span style="color:#66d9ef">void</span><span style="color:#f92672">*</span> oldp, size_t<span style="color:#f92672">*</span> oldlenp, <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span> newp, size_t newlen);
+<span style="color:#75715e">// 返回：若成功返回 0，出错返回 -1
+</span></code></pre></div><ul>
+<li>name 参数指定名字的整数数组</li>
+<li>namelen 参数指定数组中的元素数，该数组中的第一个元素指定本请求定向到内核的拿一个子系统，后面的值逐渐细化该子系统的某个部分</li>
+<li>oldp 参数指向一个宫内和存放分层的层级值的缓冲区</li>
+<li>oldlenp 参数指定的值代表该缓冲区的大小</li>
+</ul>
+<p>  sysctl 函数可以获取许多系统信息：文件系统，虚拟内存，内核限制，硬件等等。我们在这里感兴趣的是网络子系统，通过把 name 数组的第一个元素设置为 CTL_NET 来指定。第二个参数可以是下面几种：</p>
+<ul>
+<li>AF_INET：获取或设置影响网际网协议的变量。下一级为使用某个 IPPROTO_xx 常值指定的具体协议</li>
+<li>AF_LINK：获取或设置链路层信息，譬如 PPP 接口的数目</li>
+<li>AF_ROUTE：返回路由表或接口列表的信息</li>
+<li>AF_UNSPEC：获取或设置一些套接字层变量，譬如套接字发送或接收缓冲区的最大大小。</li>
+</ul>
+<p>UNP 小例子：判断 UDP 检验和是否开启</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span>	<span style="color:#75715e">&#34;unproute.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span>	<span style="color:#75715e">&lt;netinet/udp.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span>	<span style="color:#75715e">&lt;netinet/ip_var.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span>	<span style="color:#75715e">&lt;netinet/udp_var.h&gt;		/* for UDPCTL_xxx constants */</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>argv)
+{
+	<span style="color:#66d9ef">int</span>		mib[<span style="color:#ae81ff">4</span>], val;
+	size_t	len;
+
+	mib[<span style="color:#ae81ff">0</span>] <span style="color:#f92672">=</span> CTL_NET;
+	mib[<span style="color:#ae81ff">1</span>] <span style="color:#f92672">=</span> AF_INET;
+	mib[<span style="color:#ae81ff">2</span>] <span style="color:#f92672">=</span> IPPROTO_UDP;
+	mib[<span style="color:#ae81ff">3</span>] <span style="color:#f92672">=</span> UDPCTL_CHECKSUM;
+
+	len <span style="color:#f92672">=</span> <span style="color:#66d9ef">sizeof</span>(val);
+	Sysctl(mib, <span style="color:#ae81ff">4</span>, <span style="color:#f92672">&amp;</span>val, <span style="color:#f92672">&amp;</span>len, NULL, <span style="color:#ae81ff">0</span>);
+	printf(<span style="color:#e6db74">&#34;udp checksum flag: %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, val);
+
+	exit(<span style="color:#ae81ff">0</span>);
+}
+</code></pre></div><h2 id="185-get_ifi_info-函数">18.5 get_ifi_info 函数</h2>
+<p>使用路由套接字又把 get_ifi_info 实现了一遍，具体代码见 UNP-18.6</p>
+<h2 id="186-接口名字和索引函数">18.6 接口名字和索引函数</h2>
+<p>  有四个函数用于处理接口名字和索引。这四个函数用于需要描述一个接口的地方，适用于 IPv4 和 IPv6。需要注意一个基本概念：每个接口都有唯一的名字和唯一的正值索引（0 从不用做索引）</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span><span style="color:#75715e">&lt;net/if.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> <span style="color:#a6e22e">if_nametoindex</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> ifname);
+<span style="color:#75715e">// 返回：成功返回为正值的接口索引，出错返回 0
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> <span style="color:#a6e22e">if_indextoname</span>(unisgned <span style="color:#66d9ef">int</span> ifindex, <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> ifname);
+<span style="color:#75715e">// 返回：成功返回指向接口名字的指针，出错返回 NULL
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">if_nameindex</span><span style="color:#f92672">*</span> <span style="color:#a6e22e">if_nameindex</span>(<span style="color:#66d9ef">void</span>);
+<span style="color:#75715e">// 返回：成功为非空指针，出错返回 NULL
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> if_freenameindex(<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">if_nameindex</span><span style="color:#f92672">*</span> ptr)
+</code></pre></div><ul>
+<li>if_nametoindex 返回名字为 ifname 的接口的索引</li>
+<li>if_indextoname 返回索引为 ifindex 的接口名字</li>
+<li>if_nameindex 返回一个指向 if_nameindex 结构数组的指针</li>
+</ul>
+<p>下面使用路由套接字实现这四个函数：</p>
+<h3 id="if_nametoindex-函数">if_nametoindex 函数</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> <span style="color:#a6e22e">if_nametoindex</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>name)
+{
+	<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span>		idx, namelen;
+	<span style="color:#66d9ef">char</span>				<span style="color:#f92672">*</span>buf, <span style="color:#f92672">*</span>next, <span style="color:#f92672">*</span>lim;
+	size_t				len;
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">if_msghdr</span>	<span style="color:#f92672">*</span>ifm;
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr</span>		<span style="color:#f92672">*</span>sa, <span style="color:#f92672">*</span>rti_info[RTAX_MAX];
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_dl</span>	<span style="color:#f92672">*</span>sdl;
+  <span style="color:#75715e">// net_rt_iflist 函数用来返回接口列表
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> ( (buf <span style="color:#f92672">=</span> net_rt_iflist(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>, <span style="color:#f92672">&amp;</span>len)) <span style="color:#f92672">==</span> NULL)
+		<span style="color:#66d9ef">return</span>(<span style="color:#ae81ff">0</span>);
+
+	namelen <span style="color:#f92672">=</span> strlen(name);
+	lim <span style="color:#f92672">=</span> buf <span style="color:#f92672">+</span> len;
+	<span style="color:#66d9ef">for</span> (next <span style="color:#f92672">=</span> buf; next <span style="color:#f92672">&lt;</span> lim; next <span style="color:#f92672">+=</span> ifm<span style="color:#f92672">-&gt;</span>ifm_msglen) {
+    <span style="color:#75715e">// 处理缓冲区中的消息，仅仅查找 RTM_IFINFO 消息
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 找到后调用 get_rtaddrs 函数设置指向各个套接字地址结构的指针
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 如果存在一个接口名字，那就比较其中的接口名字（rti_info[RTAX_IFP]）和调用者参数中要查找的接口名字
+</span><span style="color:#75715e"></span>		ifm <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">if_msghdr</span> <span style="color:#f92672">*</span>) next;
+		<span style="color:#66d9ef">if</span> (ifm<span style="color:#f92672">-&gt;</span>ifm_type <span style="color:#f92672">==</span> RTM_IFINFO) {
+			sa <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr</span> <span style="color:#f92672">*</span>) (ifm <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+			get_rtaddrs(ifm<span style="color:#f92672">-&gt;</span>ifm_addrs, sa, rti_info);
+			<span style="color:#66d9ef">if</span> ( (sa <span style="color:#f92672">=</span> rti_info[RTAX_IFP]) <span style="color:#f92672">!=</span> NULL) {
+				<span style="color:#66d9ef">if</span> (sa<span style="color:#f92672">-&gt;</span>sa_family <span style="color:#f92672">==</span> AF_LINK) {
+					sdl <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_dl</span> <span style="color:#f92672">*</span>) sa;
+					<span style="color:#66d9ef">if</span> (sdl<span style="color:#f92672">-&gt;</span>sdl_nlen <span style="color:#f92672">==</span> namelen <span style="color:#f92672">&amp;&amp;</span> strncmp(<span style="color:#f92672">&amp;</span>sdl<span style="color:#f92672">-&gt;</span>sdl_data[<span style="color:#ae81ff">0</span>], name, sdl<span style="color:#f92672">-&gt;</span>sdl_nlen) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) {
+						idx <span style="color:#f92672">=</span> sdl<span style="color:#f92672">-&gt;</span>sdl_index;	<span style="color:#75715e">/* save before free() */</span>
+						free(buf);
+						<span style="color:#66d9ef">return</span>(idx);
+					}
+				}
+			}
+
+		}
+	}
+	free(buf);
+	<span style="color:#66d9ef">return</span>(<span style="color:#ae81ff">0</span>);		<span style="color:#75715e">/* no match for name */</span>
+}
+</code></pre></div><h3 id="if_indextoname-函数">if_indextoname 函数</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// 该函数和上一个函数类似，仅仅是比较的类型不一样而已
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">if_indextoname</span>(<span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">int</span> idx, <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>name)
+{
+	<span style="color:#66d9ef">char</span>				<span style="color:#f92672">*</span>buf, <span style="color:#f92672">*</span>next, <span style="color:#f92672">*</span>lim;
+	size_t				len;
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">if_msghdr</span>	<span style="color:#f92672">*</span>ifm;
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr</span>		<span style="color:#f92672">*</span>sa, <span style="color:#f92672">*</span>rti_info[RTAX_MAX];
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_dl</span>	<span style="color:#f92672">*</span>sdl;
+
+	<span style="color:#66d9ef">if</span> ( (buf <span style="color:#f92672">=</span> net_rt_iflist(<span style="color:#ae81ff">0</span>, idx, <span style="color:#f92672">&amp;</span>len)) <span style="color:#f92672">==</span> NULL)
+		<span style="color:#66d9ef">return</span>(NULL);
+
+	lim <span style="color:#f92672">=</span> buf <span style="color:#f92672">+</span> len;
+	<span style="color:#66d9ef">for</span> (next <span style="color:#f92672">=</span> buf; next <span style="color:#f92672">&lt;</span> lim; next <span style="color:#f92672">+=</span> ifm<span style="color:#f92672">-&gt;</span>ifm_msglen) {
+		ifm <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">if_msghdr</span> <span style="color:#f92672">*</span>) next;
+		<span style="color:#66d9ef">if</span> (ifm<span style="color:#f92672">-&gt;</span>ifm_type <span style="color:#f92672">==</span> RTM_IFINFO) {
+			sa <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr</span> <span style="color:#f92672">*</span>) (ifm <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+			get_rtaddrs(ifm<span style="color:#f92672">-&gt;</span>ifm_addrs, sa, rti_info);
+			<span style="color:#66d9ef">if</span> ( (sa <span style="color:#f92672">=</span> rti_info[RTAX_IFP]) <span style="color:#f92672">!=</span> NULL) {
+				<span style="color:#66d9ef">if</span> (sa<span style="color:#f92672">-&gt;</span>sa_family <span style="color:#f92672">==</span> AF_LINK) {
+					sdl <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_dl</span> <span style="color:#f92672">*</span>) sa;
+					<span style="color:#66d9ef">if</span> (sdl<span style="color:#f92672">-&gt;</span>sdl_index <span style="color:#f92672">==</span> idx) {
+						<span style="color:#66d9ef">int</span> slen <span style="color:#f92672">=</span> min(IFNAMSIZ <span style="color:#f92672">-</span> <span style="color:#ae81ff">1</span>, sdl<span style="color:#f92672">-&gt;</span>sdl_nlen);
+						strncpy(name, sdl<span style="color:#f92672">-&gt;</span>sdl_data, slen);
+						name[slen] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;	<span style="color:#75715e">/* null terminate */</span>
+						free(buf);
+						<span style="color:#66d9ef">return</span>(name);
+					}
+				}
+			}
+
+		}
+	}
+	free(buf);
+	<span style="color:#66d9ef">return</span>(NULL);		<span style="color:#75715e">/* no match for index */</span>
+}
+</code></pre></div><h3 id="if_nameindex-函数">if_nameindex 函数</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// 返回一个 if_nameindex 结构数组，包含所有接口名字和索引对
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">if_nameindex</span> <span style="color:#f92672">*</span> <span style="color:#a6e22e">if_nameindex</span>(<span style="color:#66d9ef">void</span>)
+{
+	<span style="color:#66d9ef">char</span>				<span style="color:#f92672">*</span>buf, <span style="color:#f92672">*</span>next, <span style="color:#f92672">*</span>lim;
+	size_t				len;
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">if_msghdr</span>	<span style="color:#f92672">*</span>ifm;
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr</span>		<span style="color:#f92672">*</span>sa, <span style="color:#f92672">*</span>rti_info[RTAX_MAX];
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_dl</span>	<span style="color:#f92672">*</span>sdl;
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">if_nameindex</span>	<span style="color:#f92672">*</span>result, <span style="color:#f92672">*</span>ifptr;
+	<span style="color:#66d9ef">char</span>				<span style="color:#f92672">*</span>namptr;
+  <span style="color:#75715e">// 构建返回数组，确定大小
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> ( (buf <span style="color:#f92672">=</span> net_rt_iflist(<span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">0</span>, <span style="color:#f92672">&amp;</span>len)) <span style="color:#f92672">==</span> NULL)
+		<span style="color:#66d9ef">return</span>(NULL);
+
+	<span style="color:#66d9ef">if</span> ( (result <span style="color:#f92672">=</span> malloc(len)) <span style="color:#f92672">==</span> NULL)	<span style="color:#75715e">/* overestimate */</span>
+		<span style="color:#66d9ef">return</span>(NULL);
+	ifptr <span style="color:#f92672">=</span> result;
+	namptr <span style="color:#f92672">=</span> (<span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>) result <span style="color:#f92672">+</span> len;	<span style="color:#75715e">/* names start at end of buffer */</span>
+
+	lim <span style="color:#f92672">=</span> buf <span style="color:#f92672">+</span> len;
+	<span style="color:#66d9ef">for</span> (next <span style="color:#f92672">=</span> buf; next <span style="color:#f92672">&lt;</span> lim; next <span style="color:#f92672">+=</span> ifm<span style="color:#f92672">-&gt;</span>ifm_msglen) {
+    <span style="color:#75715e">// 遍历所有消息，从中查找 RTM_IFINFO 消息以及后面的数据链路套接字地址结构。把接口名字和索引放到返回数组中
+</span><span style="color:#75715e"></span>		ifm <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">if_msghdr</span> <span style="color:#f92672">*</span>) next;
+		<span style="color:#66d9ef">if</span> (ifm<span style="color:#f92672">-&gt;</span>ifm_type <span style="color:#f92672">==</span> RTM_IFINFO) {
+			sa <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr</span> <span style="color:#f92672">*</span>) (ifm <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>);
+			get_rtaddrs(ifm<span style="color:#f92672">-&gt;</span>ifm_addrs, sa, rti_info);
+			<span style="color:#66d9ef">if</span> ( (sa <span style="color:#f92672">=</span> rti_info[RTAX_IFP]) <span style="color:#f92672">!=</span> NULL) {
+				<span style="color:#66d9ef">if</span> (sa<span style="color:#f92672">-&gt;</span>sa_family <span style="color:#f92672">==</span> AF_LINK) {
+					sdl <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_dl</span> <span style="color:#f92672">*</span>) sa;
+					namptr <span style="color:#f92672">-=</span> sdl<span style="color:#f92672">-&gt;</span>sdl_nlen <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>;
+					strncpy(namptr, <span style="color:#f92672">&amp;</span>sdl<span style="color:#f92672">-&gt;</span>sdl_data[<span style="color:#ae81ff">0</span>], sdl<span style="color:#f92672">-&gt;</span>sdl_nlen);
+					namptr[sdl<span style="color:#f92672">-&gt;</span>sdl_nlen] <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;	<span style="color:#75715e">/* null terminate */</span>
+					ifptr<span style="color:#f92672">-&gt;</span>if_name <span style="color:#f92672">=</span> namptr;
+					ifptr<span style="color:#f92672">-&gt;</span>if_index <span style="color:#f92672">=</span> sdl<span style="color:#f92672">-&gt;</span>sdl_index;
+					ifptr<span style="color:#f92672">++</span>;
+				}
+			}
+
+		}
+	}
+  <span style="color:#75715e">// 把返回数组的最后一个元素置空
+</span><span style="color:#75715e"></span>	ifptr<span style="color:#f92672">-&gt;</span>if_name <span style="color:#f92672">=</span> NULL;	<span style="color:#75715e">/* mark end of array of structs */</span>
+	ifptr<span style="color:#f92672">-&gt;</span>if_index <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+	free(buf);
+	<span style="color:#66d9ef">return</span>(result);			<span style="color:#75715e">/* caller must free() this when done */</span>
+}
+</code></pre></div><h3 id="if_freenameindex-函数">if_freenameindex 函数</h3>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// 释放 if_nameindex 结构内存即可，因为是一整块内存，不需要遍历
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">if_freenameindex</span>(<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">if_nameindex</span> <span style="color:#f92672">*</span>ptr)
+{
+	free(ptr);
+}
+</code></pre></div><h2 id="小结">小结</h2>
+<p>  本节所说的 sockaddr_dl 结构，是一种可变长度的数据链路套接字地址结构。以便返回接口索引、名字和硬件地址等不同信息。<br>
+  进程可以写到路由套接字的消息有 5 个类型，内核通过路由套接字异步返回的消息有 15 个类型。<br>
+  sysctl 函数是获取和设置操作系统参数的通用方法。我们所关注的 sysctl 操作包括：</p>
+<ul>
+<li>获取所有接口列表</li>
+<li>获取到路由表</li>
+<li>获取 ARP 高速缓存</li>
+</ul>
+<p>  IPv6 要求套接字 API 实施的相关改动包括在接口名字和接口索引之间进行映射的 4 个函数。每个接口都有一个正值索引。系统已经把接口名字和索引值关联起来，我们可以很容易的使用 sysctl 实现接口信息相关函数</p>
+		</section>
+
+		<div class="post-tags">
+			
+			
+			<nav class="nav tags">
+				<ul class="tags">
+					
+					<li><a href="/tags/unp-book-notes">UNP-book-notes</a></li>
+					
+				</ul>
+			</nav>
+			
+			
+		</div>
+	</article>
+</main>
+<footer>
+  <div style="display:flex"><a class="soc" href="https://github.com/nercoeus" title="GitHub"><i data-feather="github"></i></a><a class="soc" href="https://twitter.com/nercoeus/" title="Twitter"><i data-feather="twitter"></i></a><a class="soc" href="nercoeus@gmail.com" title="Email"><i data-feather="mail"></i></a></div>
+  <div class="footer-info">
+    2022  © nercoeus |  Built with <a
+      href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+
+<script>
+  feather.replace()
+</script></div>
+    </body>
+</html>

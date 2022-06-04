@@ -54,11 +54,11 @@
 
 		<section class="body">
 			<p>套接字编程简介</p>
-<h2 id="地址转换函数">地址转换函数</h2>
+<h3 id="地址转换函数">地址转换函数</h3>
 <p>地址的文本表达和存放在套接字中的二进制值之间进行转换</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fallback" data-lang="fallback">旧：inet_addr(),inet_ntoa()，支持ipv4
 新：inet_ntop(),inet_pton()，同时支持ipv4，ipv6
-</code></pre></div><h1 id="32-套接字地址结构">3.2 套接字地址结构</h1>
+</code></pre></div><h2 id="32-套接字地址结构">3.2 套接字地址结构</h2>
 <p>大多数套接字函数使用一个指向套接字地址的指针作为参数</p>
 <h2 id="ipv4套接字地址结构">ipv4套接字地址结构</h2>
 <p>sockaddr_in 头文件&lt;netinet/in.h&gt;<br>
@@ -84,7 +84,7 @@
 <li>sin_zero 一直初始化为 0，因为在填写地址前我们已经全部初始化为 0</li>
 <li>套接字仅在主机上进行使用，在网络中不进行传递，仅传递某些字段</li>
 </ul>
-<h2 id="通用套接字地址结构">通用套接字地址结构</h2>
+<h3 id="通用套接字地址结构">通用套接字地址结构</h3>
 <p>可以通过其对所有不同地址结构的指针进行处理</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr</span>{
 	<span style="color:#66d9ef">uint8_t</span>      sa_len;
@@ -96,7 +96,7 @@ eg：int bind(int, struct sockaddr*, socklen_t);<br>
 因为当时还不存在 void*，所以需要进行地址结构指针的强制转换<br>
 eg：struct sockaddr_t serv;<br>
 bind (sockfd, (struct sockaddr*)&amp;serv, sizeof(serv));</p>
-<h2 id="ipv6套接字地址结构">IPv6套接字地址结构</h2>
+<h3 id="ipv6套接字地址结构">IPv6套接字地址结构</h3>
 <p>IPV6 套接字地址结构， 头文件&lt;netinet/in.h&gt;</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">in6_addr</span>{
 	unit8_t s6_addr[<span style="color:#ae81ff">16</span>];  <span style="color:#75715e">// 128bit IPV6 地址
@@ -121,7 +121,7 @@ bind (sockfd, (struct sockaddr*)&amp;serv, sizeof(serv));</p>
 </ul>
 </li>
 </ul>
-<h2 id="新的通用套接字地址结构">新的通用套接字地址结构</h2>
+<h3 id="新的通用套接字地址结构">新的通用套接字地址结构</h3>
 <p>新的通用套接字地址结构可以容纳所有套接字地址结构。sockaddr_storage结构在&lt;netinet/in.h&gt;头文件中定义</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_storage</span>{
 	<span style="color:#66d9ef">uint8_t</span>     ss_len;     <span style="color:#75715e">// length
@@ -137,7 +137,7 @@ bind (sockfd, (struct sockaddr*)&amp;serv, sizeof(serv));</p>
 </li>
 </ul>
 <h4 id="除了ss_family和ss_len之外结构体中其他字段对用户来说是透明的使用时需要强制转换过去">除了ss_family和ss_len之外，结构体中其他字段对用户来说是透明的，使用时需要强制转换过去</h4>
-<h1 id="33-值-结果参数">3.3 值-结果参数</h1>
+<h2 id="33-值-结果参数">3.3 值-结果参数</h2>
 <p>从进程到内核的传递函数有三个，bind(), connect(), sendto()。<br>
 参数中都有指向某个套接字地址的指针，另一个参数是该结构的整数大小</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp">eg: <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_in</span> serv;  
@@ -147,7 +147,7 @@ bind (sockfd, (struct sockaddr*)&amp;serv, sizeof(serv));</p>
 <p>总结part：从进程至内核的传参，传递一个值参数，这样内核进行操作时不至于越界;<br>
 当函数返回时，结构大小又是一个结果，它告诉进程内核在结构中存储了多谢好信息，所以需要使用值-结果参数<br>
 <strong>这里虽然使用了值-结果参数，但是对于IPv4和IPv6来说，地址结构总是固定大小，并不需要更改，但是对于Unix域等可变长度结构来说，需要进行改变。</strong></p>
-<h1 id="34-字节排序函数">3.4 字节排序函数</h1>
+<h2 id="34-字节排序函数">3.4 字节排序函数</h2>
 <p>大端：将高序字节存储在起始位置	
 小端：将低序字节存储在起始位置	
 网际协议通过大端进行数据的传送，使用时需要进行判断转换</p>
@@ -180,7 +180,7 @@ bind (sockfd, (struct sockaddr*)&amp;serv, sizeof(serv));</p>
 <span style="color:#66d9ef">uint32_t</span> <span style="color:#a6e22e">ntoh1</span>(<span style="color:#66d9ef">uint32_t</span> );   <span style="color:#75715e">//均返回，主机字节序的值
 </span></code></pre></div><p>h -&gt; host, n -&gt; network, s -&gt; short(16), l -&gt; long(32)<br>
 在系统是大端的操作系统中，这四个函数一般为空</p>
-<h1 id="35-字节操纵函数">3.5 字节操纵函数</h1>
+<h2 id="35-字节操纵函数">3.5 字节操纵函数</h2>
 <p>这里因为一些ip地址中包含0，所以不可以当作普通字符串进行处理</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span><span style="color:#75715e">&lt;strings.h&gt; </span><span style="color:#75715e">
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">bzero</span>(<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span> dest, size_t nytes) .
@@ -190,7 +190,7 @@ bind (sockfd, (struct sockaddr*)&amp;serv, sizeof(serv));</p>
 <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>memset(<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span> desk, <span style="color:#66d9ef">int</span> e, size_t len); 
 <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">memcpy</span>(<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span> desk, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span><span style="color:#f92672">*</span> src, size_t nbytes); 
 <span style="color:#66d9ef">int</span> <span style="color:#a6e22e">memcpy</span>(<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span><span style="color:#f92672">*</span> ptrl, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span><span style="color:#f92672">*</span> ptr2, size_t nbytes); 
-</code></pre></div><h1 id="36-inet_aton-inet_addr-inet_ntoa-函数">3.6 inet_aton, inet_addr, inet_ntoa 函数</h1>
+</code></pre></div><h2 id="36-inet_aton-inet_addr-inet_ntoa-函数">3.6 inet_aton, inet_addr, inet_ntoa 函数</h2>
 <p>这三个函数在点分十进制数串，和对应的32位的网络二进制间转换IPv4地址</p>
 <p>inet_pton(), inte_ntop()对于 IPv4 和 IPv6 地址均适用</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span><span style="color:#75715e">&lt;arpa/inet.h&gt;</span><span style="color:#75715e">
@@ -200,13 +200,13 @@ bind (sockfd, (struct sockaddr*)&amp;serv, sizeof(serv));</p>
 </span></code></pre></div><p>第一个函数将字符串转换为专门存储网络地址结构<br>
 第二个函数将字符串转化为32位二进制IPv4地址（不能处理255.255.255.255的广播地址），现在基本不再使用<br>
 第三个函数将32位网络地址结构转化为点分十进制的字符串指针，这个函数以一个结构体为参数，而不是它的指针</p>
-<h1 id="37-inet_pton-和-inet_ntop函数">3.7 inet_pton 和 inet_ntop函数</h1>
+<h2 id="37-inet_pton-和-inet_ntop函数">3.7 inet_pton 和 inet_ntop函数</h2>
 <p>这两个函数拓展了对IPv6的支持，现在全部使用这两个函数，上面的可以废弃，记住就对了</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span><span style="color:#75715e">&lt;arpa/inet.h&gt;</span><span style="color:#75715e">
 </span><span style="color:#75715e"></span><span style="color:#75715e">// family 代表转换地址的类型
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">inet_pton</span>(<span style="color:#66d9ef">int</span> family, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> strptr, <span style="color:#66d9ef">void</span><span style="color:#f92672">*</span> addrptr);   <span style="color:#75715e">//成功返回1，失败返回0，出错返回-1
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">const</span> <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> <span style="color:#a6e22e">inet_ntop</span>(<span style="color:#66d9ef">int</span> family, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span><span style="color:#f92672">*</span> addrptr, <span style="color:#66d9ef">char</span><span style="color:#f92672">*</span> strptr, size_t len);     <span style="color:#75715e">//成功返回指向字符串的指针，失败返回NULL
-</span></code></pre></div><h1 id="38-sock_ntop">3.8 sock_ntop</h1>
+</span></code></pre></div><h2 id="38-sock_ntop">3.8 sock_ntop</h2>
 <p>inet_ntop() 的一个问题是，他要求调用者必须传递一个指向某个二进制地址的指针，而该地址通常包含在某个套接字地址结构中，这要求调用者需要知道这个结构的格式和地址族</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">//IPv4调用格式
 </span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_in</span> addr;
@@ -233,7 +233,7 @@ inet_ntop(AF_INET6, <span style="color:#f92672">&amp;</span>addr6.sin6_addr, str
 		}
 	}
 }
-</code></pre></div><h1 id="39-readn-writen-readline">3.9 readn, writen, readline</h1>
+</code></pre></div><h2 id="39-readn-writen-readline">3.9 readn, writen, readline</h2>
 <p>EINTR错误，表示系统调用被一个捕获的信号中断</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">//UNP自定义的三个函数
 </span><span style="color:#75715e"></span>ssize_t <span style="color:#a6e22e">readn</span>(<span style="color:#66d9ef">int</span> fd, <span style="color:#66d9ef">void</span><span style="color:#f92672">*</span> vptr, size_t n){
@@ -281,7 +281,7 @@ ssize_t <span style="color:#a6e22e">writen</span>(<span style="color:#66d9ef">in
 
 <span style="color:#75715e">//readline书上提供了两个版本：第一个版本每次使用readn读取一个字节来判断是否遇到&#39;\n&#39;（效率极低）
 </span><span style="color:#75715e">//                          第二个版本用来建立一个缓冲区来进行提前缓存并进行判断
-</span></code></pre></div><h1 id="小结">小结</h1>
+</span></code></pre></div><h2 id="小结">小结</h2>
 <p>come on !!!</p>
 		</section>
 

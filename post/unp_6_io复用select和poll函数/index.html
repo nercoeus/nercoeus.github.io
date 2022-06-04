@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>UNP_6_IO复用 - nercoeus-blog</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="6.1 概述
+  上一章的问题在于TCP客户端同时处理两个套接字，标准输入和TCP套接字。在客户阻塞于fgets调用期间，服务器进程会被杀死。服务器TCP虽然正确的给客户TCP发送了一个FIN，但是客户进程既然阻塞于标准输入读入的过程，他将看不到这个EOF。这样的进程需要一种预先告知内核的能力，使得内核一旦发现进程指定的一个或多个I/O条件接续，就通知进程，这被称为IO复用" />
+	<meta property="og:image" content=""/>
+	<meta property="og:title" content="UNP_6_IO复用" />
+<meta property="og:description" content="6.1 概述
+  上一章的问题在于TCP客户端同时处理两个套接字，标准输入和TCP套接字。在客户阻塞于fgets调用期间，服务器进程会被杀死。服务器TCP虽然正确的给客户TCP发送了一个FIN，但是客户进程既然阻塞于标准输入读入的过程，他将看不到这个EOF。这样的进程需要一种预先告知内核的能力，使得内核一旦发现进程指定的一个或多个I/O条件接续，就通知进程，这被称为IO复用" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://nercoeus.github.io/post/unp_6_io%E5%A4%8D%E7%94%A8select%E5%92%8Cpoll%E5%87%BD%E6%95%B0/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2020-03-06T23:31:48&#43;08:00" />
+<meta property="article:modified_time" content="2020-03-06T23:31:48&#43;08:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="UNP_6_IO复用"/>
+<meta name="twitter:description" content="6.1 概述
+  上一章的问题在于TCP客户端同时处理两个套接字，标准输入和TCP套接字。在客户阻塞于fgets调用期间，服务器进程会被杀死。服务器TCP虽然正确的给客户TCP发送了一个FIN，但是客户进程既然阻塞于标准输入读入的过程，他将看不到这个EOF。这样的进程需要一种预先告知内核的能力，使得内核一旦发现进程指定的一个或多个I/O条件接续，就通知进程，这被称为IO复用"/>
+<script src="https://nercoeus.github.io/js/feather.min.js"></script>
+	
+	
+        <link href="https://nercoeus.github.io/css/fonts.b685ac6f654695232de7b82a9143a46f9e049c8e3af3a21d9737b01f4be211d1.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="https://nercoeus.github.io/css/main.40ca3a860425083862b7ebd55447caec5c4384573f0cb098b8d06a91e8dace2e.css" />
+	
+	
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="https://nercoeus.github.io/">nercoeus-blog</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+	<article>
+		<div class="title">
+			<h1 class="title">UNP_6_IO复用</h1>
+			<div class="meta">Posted on Mar 6, 2020</div>
+		</div>
+		
+
+		<section class="body">
+			<h2 id="61-概述">6.1 概述</h2>
+<p>  上一章的问题在于TCP客户端同时处理两个套接字，标准输入和TCP套接字。在客户阻塞于fgets调用期间，服务器进程会被杀死。服务器TCP虽然正确的给客户TCP发送了一个FIN，但是客户进程既然阻塞于标准输入读入的过程，他将看不到这个EOF。这样的进程需要一种预先告知内核的能力，使得内核一旦发现进程指定的一个或多个I/O条件接续，就通知进程，这被称为IO复用</p>
+<p>IO服用的典型使用场合</p>
+<ol>
+<li>当客户处理多个描述符（通常是交互式输入和网络套接字），必须使用IO复用。这是我们上一章强调的</li>
+<li>一个客户同时处理多个套接字是可能的，但较为少见。可以使用select等方式来进行处理</li>
+<li>如果一个TCP服务器既要处理监听套接字，又要处理已连接套接字。一般要使用IO复用</li>
+<li>如果一个服务器既要处理TCP又要处理UDP，一般就要使用IO复用</li>
+<li>如果一个服务器要处理多个服务或者多个协议，一般要使用IO复用</li>
+</ol>
+<p>I/O 复用并非只限于网络编程，许多应用程序也使用这项技术（eg：redis 的事件处理）</p>
+<h2 id="62-io模型">6.2 I/O模型</h2>
+<p>Unix下可用的I/O模型有五种</p>
+<ol>
+<li>阻塞式 I/O；</li>
+<li>非阻塞式 I/O；</li>
+<li>I/O 复用（select 和 poll）；</li>
+<li>信号驱动式 I/O（SIGIO）；</li>
+<li>异步 I/O（POSIX 的 aio_ 系列函数）；</li>
+</ol>
+<p>一个输入操作通常包括两个不同的阶段：</p>
+<ol>
+<li>等待数据准备好</li>
+<li>从内核向进程复制数据</li>
+</ol>
+<p>对于套接字来说：</p>
+<ol>
+<li>通常是等待数据从网络中到达，当到达后，被复制到内核的缓冲区。</li>
+<li>是把数据从内核缓冲区复制到应用进程缓冲区。</li>
+</ol>
+<h4 id="阻塞式io模型">阻塞式I/O模型</h4>
+<pre><code>    在阻塞式IO模型中，所有套接字都是阻塞的（在内核空间中等待数据），在该函数开始调用以及返回的时间内。
+</code></pre>
+<h4 id="非阻塞式io模型">非阻塞式IO模型</h4>
+<pre><code>    进程把一个套接字设置成非阻塞是在通知内核：当请求的IO操作非要把本进程投入睡眠中才可完成时，不要把进程投入睡眠，而是返回一个错误  
+当进程循环进行确认时，称之为轮询，这么做十分耗费 CPU
+</code></pre>
+<h4 id="io复用模型">IO复用模型</h4>
+<pre><code>    有IO复用了，我们就可以调用 select 或 poll，阻塞在这两个系统调用的某一个上，而不是阻塞在真正的IO系统调用上
+    使用了IO复用，阻塞于 select 的调用，等待数据报套接字变为可读。当 select 返回套接字可读这一条件时，我们调用 recvfrom 把所有数据报复制到应用进程缓冲区。
+对于单个的描述符来说，Io复用甚至效果还不如阻塞IO，但它在多描述符的等待上会更有优势。  
+与 I/O 复用类似的是使用多线程来进行阻塞式 I/O
+</code></pre>
+<h4 id="信号驱动式io模型">信号驱动式IO模型</h4>
+<pre><code>我们可以使用信号，让内核在描述符就绪时发送SIGIO信号通知我们。
+这样我们就不会阻塞在数据的等待是，只会阻塞在复制数据的过程上。
+</code></pre>
+<h4 id="异步io模型">异步IO模型</h4>
+<pre><code>    告知内核某个操作，，并让内核在整个操作完成后进行通知即可，信号驱动式IO告诉我们可以进行一个IO操作，而异步IO告诉我们IO操作已经结束
+</code></pre>
+<h4 id="各种io模型比较">各种IO模型比较</h4>
+<p>前四种模型主要区别在第一阶段，第二阶段均相同：在数据从内核复制到调用者的缓冲区期间，进程阻塞于recvfrom调用，相反，异步IO模型在这两个阶段都要处理，从而不同于其余的模型</p>
+<h4 id="同步io和异步io的对比">同步IO和异步IO的对比</h4>
+<p>同步IO导致请求进程阻塞，直到IO操作完成
+异步IO不导致请求阻塞</p>
+<h4 id="同步与异步阻塞与非阻塞">同步与异步，阻塞与非阻塞</h4>
+<p>同步与异步：同步与异步是针对应用程序与内核的交互而言的。同步过程中进程触发IO操作并等待或者轮询的去查看IO操作是否完成。异步过程中进程触发IO操作以后，直接返回，做自己的事情，IO交给内核来处理，完成后内核通知进程IO完成，这里是针对第二个阶段的区分</p>
+<p>阻塞与非阻塞：应用进程请求I/O操作时，如果数据未准备好，如果请求立即返回就是非阻塞，不立即返回就是阻塞。简单说就是做一件事如果不能立即获得返回，需要等待，就是阻塞，否则就可以理解为非阻塞。这里主要为第一个阶段的区分</p>
+<p>虽然吧同步异步，阻塞非阻塞放在一起，但二者无必然联系</p>
+<h2 id="63-select函数">6.3 select函数</h2>
+<p>该函数允许进程指示内核等待多个事件中的任何一个发生，并只有在一个或多个事件发生或经历一段指定的时间后才能唤醒它。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;sys/select.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;sys/time.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">select</span>(<span style="color:#66d9ef">int</span> maxfdpl, fd_set<span style="color:#f92672">*</span> readset, fd_set<span style="color:#f92672">*</span> writeset, fd_set<span style="color:#f92672">*</span> exceptset, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span>                  <span style="color:#a6e22e">timeval</span><span style="color:#f92672">*</span> timeout);
+<span style="color:#75715e">//返回:若有就绪描述符则返回其数目，若超时则为0，若出错则为-1
+</span></code></pre></div><p>参数解析：</p>
+<ul>
+<li>timeout：告知内核等待所指定描述符中的任何一个就绪可花多长时间，其timeval结构如下</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-fallback" data-lang="fallback">    struct timeval{
+        long tv_sec;    //秒数
+        long tv_usec;   //微秒数
+    }
+</code></pre></div><ul>
+<li>timeout 参数有以下用法：
+<ol>
+<li>永远等待下去：仅在有一个描述符转备好IO时才返回，此时应置位空指针</li>
+<li>等待一个固定的时间：在有一个描述符准备好IO时返回，但是不能超过该参数所指向的timeval结构中指定的秒数和微秒数</li>
+<li>根本不等待：检查描述符之后立即返回，称为轮询（polling），该指针需要指向一个值为0的结构</li>
+</ol>
+</li>
+<li>中间的三个参数告诉内核我们指定在该描述符上的操作，读，写，异常条件的判断
+目前的异常条件只有两个：
+<ol>
+<li>某个套接字的带外数据的到达</li>
+<li>某个已置位分组模式的伪终端存在可从其主端读取的控制状态信息</li>
+</ol>
+</li>
+<li>要想给这三个参数指定描述符集，select使用的是一个整数数组，其中每一位对应一个描述符。</li>
+</ul>
+<p>*使用select时一定要注意对最大描述符加一</p>
+<h4 id="描述符就绪条件unpp130">描述符就绪条件(UNP.p130)</h4>
+<p>满足以下四个条件之一，一个套接字准备好读</p>
+<ol>
+<li>该套接字接收缓冲区中的数据字节数大于等于套接字接收缓冲区低水位标记的当前大小。对这样的套接字执行读操作不会阻塞并返回一个大于0的值（也就是返回准备好读入的数据）。我们可以使用SO_RCLOWAT套接字选项设置套接字的低水位标记。对于TCP，UDP来说，默认为1.</li>
+<li>该链接的读半部关闭（也就是接受了FIN的TCP连接）。对于这样的操作读操作不会阻塞并返回0（EOF）。</li>
+<li>该套接字是一个监听套接字，并且已完成的连接数不为0.对于这样的套接字accept通常不会阻塞</li>
+<li>其上有一个套接字错误待处理，对于这样的套接字的读操作不阻塞并返回-1（返回一个错误），同时设置error为确切的错误操作</li>
+</ol>
+<p>满足以下四个条件之一，一个套接字准备好写</p>
+<ol>
+<li>该套接字发送缓冲区中的可用空间大于等于套接字发送缓冲区低水位标记的当前大小，并且或者该套接字已经连接，或者该套接字不需要连接。如果我们把这样的套接字设置为非阻塞的，写操作不会阻塞一个正值。我们可以使用SO_SNDLOWAT套接字选项设置套接字的低水位标记。对于TCP，UDP来说，默认为2048.</li>
+<li>该连接的写半部关闭。对这样的套接字的写操作将产生SIGPIPE信号。</li>
+<li>使用非阻塞式connect的套接字以建立连接，或者connect已经以失败告终</li>
+<li>其上有一个套接字错误待处理，对于这样的套接字的写操作不阻塞并返回-1（返回一个错误），同时设置error为确切的错误操作</li>
+</ol>
+<p>如果一个套接字存在外带数据或者仍处于带外标记，那么它有异常条件待处理</p>
+<ul>
+<li>注意：如果某个套接字上发生错误时，它将由select标记为既可读又可写</li>
+</ul>
+<p>总结表：</p>
+<table>
+<thead>
+<tr>
+<th>条件</th>
+<th>可读吗？</th>
+<th>可写吗？</th>
+<th>异常吗？</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>有数据可读</td>
+<td>√</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>关闭连接的读一半</td>
+<td>√</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>给监听套接口转备好新链接</td>
+<td>√</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>有可用于写的空间</td>
+<td></td>
+<td>√</td>
+<td></td>
+</tr>
+<tr>
+<td>关闭连接的写一半</td>
+<td></td>
+<td>√</td>
+<td></td>
+</tr>
+<tr>
+<td>待处理错误</td>
+<td>√</td>
+<td>√</td>
+<td></td>
+</tr>
+<tr>
+<td>TCP带外数据</td>
+<td></td>
+<td></td>
+<td>√</td>
+</tr>
+</tbody>
+</table>
+<h4 id="select的最大描述符">select的最大描述符</h4>
+<p>最开始select设置为进程中最大支持描述符个数。但随着系统的版本的迭代，单进程所支持的描述符个数已经大大增加，但是select并不能随意增加。</p>
+<h2 id="64-str_cli函数">6.4 str_cli函数</h2>
+<p>使用select来重新写str_cli函数，这样服务一旦终止，客户就可以马上得到通知</p>
+<p>客户的套接字上三个条件处理如下</p>
+<ol>
+<li>如果对端TCP发送数据，那么该套接字变为可读，并且read返回一个大于0的值（即读入数据的字节数）</li>
+<li>如果对端TCP发送一个FIN（对端进程终止），那么该套接字变为可读，并且read返回0（EOF）</li>
+<li>如果对端TCP发送一个RST（对端主机崩溃并重现启动）那么该套接字变为可读，并且read返回-1，而errno中含有确切的错误代码</li>
+</ol>
+<p>使用select来重写该函数</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;unp.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">str_cli</span>(FILE<span style="color:#f92672">*</span> fp, <span style="color:#66d9ef">int</span> sockfd){
+    <span style="color:#66d9ef">int</span> maxfdp1;
+    fd_set rset;
+    <span style="color:#66d9ef">char</span> sendline[MAXLINE], recvline[MAXLINE];
+
+    FD_ZERO(<span style="color:#f92672">&amp;</span>rset);
+    <span style="color:#66d9ef">for</span>( ; ; ){
+        FD_SET(fileno(fp), <span style="color:#f92672">&amp;</span>rest);  <span style="color:#75715e">//fileno函数把标准IO读写文件转换为对应的描述符
+</span><span style="color:#75715e"></span>        FD_SET(sockfd, <span style="color:#f92672">&amp;</span>rest);
+        maxfdp1 <span style="color:#f92672">=</span> max(fileno(fp), sockfd) <span style="color:#f92672">+</span> <span style="color:#ae81ff">1</span>;
+        Select(maxfdp1, <span style="color:#f92672">&amp;</span>rest, NULL, NULL, NULL);
+
+        <span style="color:#66d9ef">if</span>(FD_ISSET(sockfd, <span style="color:#f92672">&amp;</span>rset)) {
+            <span style="color:#66d9ef">if</span>(Readline(sockfd, recvline, MAXLINE) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>)
+                err_quit(<span style="color:#e6db74">&#34;str_cli :...&#34;</span>);
+            Fputs(recvline, stdout);
+        }
+        <span style="color:#66d9ef">if</span>(FD_ISSET(fileno(fp), <span style="color:#f92672">&amp;</span>rset)) {
+            <span style="color:#66d9ef">if</span>(Fgets(sendline, MAXLINE, fp) <span style="color:#f92672">==</span> NULL)
+                <span style="color:#66d9ef">return</span>;
+            Writen(sockfd, sendline, strlen(sendline));
+        }
+    }
+}
+</code></pre></div><h2 id="65-批量输入">6.5 批量输入</h2>
+<p>我们最初的版本中，以停-等的方式工作，这对交互式使用来说是合适的：发送一行文本给服务器，然后等待应答。这段时间是往返时间，加服务器处理时间。
+本节不完整，查看UNP6.5节。</p>
+<h2 id="66-shutdown函数">6.6 shutdown函数</h2>
+<p>终止网络连接的方式一把使用close函数，但close函数有两个限制，可以使用shutdown避免</p>
+<ol>
+<li>close把描述符的引用计数减一，仅在该计数变为0时关闭套接字。使用shutdown可以不管引用计数就激发TCP的正常连接中止序列。</li>
+<li>close终止读和写两个方向的数据传送。既然TCP连接是全双工的，有时我们需要告诉对端我们已经完成了数据发送，即使对端仍有数据要发送给我们。这就是前一节遇到的str_cli函数在批量输入时的情况
+调用shutdown关闭一半的连接</li>
+</ol>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;sys/socket.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">shutdown</span>(<span style="color:#66d9ef">int</span> sockfd, <span style="color:#66d9ef">int</span> howto);
+</code></pre></div><p>该函数的行为依赖于howto参数的值</p>
+<ul>
+<li>SHUT_RD(0)： 关闭连接读这一半&ndash;套接字中不再有数据可接收，而且套接字接收缓冲区中的现有数据都被丢弃。进程不在对这样的套接字调用任何函数。对一个TCP套接字这样调用shutdown函数后，由该套接字接受的来自对端的任何数据都会被确认，然后悄然丢弃</li>
+<li>SHUT_WR(1)： 关闭连接的写部分&ndash;对于TCP套接字，这叫半关闭。当前留在套接字发送缓冲区的数据将会被发送，之后进程不能再对改套接字调用任何写函数</li>
+<li>SHUE_RDWR(2)： 连接的读半部和写半部均关闭&ndash;这与调用shutdown两次等效：第一次调用指定SHUT_RD，第二次调用指定SHUT_WR</li>
+</ul>
+<h2 id="67-str_cli函数再修改">6.7 str_cli函数再修改</h2>
+<p>这次加入了 select 和 shutdown 函数，前者允许只要服务器关闭就会通知我们，后者允许我们正确的处理批量输入，该版本还废弃了以文本行为中心的代码，从而针对缓冲区操作</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span> <span style="color:#75715e">&#34;unp.h&#34;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">str_cli</span>(FILE<span style="color:#f92672">*</span> fp, <span style="color:#66d9ef">int</span> sockfd){
+    <span style="color:#66d9ef">int</span> maxfdp1, stdineof;
+    fd_set rset;
+    <span style="color:#66d9ef">char</span> buf[MAXLINE];
+    <span style="color:#66d9ef">int</span> n;
+
+    stdineof <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+    FD_ZERO(<span style="color:#f92672">&amp;</span>rset);   <span style="color:#75715e">// 初始化监听描述符集合
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">for</span>(; ; ){
+        <span style="color:#66d9ef">if</span>(stdineof <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>){
+            FD_SET(fileno(fp), <span style="color:#f92672">&amp;</span>rset);
+        }
+        FD_SET(sockfd, <span style="color:#f92672">&amp;</span>rset);
+        maxfdp1 <span style="color:#f92672">=</span> max(fileno(fp), sockrd) <span style="color:#f92672">+</span> ;
+        <span style="color:#75715e">// 每次循环都要重新调用 SELECT 来进行判断
+</span><span style="color:#75715e"></span>        Select(maxfdp1, <span style="color:#f92672">&amp;</span>rset, NULL, NULL, NULL);
+        <span style="color:#66d9ef">if</span>(FD_ISSET(sockfd, <span style="color:#f92672">&amp;</span>rset)){   <span style="color:#75715e">// socket 可读
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span>( (n <span style="color:#f92672">=</span> Read(sockfd, buf, MAXLINE)) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>){
+                <span style="color:#66d9ef">if</span>(stdineof <span style="color:#f92672">==</span> <span style="color:#ae81ff">1</span>)
+                    <span style="color:#66d9ef">return</span>;
+                <span style="color:#66d9ef">else</span>
+                    err_quit(<span style="color:#e6db74">&#34;&#34;</span>);
+            }
+            Write(fileno(stdout), buf, n);
+        }
+        <span style="color:#66d9ef">if</span>(FD_ISSET(fileno(fp), <span style="color:#f92672">&amp;</span>rset)){   <span style="color:#75715e">// input 可读
+</span><span style="color:#75715e"></span>            <span style="color:#66d9ef">if</span>( n <span style="color:#f92672">=</span> (Read(fileno(fp), buf, MAXLINE)) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>){
+                stdineof <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+                Shutdown(sockfd, SHUT_WR);
+                FD_CLR(fileno(fp), <span style="color:#f92672">&amp;</span>rset);
+                <span style="color:#66d9ef">continue</span>;
+            }
+            Writen(sockfd, buf, n);
+        }
+    }
+
+}
+</code></pre></div><h2 id="68-tcp-回射服务器程序修订">6.8 TCP 回射服务器程序（修订）</h2>
+<p>代码见书，这里不做 copy</p>
+<p><strong>拒绝服务型攻击</strong>
+当一个服务器处理多个客户时，绝对不能阻塞于单个客户的相关函数调用。否则可能导致服务器挂起，拒绝为所有客户端服务。</p>
+<ul>
+<li>解决方法
+<ul>
+<li>使用非阻塞式 I/O</li>
+<li>让每个客户由单独线程提供服务</li>
+<li>对 I/O 操作设置一个定时</li>
+</ul>
+</li>
+</ul>
+<h2 id="69-pselect-函数">6.9 pselect 函数</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span><span style="color:#75715e">&lt;sys/select.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span><span style="color:#75715e">&lt;signal.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#include</span><span style="color:#75715e">&lt;time.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">int</span> pselect(<span style="color:#66d9ef">int</span> macfdp1, fd_set <span style="color:#f92672">*</span>readset, fd_set <span style="color:#f92672">*</span>writeset, fd_set<span style="color:#f92672">*</span> exceptset,
+            <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">timespec</span> <span style="color:#f92672">*</span> timeout, <span style="color:#66d9ef">const</span> sigset_t<span style="color:#f92672">*</span> sigmask)
+<span style="color:#75715e">// 返回：若有已经就绪的描述符，返回数目，超时返回 0，出错返回 -1
+</span></code></pre></div><p>相比 select 的变化：</p>
+<ul>
+<li>pselect 使用 timespec 结构，而不是 timeval 结构。仅仅是第二个时间值从微秒转换为纳秒。</li>
+<li>pselect 增加了一个参数，指向信号掩码的指针。</li>
+</ul>
+<h2 id="610-poll-函数">6.10 poll 函数</h2>
+<p>poll 函数提供的功能与 select 类似。但在处理流设备时，能够提供额外的信息</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span><span style="color:#75715e">&lt;poll.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">poll</span>(<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">pollfd</span><span style="color:#f92672">*</span> fdarray, <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">long</span> nfds, <span style="color:#66d9ef">int</span> timeout)
+<span style="color:#75715e">// 返回：若有已经就绪的描述符，返回数目，超时返回 0，出错返回 -1
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">pollfd</span>{
+    <span style="color:#66d9ef">int</span> fd;
+    <span style="color:#66d9ef">short</span> events;
+    <span style="color:#66d9ef">short</span> revents;
+}
+</code></pre></div><p>fdarray 时指向 pollfd 结构体数组的指针，用来保存一系列的描述符，返回后判断相应 pollfd 结构体中的 revents 来确定是否有何种类型的输出即可。</p>
+<h2 id="611-tcp-回射服务器程序修改">6.11 TCP 回射服务器程序（修改）</h2>
+<p>使用 poll 代替 select 来重写服务器程序<br>
+代码见书，这里不做 copy</p>
+<h2 id="小结">小结</h2>
+<p>unix 有五种不同的 I/O 模型：</p>
+<ul>
+<li>阻塞式 I/O 模型</li>
+<li>非阻塞式 I/O 模型</li>
+<li>I/O 复用模型</li>
+<li>信号驱动式 I/O 模型</li>
+<li>异步 I/O 模型</li>
+</ul>
+<p>默认是阻塞式 I/O 模型， I/O 复用模型常使用 select，但 epoll 是较好的选择</p>
+		</section>
+
+		<div class="post-tags">
+			
+			
+			<nav class="nav tags">
+				<ul class="tags">
+					
+					<li><a href="/tags/unp-book-notes">UNP-book-notes</a></li>
+					
+				</ul>
+			</nav>
+			
+			
+		</div>
+	</article>
+</main>
+<footer>
+  <div style="display:flex"><a class="soc" href="https://github.com/nercoeus" title="GitHub"><i data-feather="github"></i></a><a class="soc" href="https://twitter.com/nercoeus/" title="Twitter"><i data-feather="twitter"></i></a><a class="soc" href="nercoeus@gmail.com" title="Email"><i data-feather="mail"></i></a></div>
+  <div class="footer-info">
+    2022  © nercoeus |  Built with <a
+      href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+
+<script>
+  feather.replace()
+</script></div>
+    </body>
+</html>

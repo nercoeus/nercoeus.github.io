@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>UNP_22_高级UDP套接字编程 - nercoeus-blog</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="22.1 概述
+  首先确定某个外来 UDP 数据报的目的地址和接收端口，因为绑定某个 UDP 端口和通配地址的一个套接字能够在任何接口上接受单播，广播和组播数据报。
+  TCP 是一个字节流协议，又使用滑动窗口，因此没有记录边界和接收端速度慢于发送端的情况。但是 UDP 却需要程序对这些进行处理。
+  如果实现不支持 IP_RECVDSTADDR 套接字选项，那么确定外来 UDP 数据报目的地址的方法之一是捆绑所有接口地址并使用 select。" />
+	<meta property="og:image" content=""/>
+	<meta property="og:title" content="UNP_22_高级UDP套接字编程" />
+<meta property="og:description" content="22.1 概述
+  首先确定某个外来 UDP 数据报的目的地址和接收端口，因为绑定某个 UDP 端口和通配地址的一个套接字能够在任何接口上接受单播，广播和组播数据报。
+  TCP 是一个字节流协议，又使用滑动窗口，因此没有记录边界和接收端速度慢于发送端的情况。但是 UDP 却需要程序对这些进行处理。
+  如果实现不支持 IP_RECVDSTADDR 套接字选项，那么确定外来 UDP 数据报目的地址的方法之一是捆绑所有接口地址并使用 select。" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://nercoeus.github.io/post/unp_22_%E9%AB%98%E7%BA%A7udp%E5%A5%97%E6%8E%A5%E5%AD%97%E7%BC%96%E7%A8%8B/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2020-03-22T23:31:48&#43;08:00" />
+<meta property="article:modified_time" content="2020-03-22T23:31:48&#43;08:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="UNP_22_高级UDP套接字编程"/>
+<meta name="twitter:description" content="22.1 概述
+  首先确定某个外来 UDP 数据报的目的地址和接收端口，因为绑定某个 UDP 端口和通配地址的一个套接字能够在任何接口上接受单播，广播和组播数据报。
+  TCP 是一个字节流协议，又使用滑动窗口，因此没有记录边界和接收端速度慢于发送端的情况。但是 UDP 却需要程序对这些进行处理。
+  如果实现不支持 IP_RECVDSTADDR 套接字选项，那么确定外来 UDP 数据报目的地址的方法之一是捆绑所有接口地址并使用 select。"/>
+<script src="https://nercoeus.github.io/js/feather.min.js"></script>
+	
+	
+        <link href="https://nercoeus.github.io/css/fonts.b685ac6f654695232de7b82a9143a46f9e049c8e3af3a21d9737b01f4be211d1.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="https://nercoeus.github.io/css/main.40ca3a860425083862b7ebd55447caec5c4384573f0cb098b8d06a91e8dace2e.css" />
+	
+	
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="https://nercoeus.github.io/">nercoeus-blog</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+	<article>
+		<div class="title">
+			<h1 class="title">UNP_22_高级UDP套接字编程</h1>
+			<div class="meta">Posted on Mar 22, 2020</div>
+		</div>
+		
+
+		<section class="body">
+			<h2 id="221-概述">22.1 概述</h2>
+<p>  首先确定某个外来 UDP 数据报的目的地址和接收端口，因为绑定某个 UDP 端口和通配地址的一个套接字能够在任何接口上接受单播，广播和组播数据报。<br>
+  TCP 是一个字节流协议，又使用滑动窗口，因此没有记录边界和接收端速度慢于发送端的情况。但是 UDP 却需要程序对这些进行处理。<br>
+  如果实现不支持 IP_RECVDSTADDR 套接字选项，那么确定外来 UDP 数据报目的地址的方法之一是捆绑所有接口地址并使用 select。</p>
+<h2 id="222-接收标志目的-ip-地址和接口索引">22.2 接收标志、目的 ip 地址和接口索引</h2>
+<p>过去 sendmsg 和 recvmsg 一直用于通过 Unix 域套接字传递描述符。但随着改变，使用方式也在变化：</p>
+<ul>
+<li>在 msghdr 结构加入 msg_flags 用来返回标志该进程</li>
+<li>辅助数据越来越多的被使用</li>
+</ul>
+<p>我们会实现一个类似 recvmsg 的 recvfrom_flags 函数，区别是新的函数还返回：</p>
+<ul>
+<li>所返回的 msg_flags 值</li>
+<li>所收取数据报的目的地址（通过 IP_RECVDSTADDR 套接字选项获取）</li>
+<li>所收取数据报接受接口的索引（通过 IP_RECVIF 套接字选项获取）</li>
+</ul>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// 该结构体用来返回最后两项
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">struct</span> unp_in_pktinfo{
+    <span style="color:#66d9ef">struct</span> in_addr ipi_addr;
+    <span style="color:#66d9ef">int</span>            ipi_ifindex;
+};
+<span style="color:#75715e">// 前三个参数类似于 recvfrom，后面的参数用来返回上面提到的项
+</span><span style="color:#75715e"></span>ssize_t <span style="color:#a6e22e">recvfrom_flags</span>(<span style="color:#66d9ef">int</span> fd, <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>ptr, size_t nbytes, <span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>flagsp,
+			   SA <span style="color:#f92672">*</span>sa, socklen_t <span style="color:#f92672">*</span>salenptr, <span style="color:#66d9ef">struct</span> unp_in_pktinfo <span style="color:#f92672">*</span>pktp)
+{
+	<span style="color:#66d9ef">struct</span> msghdr	msg;
+	<span style="color:#66d9ef">struct</span> iovec	iov[<span style="color:#ae81ff">1</span>];
+	ssize_t			n;
+<span style="color:#75715e">// 不同的实现差异
+</span><span style="color:#75715e"></span><span style="color:#75715e">#ifdef	HAVE_MSGHDR_MSG_CONTROL
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">struct</span> cmsghdr	<span style="color:#f92672">*</span>cmptr;
+	<span style="color:#66d9ef">union</span> {
+	  <span style="color:#66d9ef">struct</span> cmsghdr	cm;
+	  <span style="color:#66d9ef">char</span>				control[CMSG_SPACE(<span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">struct</span> in_addr)) <span style="color:#f92672">+</span>
+								CMSG_SPACE(<span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">struct</span> unp_in_pktinfo))];
+	} control_un;
+
+	msg.msg_control <span style="color:#f92672">=</span> control_un.control;
+	msg.msg_controllen <span style="color:#f92672">=</span> <span style="color:#66d9ef">sizeof</span>(control_un.control);
+	msg.msg_flags <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+<span style="color:#75715e">#else
+</span><span style="color:#75715e"></span>	bzero(<span style="color:#f92672">&amp;</span>msg, <span style="color:#66d9ef">sizeof</span>(msg));	<span style="color:#75715e">/* make certain msg_accrightslen = 0 */</span>
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">// 填写一个 msghdr 结构并用来调用 recvmsg
+</span><span style="color:#75715e"></span>	msg.msg_name <span style="color:#f92672">=</span> sa;
+	msg.msg_namelen <span style="color:#f92672">=</span> <span style="color:#f92672">*</span>salenptr;
+	iov[<span style="color:#ae81ff">0</span>].iov_base <span style="color:#f92672">=</span> ptr;
+	iov[<span style="color:#ae81ff">0</span>].iov_len <span style="color:#f92672">=</span> nbytes;
+	msg.msg_iov <span style="color:#f92672">=</span> iov;
+	msg.msg_iovlen <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+
+	<span style="color:#66d9ef">if</span> ( (n <span style="color:#f92672">=</span> recvmsg(fd, <span style="color:#f92672">&amp;</span>msg, <span style="color:#f92672">*</span>flagsp)) <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>)
+		<span style="color:#66d9ef">return</span>(n);
+
+	<span style="color:#f92672">*</span>salenptr <span style="color:#f92672">=</span> msg.msg_namelen;	<span style="color:#75715e">/* pass back results */</span>
+	<span style="color:#66d9ef">if</span> (pktp)
+		bzero(pktp, <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">struct</span> unp_in_pktinfo));	<span style="color:#75715e">/* 0.0.0.0, i/f = 0 */</span>
+
+<span style="color:#75715e">#ifndef	HAVE_MSGHDR_MSG_CONTROL
+</span><span style="color:#75715e"></span>	<span style="color:#f92672">*</span>flagsp <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;					<span style="color:#75715e">/* pass back results */</span>
+	<span style="color:#66d9ef">return</span>(n);
+<span style="color:#75715e">#else
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">// 返回 msg_flags 的成员值
+</span><span style="color:#75715e"></span>	<span style="color:#f92672">*</span>flagsp <span style="color:#f92672">=</span> msg.msg_flags;
+	<span style="color:#66d9ef">if</span> (msg.msg_controllen <span style="color:#f92672">&lt;</span> <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">struct</span> cmsghdr) <span style="color:#f92672">||</span>
+		(msg.msg_flags <span style="color:#f92672">&amp;</span> MSG_CTRUNC) <span style="color:#f92672">||</span> pktp <span style="color:#f92672">==</span> NULL)
+		<span style="color:#66d9ef">return</span>(n);
+	<span style="color:#75715e">// 处理辅助数据
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">for</span> (cmptr <span style="color:#f92672">=</span> CMSG_FIRSTHDR(<span style="color:#f92672">&amp;</span>msg); cmptr <span style="color:#f92672">!=</span> NULL;
+		 cmptr <span style="color:#f92672">=</span> CMSG_NXTHDR(<span style="color:#f92672">&amp;</span>msg, cmptr)) {
+
+<span style="color:#75715e">#ifdef	IP_RECVDSTADDR
+</span><span style="color:#75715e"></span>		<span style="color:#75715e">// 如果目的 IP 地址作为控制信息返回，就返回给调用者
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> (cmptr<span style="color:#f92672">-&gt;</span>cmsg_level <span style="color:#f92672">==</span> IPPROTO_IP <span style="color:#f92672">&amp;&amp;</span>
+			cmptr<span style="color:#f92672">-&gt;</span>cmsg_type <span style="color:#f92672">==</span> IP_RECVDSTADDR) {
+
+			memcpy(<span style="color:#f92672">&amp;</span>pktp<span style="color:#f92672">-&gt;</span>ipi_addr, CMSG_DATA(cmptr),
+				   <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">struct</span> in_addr));
+			<span style="color:#66d9ef">continue</span>;
+		}
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#ifdef	IP_RECVIF
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> (cmptr<span style="color:#f92672">-&gt;</span>cmsg_level <span style="color:#f92672">==</span> IPPROTO_IP <span style="color:#f92672">&amp;&amp;</span>
+			cmptr<span style="color:#f92672">-&gt;</span>cmsg_type <span style="color:#f92672">==</span> IP_RECVIF) {
+			<span style="color:#66d9ef">struct</span> sockaddr_dl	<span style="color:#f92672">*</span>sdl;
+
+			sdl <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> sockaddr_dl <span style="color:#f92672">*</span>) CMSG_DATA(cmptr);
+			pktp<span style="color:#f92672">-&gt;</span>ipi_ifindex <span style="color:#f92672">=</span> sdl<span style="color:#f92672">-&gt;</span>sdl_index;
+			<span style="color:#66d9ef">continue</span>;
+		}
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>		err_quit(<span style="color:#e6db74">&#34;unknown ancillary data, len = %d, level = %d, type = %d&#34;</span>,
+				 cmptr<span style="color:#f92672">-&gt;</span>cmsg_len, cmptr<span style="color:#f92672">-&gt;</span>cmsg_level, cmptr<span style="color:#f92672">-&gt;</span>cmsg_type);
+	}
+	<span style="color:#66d9ef">return</span>(n);
+<span style="color:#75715e">#endif	</span><span style="color:#75715e">/* HAVE_MSGHDR_MSG_CONTROL */</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>}
+
+ssize_t <span style="color:#a6e22e">Recvfrom_flags</span>(<span style="color:#66d9ef">int</span> fd, <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>ptr, size_t nbytes, <span style="color:#66d9ef">int</span> <span style="color:#f92672">*</span>flagsp,
+			   SA <span style="color:#f92672">*</span>sa, socklen_t <span style="color:#f92672">*</span>salenptr, <span style="color:#66d9ef">struct</span> unp_in_pktinfo <span style="color:#f92672">*</span>pktp)
+{
+	ssize_t		n;
+
+	n <span style="color:#f92672">=</span> recvfrom_flags(fd, ptr, nbytes, flagsp, sa, salenptr, pktp);
+	<span style="color:#66d9ef">if</span> (n <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>)
+		err_quit(<span style="color:#e6db74">&#34;recvfrom_flags error&#34;</span>);
+
+	<span style="color:#66d9ef">return</span>(n);
+}
+</code></pre></div><h4 id="修改-dg_echo-来输出目的-ip-地址和数据报截断标志">修改 dg_echo 来输出目的 IP 地址和数据报截断标志</h4>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#undef	MAXLINE
+</span><span style="color:#75715e"></span><span style="color:#75715e">// 测试更大的数据报，用来测试截断标志
+</span><span style="color:#75715e"></span><span style="color:#75715e">#define	MAXLINE	20		</span><span style="color:#75715e">/* to see datagram truncation */</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span>
+<span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">dg_echo</span>(<span style="color:#66d9ef">int</span> sockfd, SA <span style="color:#f92672">*</span>pcliaddr, socklen_t clilen)
+{
+	<span style="color:#66d9ef">int</span>						flags;
+	<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span>				on <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+	socklen_t				len;
+	ssize_t					n;
+	<span style="color:#66d9ef">char</span>					mesg[MAXLINE], str[INET6_ADDRSTRLEN],
+							ifname[IFNAMSIZ];
+	<span style="color:#66d9ef">struct</span> in_addr			in_zero;
+	<span style="color:#66d9ef">struct</span> unp_in_pktinfo	pktinfo;
+
+<span style="color:#75715e">#ifdef	IP_RECVDSTADDR
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">// 开启 IP_RECVDSTADDR 和 IP_RECVIF 套接字选项
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> (setsockopt(sockfd, IPPROTO_IP, IP_RECVDSTADDR, <span style="color:#f92672">&amp;</span>on, <span style="color:#66d9ef">sizeof</span>(on)) <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>)
+		err_ret(<span style="color:#e6db74">&#34;setsockopt of IP_RECVDSTADDR&#34;</span>);
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e">#ifdef	IP_RECVIF
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> (setsockopt(sockfd, IPPROTO_IP, IP_RECVIF, <span style="color:#f92672">&amp;</span>on, <span style="color:#66d9ef">sizeof</span>(on)) <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>)
+		err_ret(<span style="color:#e6db74">&#34;setsockopt of IP_RECVIF&#34;</span>);
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>	bzero(<span style="color:#f92672">&amp;</span>in_zero, <span style="color:#66d9ef">sizeof</span>(<span style="color:#66d9ef">struct</span> in_addr));	<span style="color:#75715e">/* all 0 IPv4 address */</span>
+
+	<span style="color:#66d9ef">for</span> ( ; ; ) {
+		len <span style="color:#f92672">=</span> clilen;
+		flags <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+		n <span style="color:#f92672">=</span> Recvfrom_flags(sockfd, mesg, MAXLINE, <span style="color:#f92672">&amp;</span>flags,
+						   pcliaddr, <span style="color:#f92672">&amp;</span>len, <span style="color:#f92672">&amp;</span>pktinfo);
+		printf(<span style="color:#e6db74">&#34;%d-byte datagram from %s&#34;</span>, n, Sock_ntop(pcliaddr, len));
+		<span style="color:#75715e">// 返回的 IP 地址不为 0，调用 Inet_ntop 转换表达形式
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> (memcmp(<span style="color:#f92672">&amp;</span>pktinfo.ipi_addr, <span style="color:#f92672">&amp;</span>in_zero, <span style="color:#66d9ef">sizeof</span>(in_zero)) <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>)
+			printf(<span style="color:#e6db74">&#34;, to %s&#34;</span>, Inet_ntop(AF_INET, <span style="color:#f92672">&amp;</span>pktinfo.ipi_addr,
+										str, <span style="color:#66d9ef">sizeof</span>(str)));
+		<span style="color:#75715e">// 返回接口索引不为 0，调用 If_indextoname 获取接口名字并打印
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> (pktinfo.ipi_ifindex <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">0</span>)
+			printf(<span style="color:#e6db74">&#34;, recv i/f = %s&#34;</span>,
+				   If_indextoname(pktinfo.ipi_ifindex, ifname));
+		<span style="color:#75715e">// 这四个标志位，分别测试是否打开，打开则打印
+</span><span style="color:#75715e"></span><span style="color:#75715e">#ifdef	MSG_TRUNC
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> (flags <span style="color:#f92672">&amp;</span> MSG_TRUNC)	printf(<span style="color:#e6db74">&#34; (datagram truncated)&#34;</span>);
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e">#ifdef	MSG_CTRUNC
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> (flags <span style="color:#f92672">&amp;</span> MSG_CTRUNC)	printf(<span style="color:#e6db74">&#34; (control info truncated)&#34;</span>);
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e">#ifdef	MSG_BCAST
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> (flags <span style="color:#f92672">&amp;</span> MSG_BCAST)	printf(<span style="color:#e6db74">&#34; (broadcast)&#34;</span>);
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e">#ifdef	MSG_MCAST
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> (flags <span style="color:#f92672">&amp;</span> MSG_MCAST)	printf(<span style="color:#e6db74">&#34; (multicast)&#34;</span>);
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>		printf(<span style="color:#e6db74">&#34;</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+
+		Sendto(sockfd, mesg, n, <span style="color:#ae81ff">0</span>, pcliaddr, len);
+	}
+}
+</code></pre></div><h2 id="223-数据报截断">22.3 数据报截断</h2>
+<p>  当到达的一个 UDP 数据报超过应用进程提供的缓冲区容量时，recvmsg 在其 msghdr 结构的 msg_flags 成员上设置 MSG_TRUNC 标志。不幸的是不是所有实现都支持这种方式来处理过长的 UDP 数据报，有三种情况：</p>
+<ol>
+<li>丢弃超出部分的字节，并返回 MSG_TRUNC 标志</li>
+<li>丢弃超出部分字节，但不告知应用进程</li>
+<li>保留套接字进程并在同一套接字的读操作中进行返回</li>
+</ol>
+<p>  解决判断困难的一个方法就是，设置接收缓冲区大小为数据包大小多一个字节，如果收到等于该缓冲区长度的数据报，就说明是一个过长的数据报。</p>
+<h2 id="224-何时用-udp-代替-tcp">22.4 何时用 UDP 代替 TCP</h2>
+<ol>
+<li>UDP 支持广播和组播。应用进程使用广播和组播，就必须使用 UDP</li>
+<li>UDP 没有建立连接和断开。交换一个请求和一个应答，UDP 只需要 2 个分组，TCP 大约需要 20 个分组，并且最小事务处理时间 UDP 需要 RTT+SPT，TCP 为 2*RTT+SPT。</li>
+</ol>
+<p>  但是并不是所有来连接都用来交换一个请求，在一个连接上处理多个请求，多出的一个 RTT 时间就显得不太关键了。尽管如此还是有这种情况会发生的。</p>
+<h3 id="并不是所有连接都需要-tcp-的所有特性">并不是所有连接都需要 TCP 的所有特性：</h3>
+<ul>
+<li>正面确认，丢失分组重传，重复分组检测，对接受的分组排序。</li>
+<li>窗口式流量控制。用来控制发送端的发送速度不会超过接收端的接受速度，速度实时控制并判断。</li>
+<li>慢启动和拥塞避免。</li>
+</ul>
+<h3 id="我们有如下建议">我们有如下建议：</h3>
+<ul>
+<li>对于广播和多播必须使用 UDP。任何形式的错误控制必须加到客户和服务器程序之中，不过应用程序需要允许一定的错误，例如音频中几帧的丢失等。如果对于错误过于严格，就需要考虑两者的收益是否大于所带来的复杂性</li>
+<li>对于简单的请求-应答使用 UDP。一些控制手段需要加到应用程序中。但是如果交换的数据量较大，使用 TCP 也未尝不可</li>
+<li>对于海量数据传输，不应该使用 UDP，会大大增加程序的复杂性</li>
+</ul>
+<p>但也存在例外：</p>
+<ul>
+<li>TFTP 使用 UDP 传输海量数据，因为编码更加简单（使用 UDP 约 800 行，TCP 为 4500 行）</li>
+<li>NFS 使用 UDP 传输海量数据，历史原因</li>
+</ul>
+<p>※虽然 UDP 的使用频率在递减，但是预期接下来会增加，因为组播的使用会更加频繁</p>
+<h2 id="225-给-udp-应用增加可靠性">22.5 给 UDP 应用增加可靠性</h2>
+<p>  如果想让请求-应答式应用程序使用 UDP，必须在客户中增加以下两个特性。</p>
+<ol>
+<li>超时和重传：用于处理丢失的数据报。</li>
+<li>序列号：供客户验证一个应答是否匹配相应的请求</li>
+</ol>
+<p>  增加序列号较为简单，只需要服务器进行记录并回射即可。<br>
+  处理超时重传的老方法是发送一个请求等待 N 秒。没有收到应答，就重新发送同一个请求并等待 N 秒，一定次数后放弃。这个方法存在的问题是不同的网络 RTT 差距较大，并会随时间变化。但可以节键 TCP 中相关的算法。</p>
+<p><strong>之后实现了一个例子用来实现上面的内容,参考书上相应的章节</strong></p>
+<h2 id="226-捆绑接口地址">22.6 捆绑接口地址</h2>
+<p>  get_ifi_info 函数常见用途之一是用于需要监视本地主机所有接口以便获悉某个数据报何时及那个接口上到达的 UDP 应用程序。这种用途允许接收程序获悉该 UDP 数据报的目的地址，因此决定一个数据报的传递套接字的正是它的目的地址。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">void</span>	<span style="color:#a6e22e">mydg_echo</span>(<span style="color:#66d9ef">int</span>, SA <span style="color:#f92672">*</span>, socklen_t, SA <span style="color:#f92672">*</span>);
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>argv) {
+	<span style="color:#66d9ef">int</span>					sockfd;
+	<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">int</span>			on <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>;
+	pid_t				pid;
+	<span style="color:#66d9ef">struct</span> ifi_info		<span style="color:#f92672">*</span>ifi, <span style="color:#f92672">*</span>ifihead;
+	<span style="color:#66d9ef">struct</span> sockaddr_in	<span style="color:#f92672">*</span>sa, cliaddr, wildaddr;
+
+	<span style="color:#66d9ef">for</span> (ifihead <span style="color:#f92672">=</span> ifi <span style="color:#f92672">=</span> Get_ifi_info(AF_INET, <span style="color:#ae81ff">1</span>);
+		 ifi <span style="color:#f92672">!=</span> NULL; ifi <span style="color:#f92672">=</span> ifi<span style="color:#f92672">-&gt;</span>ifi_next) {
+
+			<span style="color:#75715e">/*4bind unicast address */</span>
+		sockfd <span style="color:#f92672">=</span> Socket(AF_INET, SOCK_DGRAM, <span style="color:#ae81ff">0</span>);
+
+		Setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, <span style="color:#f92672">&amp;</span>on, <span style="color:#66d9ef">sizeof</span>(on));
+
+		sa <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> sockaddr_in <span style="color:#f92672">*</span>) ifi<span style="color:#f92672">-&gt;</span>ifi_addr;
+		sa<span style="color:#f92672">-&gt;</span>sin_family <span style="color:#f92672">=</span> AF_INET;
+		sa<span style="color:#f92672">-&gt;</span>sin_port <span style="color:#f92672">=</span> htons(SERV_PORT);
+		Bind(sockfd, (SA <span style="color:#f92672">*</span>) sa, <span style="color:#66d9ef">sizeof</span>(<span style="color:#f92672">*</span>sa));
+		printf(<span style="color:#e6db74">&#34;bound %s</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, Sock_ntop((SA <span style="color:#f92672">*</span>) sa, <span style="color:#66d9ef">sizeof</span>(<span style="color:#f92672">*</span>sa)));
+
+		<span style="color:#66d9ef">if</span> ( (pid <span style="color:#f92672">=</span> Fork()) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) {		<span style="color:#75715e">/* child */</span>
+			mydg_echo(sockfd, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>cliaddr, <span style="color:#66d9ef">sizeof</span>(cliaddr), (SA <span style="color:#f92672">*</span>) sa);
+			exit(<span style="color:#ae81ff">0</span>);		<span style="color:#75715e">/* never executed */</span>
+		}
+
+		<span style="color:#66d9ef">if</span> (ifi<span style="color:#f92672">-&gt;</span>ifi_flags <span style="color:#f92672">&amp;</span> IFF_BROADCAST) {
+				<span style="color:#75715e">/* 4try to bind broadcast address */</span>
+			sockfd <span style="color:#f92672">=</span> Socket(AF_INET, SOCK_DGRAM, <span style="color:#ae81ff">0</span>);
+			Setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, <span style="color:#f92672">&amp;</span>on, <span style="color:#66d9ef">sizeof</span>(on));
+
+			sa <span style="color:#f92672">=</span> (<span style="color:#66d9ef">struct</span> sockaddr_in <span style="color:#f92672">*</span>) ifi<span style="color:#f92672">-&gt;</span>ifi_brdaddr;
+			sa<span style="color:#f92672">-&gt;</span>sin_family <span style="color:#f92672">=</span> AF_INET;
+			sa<span style="color:#f92672">-&gt;</span>sin_port <span style="color:#f92672">=</span> htons(SERV_PORT);
+			<span style="color:#66d9ef">if</span> (bind(sockfd, (SA <span style="color:#f92672">*</span>) sa, <span style="color:#66d9ef">sizeof</span>(<span style="color:#f92672">*</span>sa)) <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>) {
+				<span style="color:#66d9ef">if</span> (errno <span style="color:#f92672">==</span> EADDRINUSE) {
+					printf(<span style="color:#e6db74">&#34;EADDRINUSE: %s</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>,
+						   Sock_ntop((SA <span style="color:#f92672">*</span>) sa, <span style="color:#66d9ef">sizeof</span>(<span style="color:#f92672">*</span>sa)));
+					Close(sockfd);
+					<span style="color:#66d9ef">continue</span>;
+				} <span style="color:#66d9ef">else</span>
+					err_sys(<span style="color:#e6db74">&#34;bind error for %s&#34;</span>,
+							Sock_ntop((SA <span style="color:#f92672">*</span>) sa, <span style="color:#66d9ef">sizeof</span>(<span style="color:#f92672">*</span>sa)));
+			}
+			printf(<span style="color:#e6db74">&#34;bound %s</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, Sock_ntop((SA <span style="color:#f92672">*</span>) sa, <span style="color:#66d9ef">sizeof</span>(<span style="color:#f92672">*</span>sa)));
+
+			<span style="color:#66d9ef">if</span> ( (pid <span style="color:#f92672">=</span> Fork()) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) {		<span style="color:#75715e">/* child */</span>
+				mydg_echo(sockfd, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>cliaddr, <span style="color:#66d9ef">sizeof</span>(cliaddr),
+						  (SA <span style="color:#f92672">*</span>) sa);
+				exit(<span style="color:#ae81ff">0</span>);		<span style="color:#75715e">/* never executed */</span>
+			}
+		}
+	}
+
+		<span style="color:#75715e">/* 4bind wildcard address */</span>
+	sockfd <span style="color:#f92672">=</span> Socket(AF_INET, SOCK_DGRAM, <span style="color:#ae81ff">0</span>);
+	Setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, <span style="color:#f92672">&amp;</span>on, <span style="color:#66d9ef">sizeof</span>(on));
+
+	bzero(<span style="color:#f92672">&amp;</span>wildaddr, <span style="color:#66d9ef">sizeof</span>(wildaddr));
+	wildaddr.sin_family <span style="color:#f92672">=</span> AF_INET;
+	wildaddr.sin_addr.s_addr <span style="color:#f92672">=</span> htonl(INADDR_ANY);
+	wildaddr.sin_port <span style="color:#f92672">=</span> htons(SERV_PORT);
+	Bind(sockfd, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>wildaddr, <span style="color:#66d9ef">sizeof</span>(wildaddr));
+	printf(<span style="color:#e6db74">&#34;bound %s</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, Sock_ntop((SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>wildaddr, <span style="color:#66d9ef">sizeof</span>(wildaddr)));
+
+	<span style="color:#66d9ef">if</span> ( (pid <span style="color:#f92672">=</span> Fork()) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) {		<span style="color:#75715e">/* child */</span>
+		mydg_echo(sockfd, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>cliaddr, <span style="color:#66d9ef">sizeof</span>(cliaddr), (SA <span style="color:#f92672">*</span>) sa);
+		exit(<span style="color:#ae81ff">0</span>);		<span style="color:#75715e">/* never executed */</span>
+	}
+	exit(<span style="color:#ae81ff">0</span>);
+}
+
+<span style="color:#66d9ef">void</span>
+<span style="color:#a6e22e">mydg_echo</span>(<span style="color:#66d9ef">int</span> sockfd, SA <span style="color:#f92672">*</span>pcliaddr, socklen_t clilen, SA <span style="color:#f92672">*</span>myaddr)
+{
+	<span style="color:#66d9ef">int</span>			n;
+	<span style="color:#66d9ef">char</span>		mesg[MAXLINE];
+	socklen_t	len;
+
+	<span style="color:#66d9ef">for</span> ( ; ; ) {
+		len <span style="color:#f92672">=</span> clilen;
+		n <span style="color:#f92672">=</span> Recvfrom(sockfd, mesg, MAXLINE, <span style="color:#ae81ff">0</span>, pcliaddr, <span style="color:#f92672">&amp;</span>len);
+		printf(<span style="color:#e6db74">&#34;child %d, datagram from %s&#34;</span>, getpid(),
+			   Sock_ntop(pcliaddr, len));
+		printf(<span style="color:#e6db74">&#34;, to %s</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, Sock_ntop(myaddr, clilen));
+
+		Sendto(sockfd, mesg, n, <span style="color:#ae81ff">0</span>, pcliaddr, len);
+	}
+}
+</code></pre></div><h2 id="227-并发-udp-服务器">22.7 并发 UDP 服务器</h2>
+<p>  大多数 UDP 服务器是迭代的，但是如果单个请求处理时间太长可能会造成后面的请求应答时间过长。当 UDP 服务器实现并发时并不能向 TCP 一样，因为 TCP 拥有唯一的链接可以采用简单的 fork 即可。UDP 有两类服务器，分别进行处：</p>
+<ol>
+<li>读入一个客户请求发送一个应答，就不再相关，直接 fork 一个子进程进行处理，子进程直接回应客户。</li>
+<li>第二种 UDP 与客户交换多个数据报，但是客户仅仅知道服务器一个总所周知的端口，解决办法是，给每个客户创建一个新的套接字，调用 bind 一个临时端口，使用该套接字发送这个客户的所有应答，这种操作需要客户端判断第一个应答中的就 port，并将之后的数据报都发送到这个 port。</li>
+</ol>
+<p>※ TFTP 是第二种方式的一个例子</p>
+<h2 id="228-ipv6-分组信息">22.8 ipv6 分组信息</h2>
+<p>IPv6 允许应用进程为每个外出数据报指定最多 5 条信息：</p>
+<ol>
+<li>源 IPv6 地址</li>
+<li>外出接口索引</li>
+<li>外出跳限</li>
+<li>下一跳地址</li>
+<li>外出流通类别</li>
+</ol>
+<p>这些信息会作为辅助信息使用 sendmsg 进行发送</p>
+<h3 id="外出和到达接口">外出和到达接口</h3>
+<p>  IPv6 节点的接口由正值整数标识。任何接口都不会被赋予 0 值索引。</p>
+<h3 id="源和目的-ipv6-地址">源和目的 IPv6 地址</h3>
+<p>  源 IPv6 地址通常通过调用 bind 指定。不过连同数据一起指定源地址可能并不需要多少开销。后者允许服务器确保所发送应答的源地址等于响应客户请求的目的地址，这是一个某些客户需要且 IPv4 难以提供的特性</p>
+<h3 id="指定和接收跳限">指定和接收跳限</h3>
+<p>  外出跳限指定：<br>
+  单播数据报：通过 IPV6_UNICAST_HOPS 套接字进行指定<br>
+  组播数据报：通过 IPV6_MULTICAST_HOPS 套接字进行指定</p>
+<p>  接收跳限指定：由 recvmsg 作为辅助数据返回的前提是进程开启 IPV6_RECVHOPLIMIT 套接字选项。包含本辅助数据的 cmsghdr 结构中，cmsg_level 成员将是 IPPROTO_IPV6，cmsg_type 成员将是 IPV6_HOPLIMIT，数据的第一个字节将是 4 字节整数跳限的第一个字节。<br>
+※ 跳限的正常值在 0 ~ 255 之间</p>
+<h3 id="指定下一跳地址">指定下一跳地址</h3>
+<p>IPV6_NEXTHOP 辅助数据对象将数据报的下一跳指定为一个套接字地址结构。在包含本辅助数据的 cmsghdr 结构中，cmsg_level 成员是 IPPROTO_IPV6，cmsg_type 成员是 IPV6_NEXTHOP，数据的第一字节是套接字地址结构的第一个字节。</p>
+<h3 id="指定和接收流通类别">指定和接收流通类别</h3>
+<p>  IPV6_TCLASS 辅助数据对象指定数据包的流通类别。</p>
+<h2 id="229-ipv6-路径-mtu-控制">22.9 ipv6 路径 mtu 控制</h2>
+<p>  IPv6 为应用程序提供若干路径 MTU 发现控制手段。默认设置对于绝大多数是正确的，不过特殊的程序想要更改 MTU 发现行为，IPv6 有 4 个套接字选项。</p>
+<h3 id="以最小-mtu-发送">以最小 MTU 发送</h3>
+<p>  执行路径 MTU 发现时，一般按照外出接口的 MTU 或路径 MTU 二者中的较小者尽心分片。IPv6 定义了值为 1280 字节的最小 MTU，所有链路必须支持。使用这个方法可能会丢失较大 MTU 的发送机会，但是可以快速发送，避免了路径 MTU 发现的缺点</p>
+<h3 id="接收路径-mtu-变动提示">接收路径 MTU 变动提示</h3>
+<p>  应用程序可以开启 IPV6_RECVPATHMTU 套接字选项已接受路径 MTU 变动通知。本标志值使得任何时候路径 MTU 发生变动时作为互助数据由 recvmsg 返回变动后的 MTU</p>
+<h3 id="确定当前路径-mtu">确定当前路径 MTU</h3>
+<p>  如果应用程序没有开启 IPV6_RECVPATHMTU 套接字选项，那么可以使用 IPV6_PATHMTU 确定一个已连接套接字路径的当前 MTU，没有的话返回外出接口的 MTU</p>
+<h3 id="避免分片">避免分片</h3>
+<p>  默认情况下会对数据报按照路径 MTU 执行分片，但有些程序不希望执行分片。而是自行发现路径 MTU。IPV6_DONTFRAG 套接字选项用于关闭分片特性：其值为 0 表示允许自动分片，为 1 关闭自动分片。</p>
+<h2 id="小结">小结</h2>
+<p>  有些程序想要知道某个 UDP 数据报的目的 IPv4 地址和接收接口。开启 IP_RECVDSTADDR 和 IP_RECVIF 套接字选项可以作为辅助数据随每个数据报返回这些信息。<br>
+  尽管 UDP 无法提供类似于 TCP 的众多特性，但是 UDP 使用的地方还是很多。广播和组播只能使用 UDP。简单的请求—应答也可以使用 UDP，不过必须增加程序级别的可靠性手段。UDP 不应用于海量数据的传输。</p>
+		</section>
+
+		<div class="post-tags">
+			
+			
+			<nav class="nav tags">
+				<ul class="tags">
+					
+					<li><a href="/tags/unp-book-notes">UNP-book-notes</a></li>
+					
+				</ul>
+			</nav>
+			
+			
+		</div>
+	</article>
+</main>
+<footer>
+  <div style="display:flex"><a class="soc" href="https://github.com/nercoeus" title="GitHub"><i data-feather="github"></i></a><a class="soc" href="https://twitter.com/nercoeus/" title="Twitter"><i data-feather="twitter"></i></a><a class="soc" href="nercoeus@gmail.com" title="Email"><i data-feather="mail"></i></a></div>
+  <div class="footer-info">
+    2022  © nercoeus |  Built with <a
+      href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+
+<script>
+  feather.replace()
+</script></div>
+    </body>
+</html>

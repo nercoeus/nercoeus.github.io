@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>UNP_15_Unix域协议 - nercoeus-blog</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="15.1 概述
+  Unix 域协议并不是一个实际的协议族，而是在单个主机上执行客户/服务器通信的一种方法。所用 API 就是不同主机通信的 API，Unix 域协议也可以看作 IPC 方法之一。
+  Unix 域协议提供两类套接字：字节流套接字（类似 TCP）和数据报套接字（类似 UDP）
+使用 Unix 域协议的原因：
+
+同主机使用 Unix 域协议性能比普通 TCP 套接字快出一倍
+Unix 域套接字可用于同一主机上的不同进程之间传递描述符
+Unix 域套接字新的实现把客户的凭证提供给服务器，这样可以提供额外的安全措施检查
+" />
+	<meta property="og:image" content=""/>
+	<meta property="og:title" content="UNP_15_Unix域协议" />
+<meta property="og:description" content="15.1 概述
+  Unix 域协议并不是一个实际的协议族，而是在单个主机上执行客户/服务器通信的一种方法。所用 API 就是不同主机通信的 API，Unix 域协议也可以看作 IPC 方法之一。
+  Unix 域协议提供两类套接字：字节流套接字（类似 TCP）和数据报套接字（类似 UDP）
+使用 Unix 域协议的原因：
+
+同主机使用 Unix 域协议性能比普通 TCP 套接字快出一倍
+Unix 域套接字可用于同一主机上的不同进程之间传递描述符
+Unix 域套接字新的实现把客户的凭证提供给服务器，这样可以提供额外的安全措施检查
+" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://nercoeus.github.io/post/unp_15_unix%E5%9F%9F%E5%8D%8F%E8%AE%AE/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2020-03-15T23:31:48&#43;08:00" />
+<meta property="article:modified_time" content="2020-03-15T23:31:48&#43;08:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="UNP_15_Unix域协议"/>
+<meta name="twitter:description" content="15.1 概述
+  Unix 域协议并不是一个实际的协议族，而是在单个主机上执行客户/服务器通信的一种方法。所用 API 就是不同主机通信的 API，Unix 域协议也可以看作 IPC 方法之一。
+  Unix 域协议提供两类套接字：字节流套接字（类似 TCP）和数据报套接字（类似 UDP）
+使用 Unix 域协议的原因：
+
+同主机使用 Unix 域协议性能比普通 TCP 套接字快出一倍
+Unix 域套接字可用于同一主机上的不同进程之间传递描述符
+Unix 域套接字新的实现把客户的凭证提供给服务器，这样可以提供额外的安全措施检查
+"/>
+<script src="https://nercoeus.github.io/js/feather.min.js"></script>
+	
+	
+        <link href="https://nercoeus.github.io/css/fonts.b685ac6f654695232de7b82a9143a46f9e049c8e3af3a21d9737b01f4be211d1.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="https://nercoeus.github.io/css/main.40ca3a860425083862b7ebd55447caec5c4384573f0cb098b8d06a91e8dace2e.css" />
+	
+	
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="https://nercoeus.github.io/">nercoeus-blog</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+	<article>
+		<div class="title">
+			<h1 class="title">UNP_15_Unix域协议</h1>
+			<div class="meta">Posted on Mar 15, 2020</div>
+		</div>
+		
+
+		<section class="body">
+			<h2 id="151-概述">15.1 概述</h2>
+<p>  Unix 域协议并不是一个实际的协议族，而是在单个主机上执行客户/服务器通信的一种方法。所用 API 就是不同主机通信的 API，Unix 域协议也可以看作 IPC 方法之一。<br>
+  Unix 域协议提供两类套接字：字节流套接字（类似 TCP）和数据报套接字（类似 UDP）<br>
+使用 Unix 域协议的原因：</p>
+<ol>
+<li>同主机使用 Unix 域协议性能比普通 TCP 套接字快出一倍</li>
+<li>Unix 域套接字可用于同一主机上的不同进程之间传递描述符</li>
+<li>Unix 域套接字新的实现把客户的凭证提供给服务器，这样可以提供额外的安全措施检查</li>
+</ol>
+<h2 id="152-unix-域套接字地址结构">15.2 unix 域套接字地址结构</h2>
+<p>Unix 域套接字地址结构如下</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_un</span>{
+    sa_family_t sun_family;  <span style="color:#75715e">// AF_LOCAL
+</span><span style="color:#75715e"></span>    <span style="color:#66d9ef">char</span> sun_path[<span style="color:#ae81ff">104</span>];
+}
+</code></pre></div><p>sun_path 必须使用空字符结尾，为指定地址，就是 sun_path[0] = 0 的地址，等价于 IPv4 的 INADDR_ANY 常值</p>
+<h3 id="unix-域套接字的-bind-调用">Unix 域套接字的 bind 调用</h3>
+<p>下面的程序创建了一个 Unix 域套接字，并 bind 一个路径名，在调用 getsockname 输出绑定的路径名</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>argv)
+{
+	<span style="color:#66d9ef">int</span>					sockfd;
+	socklen_t			len;
+	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_un</span>	addr1, addr2;
+
+	<span style="color:#66d9ef">if</span> (argc <span style="color:#f92672">!=</span> <span style="color:#ae81ff">2</span>)
+		err_quit(<span style="color:#e6db74">&#34;usage: unixbind &lt;pathname&gt;&#34;</span>);
+
+	sockfd <span style="color:#f92672">=</span> Socket(AF_LOCAL, SOCK_STREAM, <span style="color:#ae81ff">0</span>);
+    <span style="color:#75715e">// 如果文件系统中已经存在这个路径名，bind 会调用失败，所以先使用 unlink 删除这个路径名
+</span><span style="color:#75715e"></span>	unlink(argv[<span style="color:#ae81ff">1</span>]);		<span style="color:#75715e">/* OK if this fails */</span>
+    <span style="color:#75715e">// 设置绑定的地址
+</span><span style="color:#75715e"></span>	bzero(<span style="color:#f92672">&amp;</span>addr1, <span style="color:#66d9ef">sizeof</span>(addr1));
+	addr1.sun_family <span style="color:#f92672">=</span> AF_LOCAL;   <span style="color:#75715e">// AF_LOCAL
+</span><span style="color:#75715e"></span>	strncpy(addr1.sun_path, argv[<span style="color:#ae81ff">1</span>], <span style="color:#66d9ef">sizeof</span>(addr1.sun_path)<span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>);
+	Bind(sockfd, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>addr1, SUN_LEN(<span style="color:#f92672">&amp;</span>addr1));
+
+	len <span style="color:#f92672">=</span> <span style="color:#66d9ef">sizeof</span>(addr2);
+	Getsockname(sockfd, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>addr2, <span style="color:#f92672">&amp;</span>len);
+	printf(<span style="color:#e6db74">&#34;bound name = %s, returned len = %d</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>, addr2.sun_path, len);
+	
+	exit(<span style="color:#ae81ff">0</span>);
+}
+</code></pre></div><h2 id="153-socketpair-函数">15.3 socketpair 函数</h2>
+<p>socketpair 函数创建两个随后连接起来的套接字，本函数仅仅适用于 Unix 域套接字</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#include</span><span style="color:#75715e">&lt;sys/socket.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">socketpair</span>(<span style="color:#66d9ef">int</span> family, <span style="color:#66d9ef">int</span> type, <span style="color:#66d9ef">int</span> protocol, <span style="color:#66d9ef">int</span> sockfd[<span style="color:#ae81ff">2</span>]);
+<span style="color:#75715e">// 返回：成功返回非 0，出错返回 -1
+</span></code></pre></div><ul>
+<li>family 必须是 AF_LOCAL</li>
+<li>protocol 必须是 0</li>
+<li>type 可以是 SOCK_STREAM 或者 SOCK_DGRAM</li>
+<li>新创建的两个描述符用 sockfd 存储返回</li>
+</ul>
+<p>  使用 SOCK_STREAM 创建的结果称为 stream pipe，它和调用 pipe 创建的普通 Unix pipe 类似，差别在于 stream pipe 是全双工的，即两个描述符都是即可读又可写。</p>
+<h2 id="154-套接字函数">15.4 套接字函数</h2>
+<ol>
+<li>由 bind 创建的路径名默认访问权限应为 0777 并根据当前 umask 值进行修正</li>
+<li>与 Unix 域套接字关联的路径名应该是一个绝对路径名，因为运行时的目录是从当前目录开始的，会造成不可预测的结果</li>
+<li>在 connect 调用中指定的路径必须是一个绑定在某个打开的 Unix 域套接字上的路径名，而且它们的套接字类型（数据报或字节流）也必须一致</li>
+<li>调用 connect 连接一个 Unix 域套接字涉及的权限测试等同于调用 open 以只写方式访问相应的路径名</li>
+<li>unix 域字节流套接字类似于 TCP 套接字：他们都为进程提供一个无记录边界的字节流接口</li>
+<li>对于某个 Unix 域字节流套接字的 connect 发现监听队列满了，会直接返回错误。但是通常的 TCP 服务器在监视队列满了会忽略这个 SYN，会导致客户端重发消息</li>
+<li>unix 域数据报套接字类似于 UDP 套接字：他们都为进程提供一个保留记录边界的不可靠的数据报服务</li>
+<li>在一个未绑定的 Unix 域套接字上发送数据报不会自动给这个套接字捆绑一个路径名，这一点不同于 UDP 套接字。类似的，对于某个 Unix 域数据报套接字的 connect 调用不会给本套接字捆绑一个路径名，这一点不同于 TCP 和 UDP</li>
+</ol>
+<h2 id="155-unix-域字节流客户服务器程序">15.5 unix 域字节流客户/服务器程序</h2>
+<p>使用 Unix 域字节流套接字重写回射服务器</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>argv)
+{
+	<span style="color:#66d9ef">int</span>					listenfd, connfd;
+	pid_t				childpid;
+	socklen_t			clilen;
+    <span style="color:#75715e">// 两个套接字的地址结构均是 sockaddr_un 类型
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_un</span>	cliaddr, servaddr;
+	<span style="color:#66d9ef">void</span>				sig_chld(<span style="color:#66d9ef">int</span>);
+    <span style="color:#75715e">// 创建 Unix 域字节流套接字描述符
+</span><span style="color:#75715e"></span>	listenfd <span style="color:#f92672">=</span> Socket(AF_LOCAL, SOCK_STREAM, <span style="color:#ae81ff">0</span>);
+    <span style="color:#75715e">// 关联本机一个路径，并使用 unlink 先删除这个路径
+</span><span style="color:#75715e"></span>	unlink(UNIXSTR_PATH);
+	bzero(<span style="color:#f92672">&amp;</span>servaddr, <span style="color:#66d9ef">sizeof</span>(servaddr));
+	servaddr.sun_family <span style="color:#f92672">=</span> AF_LOCAL;
+	strcpy(servaddr.sun_path, UNIXSTR_PATH);
+
+	Bind(listenfd, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>servaddr, <span style="color:#66d9ef">sizeof</span>(servaddr));
+
+	Listen(listenfd, LISTENQ);
+
+	Signal(SIGCHLD, sig_chld);
+
+	<span style="color:#66d9ef">for</span> ( ; ; ) {
+		clilen <span style="color:#f92672">=</span> <span style="color:#66d9ef">sizeof</span>(cliaddr);
+		<span style="color:#66d9ef">if</span> ( (connfd <span style="color:#f92672">=</span> accept(listenfd, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>cliaddr, <span style="color:#f92672">&amp;</span>clilen)) <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">0</span>) {
+			<span style="color:#66d9ef">if</span> (errno <span style="color:#f92672">==</span> EINTR)
+				<span style="color:#66d9ef">continue</span>;		<span style="color:#75715e">/* back to for() */</span>
+			<span style="color:#66d9ef">else</span>
+				err_sys(<span style="color:#e6db74">&#34;accept error&#34;</span>);
+		}
+
+		<span style="color:#66d9ef">if</span> ( (childpid <span style="color:#f92672">=</span> Fork()) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) {	<span style="color:#75715e">/* child process */</span>
+			Close(listenfd);	<span style="color:#75715e">/* close listening socket */</span>
+			str_echo(connfd);	<span style="color:#75715e">/* process request */</span>
+			exit(<span style="color:#ae81ff">0</span>);
+		}
+		Close(connfd);			<span style="color:#75715e">/* parent closes connected socket */</span>
+	}
+}
+</code></pre></div><p>使用 Unix 域字节流套接字重写回射客户端</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>argv)
+{
+	<span style="color:#66d9ef">int</span>					sockfd;
+    <span style="color:#75715e">// Unix 域套接字地址结构
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_un</span>	servaddr;
+    <span style="color:#75715e">// 参数必须是 AF_LOCAL
+</span><span style="color:#75715e"></span>	sockfd <span style="color:#f92672">=</span> Socket(AF_LOCAL, SOCK_STREAM, <span style="color:#ae81ff">0</span>);
+
+	bzero(<span style="color:#f92672">&amp;</span>servaddr, <span style="color:#66d9ef">sizeof</span>(servaddr));
+	servaddr.sun_family <span style="color:#f92672">=</span> AF_LOCAL;
+    <span style="color:#75715e">// 复制路径名，这里不需要使用 unlink
+</span><span style="color:#75715e"></span>	strcpy(servaddr.sun_path, UNIXSTR_PATH);
+
+	Connect(sockfd, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>servaddr, <span style="color:#66d9ef">sizeof</span>(servaddr));
+
+	str_cli(stdin, sockfd);		<span style="color:#75715e">/* do it all */</span>
+
+	exit(<span style="color:#ae81ff">0</span>);
+}
+</code></pre></div><h2 id="156-unix-域数据报客户服务器程序">15.6 unix 域数据报客户/服务器程序</h2>
+<p>使用 Unix 域数据报套接字重写回射服务器</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>argv)
+{
+	<span style="color:#66d9ef">int</span>					sockfd;
+    <span style="color:#75715e">// 两个套接字的地址结构均是 sockaddr_un 类型
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_un</span>	servaddr, cliaddr;
+    <span style="color:#75715e">// 参数必须是 AF_LOCAL
+</span><span style="color:#75715e"></span>	sockfd <span style="color:#f92672">=</span> Socket(AF_LOCAL, SOCK_DGRAM, <span style="color:#ae81ff">0</span>);
+    <span style="color:#75715e">// 关联本机一个路径，并使用 unlink 先删除这个路径
+</span><span style="color:#75715e"></span>	unlink(UNIXDG_PATH);
+	bzero(<span style="color:#f92672">&amp;</span>servaddr, <span style="color:#66d9ef">sizeof</span>(servaddr));
+	servaddr.sun_family <span style="color:#f92672">=</span> AF_LOCAL;
+	strcpy(servaddr.sun_path, UNIXDG_PATH);
+
+	Bind(sockfd, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>servaddr, <span style="color:#66d9ef">sizeof</span>(servaddr));
+
+	dg_echo(sockfd, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>cliaddr, <span style="color:#66d9ef">sizeof</span>(cliaddr));
+}
+</code></pre></div><p>使用 Unix 域数据报套接字重写回射客户端</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>(<span style="color:#66d9ef">int</span> argc, <span style="color:#66d9ef">char</span> <span style="color:#f92672">**</span>argv)
+{
+	<span style="color:#66d9ef">int</span>					sockfd;
+    <span style="color:#75715e">// Unix 域套接字地址结构
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">struct</span> <span style="color:#a6e22e">sockaddr_un</span>	cliaddr, servaddr;
+    <span style="color:#75715e">// 参数必须是 AF_LOCAL
+</span><span style="color:#75715e"></span>	sockfd <span style="color:#f92672">=</span> Socket(AF_LOCAL, SOCK_DGRAM, <span style="color:#ae81ff">0</span>);
+    <span style="color:#75715e">// 和 UDP 不同的是，使用 Unix 域套接字，必须使用 bind 绑定路径名到套接字，这样服务器才有回射的路径名
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 否则服务器会回射到路径名为空的数据，这样服务器调用 sendto 会报错
+</span><span style="color:#75715e"></span>	bzero(<span style="color:#f92672">&amp;</span>cliaddr, <span style="color:#66d9ef">sizeof</span>(cliaddr));		<span style="color:#75715e">/* bind an address for us */</span>
+	cliaddr.sun_family <span style="color:#f92672">=</span> AF_LOCAL;
+	strcpy(cliaddr.sun_path, tmpnam(NULL));
+
+	Bind(sockfd, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>cliaddr, <span style="color:#66d9ef">sizeof</span>(cliaddr));
+
+	bzero(<span style="color:#f92672">&amp;</span>servaddr, <span style="color:#66d9ef">sizeof</span>(servaddr));	<span style="color:#75715e">/* fill in server&#39;s address */</span>
+	servaddr.sun_family <span style="color:#f92672">=</span> AF_LOCAL;
+	strcpy(servaddr.sun_path, UNIXDG_PATH);
+
+	dg_cli(stdin, sockfd, (SA <span style="color:#f92672">*</span>) <span style="color:#f92672">&amp;</span>servaddr, <span style="color:#66d9ef">sizeof</span>(servaddr));
+
+	exit(<span style="color:#ae81ff">0</span>);
+}
+</code></pre></div><h2 id="157-描述符传递">15.7 描述符传递</h2>
+<p>  可以在两个进程之间创建一个 Unix 域套接字，使用 sendmsg 跨这个套接字发送一个特殊的消息。这个消息交给内核处理，会把打开的描述符从发送进程传递到接收进程，步骤如下：</p>
+<ol>
+<li>创建一个 Unix 域套接字</li>
+<li>发送进程通过调用返回描述符的任一 Unix 函数打开一个描述符，例如 open、pipe、mkfifo、socket、accept。可以在进程之间传递的描述符类型不限，包括各种描述符，不仅仅局限于文件描述符</li>
+<li>发送进程创建一个 msghdr 结构，描述符使用辅助数据进行传递，所以只能使用 recvmsg 和 sendmsg 来处理。发送一个描述符会让它的引用计数加一</li>
+<li>接收方调用 recvmsg 来接受这个描述符。会在进程中创建一个新的描述符，和发送端的指向相同的文件表项</li>
+</ol>
+<p><strong>UNP-15.7 小节提供了一个很好的描述符传递的例子，推荐仔细看看</strong></p>
+<h2 id="158-接收发送者的凭证">15.8 接收发送者的凭证</h2>
+<p>  本章开头说过的用户凭证通过辅助数据进行传递，其结构一般根据不同系统有所不同，当客户端和服务器进行通讯时，服务器通常需要根据一定手段获取客户的身份，用来验证客户是否有权限请求相应的服务。</p>
+<h2 id="小结">小结</h2>
+<ul>
+<li>Unix 域套接字是客户和服务器在同一主机上的 IPC 方法之一。和其余 IPC 方式相比，Unix 域套接字的优势在于其 API 和网络传递数据的 API 几乎相同。并且在同一主机的情况下，性能优于 TCP 类连接性能</li>
+<li>编写 Unix 连接时，应注意的点是必须 bind 一个路径名到 UDP 套接字的客户，以使 UDP 服务器有发送应答的目的地</li>
+<li>同一个主机上客户和服务器之间的描述符传递是一个非常有用的技术，它通过 Unix 域套接字发生。</li>
+</ul>
+		</section>
+
+		<div class="post-tags">
+			
+			
+			<nav class="nav tags">
+				<ul class="tags">
+					
+					<li><a href="/tags/unp-book-notes">UNP-book-notes</a></li>
+					
+				</ul>
+			</nav>
+			
+			
+		</div>
+	</article>
+</main>
+<footer>
+  <div style="display:flex"><a class="soc" href="https://github.com/nercoeus" title="GitHub"><i data-feather="github"></i></a><a class="soc" href="https://twitter.com/nercoeus/" title="Twitter"><i data-feather="twitter"></i></a><a class="soc" href="nercoeus@gmail.com" title="Email"><i data-feather="mail"></i></a></div>
+  <div class="footer-info">
+    2022  © nercoeus |  Built with <a
+      href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+
+<script>
+  feather.replace()
+</script></div>
+    </body>
+</html>
