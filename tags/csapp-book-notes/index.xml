@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>CSAPP-book-notes on nercoeus-blog</title>
+    <link>https://nercoeus.github.io/tags/csapp-book-notes/</link>
+    <description>Recent content in CSAPP-book-notes on nercoeus-blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <copyright>© nercoeus</copyright>
+    <lastBuildDate>Fri, 03 Jun 2022 23:31:48 +0800</lastBuildDate><atom:link href="https://nercoeus.github.io/tags/csapp-book-notes/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>CSAPP_1_计算机系统漫游</title>
+      <link>https://nercoeus.github.io/post/csapp_1_%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F%E6%BC%AB%E6%B8%B8/</link>
+      <pubDate>Fri, 03 Jun 2022 23:31:48 +0800</pubDate>
+      
+      <guid>https://nercoeus.github.io/post/csapp_1_%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F%E6%BC%AB%E6%B8%B8/</guid>
+      <description>&lt;h2 id=&#34;the-goal-got-this-book-is-to-help-you-underestand-what-happens-and-why-when-you-run-programmer-on-a-system&#34;&gt;The goal got this book is to help you underestand what happens and why when you run programmer on a system.&lt;/h2&gt;</description>
+    </item>
+    
+  </channel>
+</rss>

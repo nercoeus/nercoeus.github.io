@@ -23,7 +23,7 @@
       <pubDate>Fri, 03 Jun 2022 23:31:48 +0800</pubDate>
       
       <guid>https://nercoeus.github.io/post/csapp_1_%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%B3%BB%E7%BB%9F%E6%BC%AB%E6%B8%B8/</guid>
-      <description></description>
+      <description>&lt;h2 id=&#34;the-goal-got-this-book-is-to-help-you-underestand-what-happens-and-why-when-you-run-programmer-on-a-system&#34;&gt;The goal got this book is to help you underestand what happens and why when you run programmer on a system.&lt;/h2&gt;</description>
     </item>
     
     <item>
@@ -41,9 +41,7 @@
       <pubDate>Mon, 13 Jan 2020 18:42:22 +0000</pubDate>
       
       <guid>https://nercoeus.github.io/post/go%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB_channel/</guid>
-      <description>&lt;p&gt;  最近代码中出现了一个十分诡异的 bug,找了半天才发现原来是因为 channel 的使用不当所导的.channel 有一个特性是读一个有缓冲区且已关闭的 channel 时,会一直返回默认值.可能是 0,&amp;quot;&amp;quot;,或 nil,因为我使用了一个 for{select &amp;lt;-message}直接导致程序无限触发.要想更好的使用 channel 我们需要了解它内部的实现原理,下面就一起看看 channel 的实现.因为网上关于 channel 的文章十分之多,所以这里主要做的还是个人学习总结的为主.
-  channel 是 golng 中十分重要的一个特性.认识 go 的开始就会了解到它的设计哲学, go 的设计哲学基于 CSP 并发模型,其便是通过 channel 来实现这一模型的.除了 channel,goroutine 也是整个设计中重要的组成部分.在 go 中不光可以使用 Mutex 等锁来进行同步,还可以使用 channel 来进行消息流控制的同步操作.&lt;/p&gt;
-&lt;!-- raw HTML omitted --&gt;</description>
+      <description>&lt;p&gt;  最近代码中出现了一个十分诡异的 bug,找了半天才发现原来是因为 channel 的使用不当所导的.channel 有一个特性是读一个有缓冲区且已关闭的 channel 时,会一直返回默认值.可能是 0,&amp;quot;&amp;quot;,或 nil,因为我使用了一个 for{select &amp;lt;-message}直接导致程序无限触发.要想更好的使用 channel 我们需要了解它内部的实现原理,下面就一起看看 channel 的实现.因为网上关于 channel 的文章十分之多,所以这里主要做的还是个人学习总结的为主.&lt;/p&gt;</description>
     </item>
     
   </channel>

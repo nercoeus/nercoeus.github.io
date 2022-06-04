@@ -2,14 +2,10 @@
 <html><head>
 	<meta charset="utf-8" />
 	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>go源码阅读_Channel - nercoeus-blog</title><meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta name="description" content="  最近代码中出现了一个十分诡异的 bug,找了半天才发现原来是因为 channel 的使用不当所导的.channel 有一个特性是读一个有缓冲区且已关闭的 channel 时,会一直返回默认值.可能是 0,&quot;&quot;,或 nil,因为我使用了一个 for{select &lt;-message}直接导致程序无限触发.要想更好的使用 channel 我们需要了解它内部的实现原理,下面就一起看看 channel 的实现.因为网上关于 channel 的文章十分之多,所以这里主要做的还是个人学习总结的为主.
-  channel 是 golng 中十分重要的一个特性.认识 go 的开始就会了解到它的设计哲学, go 的设计哲学基于 CSP 并发模型,其便是通过 channel 来实现这一模型的.除了 channel,goroutine 也是整个设计中重要的组成部分.在 go 中不光可以使用 Mutex 等锁来进行同步,还可以使用 channel 来进行消息流控制的同步操作.
-" />
+	<meta name="description" content="  最近代码中出现了一个十分诡异的 bug,找了半天才发现原来是因为 channel 的使用不当所导的.channel 有一个特性是读一个有缓冲区且已关闭的 channel 时,会一直返回默认值.可能是 0,&quot;&quot;,或 nil,因为我使用了一个 for{select &lt;-message}直接导致程序无限触发.要想更好的使用 channel 我们需要了解它内部的实现原理,下面就一起看看 channel 的实现.因为网上关于 channel 的文章十分之多,所以这里主要做的还是个人学习总结的为主." />
 	<meta property="og:image" content=""/>
 	<meta property="og:title" content="go源码阅读_Channel" />
-<meta property="og:description" content="  最近代码中出现了一个十分诡异的 bug,找了半天才发现原来是因为 channel 的使用不当所导的.channel 有一个特性是读一个有缓冲区且已关闭的 channel 时,会一直返回默认值.可能是 0,&quot;&quot;,或 nil,因为我使用了一个 for{select &lt;-message}直接导致程序无限触发.要想更好的使用 channel 我们需要了解它内部的实现原理,下面就一起看看 channel 的实现.因为网上关于 channel 的文章十分之多,所以这里主要做的还是个人学习总结的为主.
-  channel 是 golng 中十分重要的一个特性.认识 go 的开始就会了解到它的设计哲学, go 的设计哲学基于 CSP 并发模型,其便是通过 channel 来实现这一模型的.除了 channel,goroutine 也是整个设计中重要的组成部分.在 go 中不光可以使用 Mutex 等锁来进行同步,还可以使用 channel 来进行消息流控制的同步操作.
-" />
+<meta property="og:description" content="  最近代码中出现了一个十分诡异的 bug,找了半天才发现原来是因为 channel 的使用不当所导的.channel 有一个特性是读一个有缓冲区且已关闭的 channel 时,会一直返回默认值.可能是 0,&quot;&quot;,或 nil,因为我使用了一个 for{select &lt;-message}直接导致程序无限触发.要想更好的使用 channel 我们需要了解它内部的实现原理,下面就一起看看 channel 的实现.因为网上关于 channel 的文章十分之多,所以这里主要做的还是个人学习总结的为主." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="https://nercoeus.github.io/post/go%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB_channel/" /><meta property="article:section" content="post" />
 <meta property="article:published_time" content="2020-01-13T18:42:22&#43;00:00" />
@@ -17,9 +13,7 @@
 
 <meta name="twitter:card" content="summary"/>
 <meta name="twitter:title" content="go源码阅读_Channel"/>
-<meta name="twitter:description" content="  最近代码中出现了一个十分诡异的 bug,找了半天才发现原来是因为 channel 的使用不当所导的.channel 有一个特性是读一个有缓冲区且已关闭的 channel 时,会一直返回默认值.可能是 0,&quot;&quot;,或 nil,因为我使用了一个 for{select &lt;-message}直接导致程序无限触发.要想更好的使用 channel 我们需要了解它内部的实现原理,下面就一起看看 channel 的实现.因为网上关于 channel 的文章十分之多,所以这里主要做的还是个人学习总结的为主.
-  channel 是 golng 中十分重要的一个特性.认识 go 的开始就会了解到它的设计哲学, go 的设计哲学基于 CSP 并发模型,其便是通过 channel 来实现这一模型的.除了 channel,goroutine 也是整个设计中重要的组成部分.在 go 中不光可以使用 Mutex 等锁来进行同步,还可以使用 channel 来进行消息流控制的同步操作.
-"/>
+<meta name="twitter:description" content="  最近代码中出现了一个十分诡异的 bug,找了半天才发现原来是因为 channel 的使用不当所导的.channel 有一个特性是读一个有缓冲区且已关闭的 channel 时,会一直返回默认值.可能是 0,&quot;&quot;,或 nil,因为我使用了一个 for{select &lt;-message}直接导致程序无限触发.要想更好的使用 channel 我们需要了解它内部的实现原理,下面就一起看看 channel 的实现.因为网上关于 channel 的文章十分之多,所以这里主要做的还是个人学习总结的为主."/>
 <script src="https://nercoeus.github.io/js/feather.min.js"></script>
 	
 	
@@ -59,8 +53,8 @@
 		
 
 		<section class="body">
-			<p>  最近代码中出现了一个十分诡异的 bug,找了半天才发现原来是因为 channel 的使用不当所导的.channel 有一个特性是读一个有缓冲区且已关闭的 channel 时,会一直返回默认值.可能是 0,&quot;&quot;,或 nil,因为我使用了一个 for{select &lt;-message}直接导致程序无限触发.要想更好的使用 channel 我们需要了解它内部的实现原理,下面就一起看看 channel 的实现.因为网上关于 channel 的文章十分之多,所以这里主要做的还是个人学习总结的为主.
-  channel 是 golng 中十分重要的一个特性.认识 go 的开始就会了解到它的设计哲学, go 的设计哲学基于 CSP 并发模型,其便是通过 channel 来实现这一模型的.除了 channel,goroutine 也是整个设计中重要的组成部分.在 go 中不光可以使用 Mutex 等锁来进行同步,还可以使用 channel 来进行消息流控制的同步操作.</p>
+			<p>  最近代码中出现了一个十分诡异的 bug,找了半天才发现原来是因为 channel 的使用不当所导的.channel 有一个特性是读一个有缓冲区且已关闭的 channel 时,会一直返回默认值.可能是 0,&quot;&quot;,或 nil,因为我使用了一个 for{select &lt;-message}直接导致程序无限触发.要想更好的使用 channel 我们需要了解它内部的实现原理,下面就一起看看 channel 的实现.因为网上关于 channel 的文章十分之多,所以这里主要做的还是个人学习总结的为主.</p>
+<p>  channel 是 golng 中十分重要的一个特性.认识 go 的开始就会了解到它的设计哲学, go 的设计哲学基于 CSP 并发模型,其便是通过 channel 来实现这一模型的.除了 channel,goroutine 也是整个设计中重要的组成部分.在 go 中不光可以使用 Mutex 等锁来进行同步,还可以使用 channel 来进行消息流控制的同步操作.</p>
 <!-- raw HTML omitted -->
 <h1 id="channel-源码阅读">Channel 源码阅读</h1>
 <h2 id="channel-的使用">Channel 的使用</h2>
@@ -571,8 +565,8 @@
 <footer>
   <div style="display:flex"><a class="soc" href="https://github.com/nercoeus" title="GitHub"><i data-feather="github"></i></a><a class="soc" href="https://twitter.com/nercoeus/" title="Twitter"><i data-feather="twitter"></i></a><a class="soc" href="nercoeus@gmail.com" title="Email"><i data-feather="mail"></i></a></div>
   <div class="footer-info">
-    2022  © nercoeus |  Built with <a
-      href="https://gohugo.io">Hugo</a>
+    2022  © nercoeus |  <a
+      href="https://github.com/athul/archie">Archie Theme</a> | Built with <a href="https://gohugo.io">Hugo</a>
   </div>
 </footer>
 
