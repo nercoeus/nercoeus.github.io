@@ -2,10 +2,10 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>nercoeus-blog</title>
-    <link>https://nercoeus.github.io/archie/</link>
+    <link>https://nercoeus.github.io/</link>
     <description>Recent content on nercoeus-blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <copyright>© Athul</copyright><atom:link href="https://nercoeus.github.io/archie/index.xml" rel="self" type="application/rss+xml" />
+    <copyright>© Athul</copyright><atom:link href="https://nercoeus.github.io/index.xml" rel="self" type="application/rss+xml" />
   </channel>
 </rss>
