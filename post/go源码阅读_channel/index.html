@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html><head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>go源码阅读_Channel - nercoeus-blog</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="  最近代码中出现了一个十分诡异的 bug,找了半天才发现原来是因为 channel 的使用不当所导的.channel 有一个特性是读一个有缓冲区且已关闭的 channel 时,会一直返回默认值.可能是 0,&quot;&quot;,或 nil,因为我使用了一个 for{select &lt;-message}直接导致程序无限触发.要想更好的使用 channel 我们需要了解它内部的实现原理,下面就一起看看 channel 的实现.因为网上关于 channel 的文章十分之多,所以这里主要做的还是个人学习总结的为主.
+  channel 是 golng 中十分重要的一个特性.认识 go 的开始就会了解到它的设计哲学, go 的设计哲学基于 CSP 并发模型,其便是通过 channel 来实现这一模型的.除了 channel,goroutine 也是整个设计中重要的组成部分.在 go 中不光可以使用 Mutex 等锁来进行同步,还可以使用 channel 来进行消息流控制的同步操作.
+" />
+	<meta property="og:image" content=""/>
+	<meta property="og:title" content="go源码阅读_Channel" />
+<meta property="og:description" content="  最近代码中出现了一个十分诡异的 bug,找了半天才发现原来是因为 channel 的使用不当所导的.channel 有一个特性是读一个有缓冲区且已关闭的 channel 时,会一直返回默认值.可能是 0,&quot;&quot;,或 nil,因为我使用了一个 for{select &lt;-message}直接导致程序无限触发.要想更好的使用 channel 我们需要了解它内部的实现原理,下面就一起看看 channel 的实现.因为网上关于 channel 的文章十分之多,所以这里主要做的还是个人学习总结的为主.
+  channel 是 golng 中十分重要的一个特性.认识 go 的开始就会了解到它的设计哲学, go 的设计哲学基于 CSP 并发模型,其便是通过 channel 来实现这一模型的.除了 channel,goroutine 也是整个设计中重要的组成部分.在 go 中不光可以使用 Mutex 等锁来进行同步,还可以使用 channel 来进行消息流控制的同步操作.
+" />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://nercoeus.github.io/post/go%E6%BA%90%E7%A0%81%E9%98%85%E8%AF%BB_channel/" /><meta property="article:section" content="post" />
+<meta property="article:published_time" content="2020-01-13T18:42:22&#43;00:00" />
+<meta property="article:modified_time" content="2020-01-13T18:42:22&#43;00:00" />
+
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="go源码阅读_Channel"/>
+<meta name="twitter:description" content="  最近代码中出现了一个十分诡异的 bug,找了半天才发现原来是因为 channel 的使用不当所导的.channel 有一个特性是读一个有缓冲区且已关闭的 channel 时,会一直返回默认值.可能是 0,&quot;&quot;,或 nil,因为我使用了一个 for{select &lt;-message}直接导致程序无限触发.要想更好的使用 channel 我们需要了解它内部的实现原理,下面就一起看看 channel 的实现.因为网上关于 channel 的文章十分之多,所以这里主要做的还是个人学习总结的为主.
+  channel 是 golng 中十分重要的一个特性.认识 go 的开始就会了解到它的设计哲学, go 的设计哲学基于 CSP 并发模型,其便是通过 channel 来实现这一模型的.除了 channel,goroutine 也是整个设计中重要的组成部分.在 go 中不光可以使用 Mutex 等锁来进行同步,还可以使用 channel 来进行消息流控制的同步操作.
+"/>
+<script src="https://nercoeus.github.io/js/feather.min.js"></script>
+	
+	
+        <link href="https://nercoeus.github.io/css/fonts.b685ac6f654695232de7b82a9143a46f9e049c8e3af3a21d9737b01f4be211d1.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="https://nercoeus.github.io/css/main.40ca3a860425083862b7ebd55447caec5c4384573f0cb098b8d06a91e8dace2e.css" />
+	
+	
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="https://nercoeus.github.io/">nercoeus-blog</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+	<article>
+		<div class="title">
+			<h1 class="title">go源码阅读_Channel</h1>
+			<div class="meta">Posted on Jan 13, 2020</div>
+		</div>
+		
+
+		<section class="body">
+			<p>  最近代码中出现了一个十分诡异的 bug,找了半天才发现原来是因为 channel 的使用不当所导的.channel 有一个特性是读一个有缓冲区且已关闭的 channel 时,会一直返回默认值.可能是 0,&quot;&quot;,或 nil,因为我使用了一个 for{select &lt;-message}直接导致程序无限触发.要想更好的使用 channel 我们需要了解它内部的实现原理,下面就一起看看 channel 的实现.因为网上关于 channel 的文章十分之多,所以这里主要做的还是个人学习总结的为主.
+  channel 是 golng 中十分重要的一个特性.认识 go 的开始就会了解到它的设计哲学, go 的设计哲学基于 CSP 并发模型,其便是通过 channel 来实现这一模型的.除了 channel,goroutine 也是整个设计中重要的组成部分.在 go 中不光可以使用 Mutex 等锁来进行同步,还可以使用 channel 来进行消息流控制的同步操作.</p>
+<!-- raw HTML omitted -->
+<h1 id="channel-源码阅读">Channel 源码阅读</h1>
+<h2 id="channel-的使用">Channel 的使用</h2>
+<p>  这里并没有直接将 channel 的源码展示出来,让我们从 channel 的基本使用方式着手进行深入.
+每个人都可以简单的写出这样的代码:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">main</span>() {
+
+    <span style="color:#a6e22e">messages</span> <span style="color:#f92672">:=</span> make(<span style="color:#66d9ef">chan</span> <span style="color:#66d9ef">string</span>)
+
+    <span style="color:#66d9ef">go</span> <span style="color:#66d9ef">func</span>() { <span style="color:#a6e22e">messages</span> <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;ping&#34;</span> }()
+
+    <span style="color:#a6e22e">msg</span> <span style="color:#f92672">:=</span> <span style="color:#f92672">&lt;-</span><span style="color:#a6e22e">messages</span>
+    <span style="color:#a6e22e">fmt</span>.<span style="color:#a6e22e">Println</span>(<span style="color:#a6e22e">msg</span>)
+}
+</code></pre></div><h2 id="channel-struct">Channel struct</h2>
+<p>  这里使用 make(chan string) 来创建一个不包含缓冲区的 channel.我们可以很简单的通过生成汇编看到这行代码其实如下:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go">        <span style="color:#ae81ff">0x002f</span> <span style="color:#ae81ff">00047</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">7</span>)        <span style="color:#a6e22e">LEAQ</span>    <span style="color:#66d9ef">type</span>.<span style="color:#66d9ef">chan</span> string(<span style="color:#a6e22e">SB</span>), <span style="color:#a6e22e">AX</span>
+        <span style="color:#ae81ff">0x0036</span> <span style="color:#ae81ff">00054</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">7</span>)        <span style="color:#a6e22e">PCDATA</span>  <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">0</span>, <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">0</span>
+        <span style="color:#ae81ff">0x0036</span> <span style="color:#ae81ff">00054</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">7</span>)        <span style="color:#a6e22e">MOVQ</span>    <span style="color:#a6e22e">AX</span>, (<span style="color:#a6e22e">SP</span>)
+        <span style="color:#ae81ff">0x003a</span> <span style="color:#ae81ff">0005</span><span style="color:#ae81ff">8</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">7</span>)        <span style="color:#a6e22e">MOVQ</span>    <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">8</span>(<span style="color:#a6e22e">SP</span>)
+        <span style="color:#ae81ff">0x0043</span> <span style="color:#ae81ff">00067</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">7</span>)        <span style="color:#a6e22e">CALL</span>    <span style="color:#a6e22e">runtime</span>.<span style="color:#a6e22e">makechan</span>(<span style="color:#a6e22e">SB</span>)
+</code></pre></div><p>  但是如果我们想要创建一个带缓冲 buffer 的 channel,需要使用 make(chan string, 5) 来进行创建.生成的汇编代码如下:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go">        <span style="color:#ae81ff">0x002f</span> <span style="color:#ae81ff">00047</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">7</span>)        <span style="color:#a6e22e">LEAQ</span>    <span style="color:#66d9ef">type</span>.<span style="color:#66d9ef">chan</span> string(<span style="color:#a6e22e">SB</span>), <span style="color:#a6e22e">AX</span>
+        <span style="color:#ae81ff">0x0036</span> <span style="color:#ae81ff">00054</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">7</span>)        <span style="color:#a6e22e">PCDATA</span>  <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">0</span>, <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">0</span>
+        <span style="color:#ae81ff">0x0036</span> <span style="color:#ae81ff">00054</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">7</span>)        <span style="color:#a6e22e">MOVQ</span>    <span style="color:#a6e22e">AX</span>, (<span style="color:#a6e22e">SP</span>)
+        <span style="color:#ae81ff">0x003a</span> <span style="color:#ae81ff">0005</span><span style="color:#ae81ff">8</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">7</span>)        <span style="color:#a6e22e">MOVQ</span>    <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">8</span>(<span style="color:#a6e22e">SP</span>)
+        <span style="color:#ae81ff">0x0043</span> <span style="color:#ae81ff">00067</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">7</span>)        <span style="color:#a6e22e">CALL</span>    <span style="color:#a6e22e">runtime</span>.<span style="color:#a6e22e">makechan</span>(<span style="color:#a6e22e">SB</span>)
+</code></pre></div><p>  通过上面两组汇编代码可以看出来,创建 channel 使用的是 makechan 函数,并接受两个参数,第一个参数是类型信息,第二个参数是缓冲区的长度分别存储在 SP,以及 SP+8 的位置.在看 makechan 函数之前,我们需要先了解一下 channel 的数据结构,即 hchan:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">hchan</span> <span style="color:#66d9ef">struct</span> {
+	<span style="color:#a6e22e">qcount</span>   <span style="color:#66d9ef">uint</span>           <span style="color:#75715e">// channel 缓冲区中元素个数
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">dataqsiz</span> <span style="color:#66d9ef">uint</span>           <span style="color:#75715e">// 底层缓冲区数组的长度
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">buf</span>      <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span> <span style="color:#75715e">// 指向 channel 的缓冲区的指针
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">elemsize</span> <span style="color:#66d9ef">uint16</span> <span style="color:#75715e">// channel 传输的数据类型的大小
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">closed</span>   <span style="color:#66d9ef">uint32</span> <span style="color:#75715e">// channel 是否已经关闭
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">elemtype</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">_type</span> <span style="color:#75715e">// channel 传输的数据类型
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">sendx</span>    <span style="color:#66d9ef">uint</span>   <span style="color:#75715e">// 发送数据的位置
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">recvx</span>    <span style="color:#66d9ef">uint</span>   <span style="color:#75715e">// 接收数据的位置
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">recvq</span>    <span style="color:#a6e22e">waitq</span>  <span style="color:#75715e">// 等待接收数据的 goroutine 组成的队列
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">sendq</span>    <span style="color:#a6e22e">waitq</span>  <span style="color:#75715e">// 等待发送数据的 goroutine 组成的队列
+</span><span style="color:#75715e"></span>
+	<span style="color:#75715e">// 用来保护 channel 中的字段,
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">lock</span> <span style="color:#a6e22e">mutex</span>
+}
+<span style="color:#75715e">// waitq 就是 sudog 组成的链表,sudog 就是 goroutine 包装后进行阻塞的数据结构
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">type</span> <span style="color:#a6e22e">waitq</span> <span style="color:#66d9ef">struct</span> {
+	<span style="color:#a6e22e">first</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">sudog</span>
+	<span style="color:#a6e22e">last</span>  <span style="color:#f92672">*</span><span style="color:#a6e22e">sudog</span>
+}
+</code></pre></div><h2 id="makechan-操作">makechan 操作</h2>
+<p>  当 channel 无缓冲区时,在 hchan 中不会创建对应的缓冲区,只有在明确指定了 channel 缓冲区的大小,才会在对应的 hchan 中使用到和缓冲区相关的几个字段.下面来看看怎么创建一个channel:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">makechan</span>(<span style="color:#a6e22e">t</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">chantype</span>, <span style="color:#a6e22e">size</span> <span style="color:#66d9ef">int</span>) <span style="color:#f92672">*</span><span style="color:#a6e22e">hchan</span> {
+	<span style="color:#a6e22e">elem</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">t</span>.<span style="color:#a6e22e">elem</span>    <span style="color:#75715e">// 只需要知道 elem 是元素类型的 runtime 结构体即可
+</span><span style="color:#75715e"></span>
+	<span style="color:#f92672">...</span>
+	<span style="color:#75715e">// 获取缓冲池内存大小,size(Type) * 元素个数
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">mem</span>, <span style="color:#a6e22e">overflow</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">math</span>.<span style="color:#a6e22e">MulUintptr</span>(<span style="color:#a6e22e">elem</span>.<span style="color:#a6e22e">size</span>, uintptr(<span style="color:#a6e22e">size</span>))
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">overflow</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">mem</span> &gt; <span style="color:#a6e22e">maxAlloc</span><span style="color:#f92672">-</span><span style="color:#a6e22e">hchanSize</span> <span style="color:#f92672">||</span> <span style="color:#a6e22e">size</span> &lt; <span style="color:#ae81ff">0</span> {
+		panic(<span style="color:#a6e22e">plainError</span>(<span style="color:#e6db74">&#34;makechan: size out of range&#34;</span>))
+	}
+
+	<span style="color:#75715e">// channel 对应的 hchan 结构体
+</span><span style="color:#75715e"></span>	<span style="color:#75715e">// 初始化时特意将元素中有无指针单独进行了判断,对 GC 过程做的优化,避免 GC 时需要查找指针
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">hchan</span>
+	<span style="color:#66d9ef">switch</span> {
+	<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">mem</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>:
+		<span style="color:#75715e">// 队列或者元素大小为空,所以不需要分配缓冲区的内存大小,直接分配一个 hchan 的结构体即可
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">c</span> = (<span style="color:#f92672">*</span><span style="color:#a6e22e">hchan</span>)(<span style="color:#a6e22e">mallocgc</span>(<span style="color:#a6e22e">hchanSize</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#66d9ef">true</span>)) 
+		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">buf</span> = <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">raceaddr</span>()
+	<span style="color:#66d9ef">case</span> <span style="color:#a6e22e">elem</span>.<span style="color:#a6e22e">ptrdata</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>:
+		<span style="color:#75715e">// Elements do not contain pointers.
+</span><span style="color:#75715e"></span>		<span style="color:#75715e">// Allocate hchan and buf in one call.
+</span><span style="color:#75715e"></span>		<span style="color:#75715e">// 元素类型不包含指针,直接一次性获取所需要的内存,注意这里的缓冲区其实在物理上是紧跟在 hchan 之后的
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">c</span> = (<span style="color:#f92672">*</span><span style="color:#a6e22e">hchan</span>)(<span style="color:#a6e22e">mallocgc</span>(<span style="color:#a6e22e">hchanSize</span><span style="color:#f92672">+</span><span style="color:#a6e22e">mem</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#66d9ef">true</span>))
+		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">buf</span> = <span style="color:#a6e22e">add</span>(<span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">c</span>), <span style="color:#a6e22e">hchanSize</span>)
+	<span style="color:#66d9ef">default</span>:
+		<span style="color:#75715e">// 元素类型中包含指针
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">c</span> = new(<span style="color:#a6e22e">hchan</span>)
+		<span style="color:#75715e">// 单独分配缓冲区内存
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">buf</span> = <span style="color:#a6e22e">mallocgc</span>(<span style="color:#a6e22e">mem</span>, <span style="color:#a6e22e">elem</span>, <span style="color:#66d9ef">true</span>)
+	}
+	<span style="color:#75715e">// 一些基本参数的设置
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">elemsize</span> = uint16(<span style="color:#a6e22e">elem</span>.<span style="color:#a6e22e">size</span>)
+	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">elemtype</span> = <span style="color:#a6e22e">elem</span>
+	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">dataqsiz</span> = uint(<span style="color:#a6e22e">size</span>)
+	
+	<span style="color:#66d9ef">return</span> <span style="color:#a6e22e">c</span>
+}
+</code></pre></div><p>根据是否有缓冲区，以及 channel 传输类型是否包含指针，buffer 和 channel 的关系如下：
+<img src="/images/golang/channel.png" alt="">
+  整个 channel 的结构并不复杂,记录一下传输元素类型的基本信息,并根据情况初始化合适的元素缓冲区即可.按照上面的代码,创建好了缓冲区之后就要向 channel 中发送数据 messages &lt;- &ldquo;ping&rdquo;.</p>
+<h2 id="chansend-操作">chansend 操作</h2>
+<p>生成一下 messages &lt;- &ldquo;ping&rdquo; 的汇编代码,生成代码如下:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go">        <span style="color:#ae81ff">0x001d</span> <span style="color:#ae81ff">0002</span><span style="color:#ae81ff">9</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">15</span>)       <span style="color:#a6e22e">MOVQ</span>    <span style="color:#e6db74">&#34;&#34;</span>.<span style="color:#a6e22e">messages</span><span style="color:#f92672">+</span><span style="color:#ae81ff">32</span>(<span style="color:#a6e22e">SP</span>), <span style="color:#a6e22e">AX</span>
+        <span style="color:#ae81ff">0x0022</span> <span style="color:#ae81ff">00034</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">15</span>)       <span style="color:#a6e22e">PCDATA</span>  <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">0</span>, <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">0</span>
+        <span style="color:#ae81ff">0x0022</span> <span style="color:#ae81ff">00034</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">15</span>)       <span style="color:#a6e22e">MOVQ</span>    <span style="color:#a6e22e">AX</span>, (<span style="color:#a6e22e">SP</span>)
+        <span style="color:#ae81ff">0x0026</span> <span style="color:#ae81ff">0003</span><span style="color:#ae81ff">8</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">15</span>)       <span style="color:#a6e22e">PCDATA</span>  <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">0</span>, <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">1</span>
+        <span style="color:#ae81ff">0x0026</span> <span style="color:#ae81ff">0003</span><span style="color:#ae81ff">8</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">15</span>)       <span style="color:#a6e22e">LEAQ</span>    <span style="color:#e6db74">&#34;&#34;</span>..<span style="color:#a6e22e">stmp_0</span>(<span style="color:#a6e22e">SB</span>), <span style="color:#a6e22e">AX</span>
+        <span style="color:#ae81ff">0x002d</span> <span style="color:#ae81ff">00045</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">15</span>)       <span style="color:#a6e22e">PCDATA</span>  <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">0</span>, <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">0</span>
+        <span style="color:#ae81ff">0x002d</span> <span style="color:#ae81ff">00045</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">15</span>)       <span style="color:#a6e22e">MOVQ</span>    <span style="color:#a6e22e">AX</span>, <span style="color:#ae81ff">8</span>(<span style="color:#a6e22e">SP</span>)
+        <span style="color:#ae81ff">0x0032</span> <span style="color:#ae81ff">00050</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">15</span>)       <span style="color:#a6e22e">CALL</span>    <span style="color:#a6e22e">runtime</span>.<span style="color:#a6e22e">chansend1</span>(<span style="color:#a6e22e">SB</span>)
+</code></pre></div><p>  实际调用的是 chansend1() 进行的数据发送,这里需要接受的参数为两个,一个 channel 的指针,一个 发送数据的指针,汇编代码中的 stmp_0 代表的就是代码中的 &ldquo;ping&rdquo;, 发送方法如下:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#75715e">// 汇编代码中的 c&lt;-x 入口
+</span><span style="color:#75715e">//go:nosplit
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">chansend1</span>(<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">hchan</span>, <span style="color:#a6e22e">elem</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>) {
+	<span style="color:#75715e">// 通过 chansend 来进行数据的发送
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">chansend</span>(<span style="color:#a6e22e">c</span>, <span style="color:#a6e22e">elem</span>, <span style="color:#66d9ef">true</span>, <span style="color:#a6e22e">getcallerpc</span>())
+}
+
+<span style="color:#66d9ef">func</span> <span style="color:#a6e22e">chansend</span>(<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">hchan</span>, <span style="color:#a6e22e">ep</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>, <span style="color:#a6e22e">block</span> <span style="color:#66d9ef">bool</span>, <span style="color:#a6e22e">callerpc</span> <span style="color:#66d9ef">uintptr</span>) <span style="color:#66d9ef">bool</span> {
+	 <span style="color:#75715e">// 逻辑中的 channel 没有初始化时: c == nil
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// var messages chan string
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// messages &lt;- &#34;ping&#34;
+</span><span style="color:#75715e"></span>    <span style="color:#75715e">// 向一个 nil channel 发送数据会导致 goroutine 阻塞
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">block</span> {
+			<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>
+		}
+		<span style="color:#a6e22e">gopark</span>(<span style="color:#66d9ef">nil</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">waitReasonChanSendNilChan</span>, <span style="color:#a6e22e">traceEvGoStop</span>, <span style="color:#ae81ff">2</span>)
+		<span style="color:#a6e22e">throw</span>(<span style="color:#e6db74">&#34;unreachable&#34;</span>)
+	}
+
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">debugChan</span> {
+		print(<span style="color:#e6db74">&#34;chansend: chan=&#34;</span>, <span style="color:#a6e22e">c</span>, <span style="color:#e6db74">&#34;\n&#34;</span>)
+	}
+
+	<span style="color:#f92672">...</span>
+
+	<span style="color:#75715e">// 不阻塞且未关闭,且无缓冲区,或者缓冲区已满直接返回
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">block</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">closed</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">&amp;&amp;</span> ((<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">dataqsiz</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">recvq</span>.<span style="color:#a6e22e">first</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span>) <span style="color:#f92672">||</span>
+		(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">dataqsiz</span> &gt; <span style="color:#ae81ff">0</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">qcount</span> <span style="color:#f92672">==</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">dataqsiz</span>)) {
+		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>
+	}
+
+	<span style="color:#f92672">...</span>
+
+	<span style="color:#a6e22e">lock</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">lock</span>)
+	<span style="color:#75715e">// 向 close channel 发数据会 panic
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">closed</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+		<span style="color:#a6e22e">unlock</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">lock</span>)
+		panic(<span style="color:#a6e22e">plainError</span>(<span style="color:#e6db74">&#34;send on closed channel&#34;</span>))
+	}
+	<span style="color:#75715e">// 第一种发送情况,等待队列不为空,直接
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">sg</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">recvq</span>.<span style="color:#a6e22e">dequeue</span>(); <span style="color:#a6e22e">sg</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#75715e">// 从接收等待队列中获取一个待接收者,绕过通道缓冲区,将要发送的值直接发送给等待接收者
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">send</span>(<span style="color:#a6e22e">c</span>, <span style="color:#a6e22e">sg</span>, <span style="color:#a6e22e">ep</span>, <span style="color:#66d9ef">func</span>() { <span style="color:#a6e22e">unlock</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">lock</span>) }, <span style="color:#ae81ff">3</span>)
+		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>
+	}
+	<span style="color:#75715e">// 第二种发送情况,缓冲区不满,且没有接收者等待,添加到缓冲区中
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">qcount</span> &lt; <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">dataqsiz</span> {
+		<span style="color:#75715e">// 获取 sendx 位置的缓冲区元素
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">qp</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">chanbuf</span>(<span style="color:#a6e22e">c</span>, <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">sendx</span>)
+		<span style="color:#f92672">...</span>
+		<span style="color:#75715e">// 通过内存拷贝将元素添加到缓冲区中
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">typedmemmove</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">elemtype</span>, <span style="color:#a6e22e">qp</span>, <span style="color:#a6e22e">ep</span>)
+		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">sendx</span><span style="color:#f92672">++</span>
+		<span style="color:#75715e">// 因为是数组构成的循环队列,判断一下边界情况
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">sendx</span> <span style="color:#f92672">==</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">dataqsiz</span> {
+			<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">sendx</span> = <span style="color:#ae81ff">0</span>
+		}
+		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">qcount</span><span style="color:#f92672">++</span>
+		<span style="color:#a6e22e">unlock</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">lock</span>)
+		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>
+	}
+	<span style="color:#75715e">// 第三种发送情况,缓冲区满了,或者没有缓冲区,且不阻塞,直接返回 false
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">block</span> {
+		<span style="color:#a6e22e">unlock</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">lock</span>)
+		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>
+	}
+
+	<span style="color:#75715e">// 最后实在没办法,咋都发送不出去就只能阻塞在 channel 上了,receiver 会完成后续任务,所以阻塞后真正的发送代码就不在这里了
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">gp</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">getg</span>()
+	<span style="color:#a6e22e">mysg</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">acquireSudog</span>()
+	<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">releasetime</span> = <span style="color:#ae81ff">0</span>
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">t0</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+		<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">releasetime</span> = <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>
+	}
+	<span style="color:#75715e">// 填充一下 sudog 就可以阻塞了
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">elem</span> = <span style="color:#a6e22e">ep</span>               <span style="color:#75715e">// 发送数据的地址
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">waitlink</span> = <span style="color:#66d9ef">nil</span>
+	<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">g</span> = <span style="color:#a6e22e">gp</span>                  <span style="color:#75715e">// 发送数据的 goroutine
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">isSelect</span> = <span style="color:#66d9ef">false</span>        <span style="color:#75715e">// 不在 select 中
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">c</span> = <span style="color:#a6e22e">c</span>                   <span style="color:#75715e">// 发送的 channel
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">gp</span>.<span style="color:#a6e22e">waiting</span> = <span style="color:#a6e22e">mysg</span>
+	<span style="color:#a6e22e">gp</span>.<span style="color:#a6e22e">param</span> = <span style="color:#66d9ef">nil</span>
+	<span style="color:#75715e">// 将包装好的 sudog 添加到待发送队列中,具体的 sudog 这里不做讲解,只需要知道这是一个队 g 进行包装后的结构体用来等待操作
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">sendq</span>.<span style="color:#a6e22e">enqueue</span>(<span style="color:#a6e22e">mysg</span>)
+	<span style="color:#75715e">// goroutine 陷入睡眠
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">goparkunlock</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">lock</span>, <span style="color:#a6e22e">waitReasonChanSend</span>, <span style="color:#a6e22e">traceEvGoBlockSend</span>, <span style="color:#ae81ff">3</span>)
+	<span style="color:#75715e">// 
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">KeepAlive</span>(<span style="color:#a6e22e">ep</span>)
+
+	<span style="color:#75715e">// 唤醒后继续执行收尾工作,其实这个时候数据已送复制到接收者的内存中了
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">mysg</span> <span style="color:#f92672">!=</span> <span style="color:#a6e22e">gp</span>.<span style="color:#a6e22e">waiting</span> {
+		<span style="color:#a6e22e">throw</span>(<span style="color:#e6db74">&#34;G waiting list is corrupted&#34;</span>)
+	}
+	<span style="color:#a6e22e">gp</span>.<span style="color:#a6e22e">waiting</span> = <span style="color:#66d9ef">nil</span>
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">gp</span>.<span style="color:#a6e22e">param</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">closed</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+			<span style="color:#a6e22e">throw</span>(<span style="color:#e6db74">&#34;chansend: spurious wakeup&#34;</span>)
+		}
+		<span style="color:#75715e">// 唤醒后 channel close 了,直接 panic
+</span><span style="color:#75715e"></span>		panic(<span style="color:#a6e22e">plainError</span>(<span style="color:#e6db74">&#34;send on closed channel&#34;</span>))
+	}
+	<span style="color:#a6e22e">gp</span>.<span style="color:#a6e22e">param</span> = <span style="color:#66d9ef">nil</span>
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">releasetime</span> &gt; <span style="color:#ae81ff">0</span> {
+		<span style="color:#a6e22e">blockevent</span>(<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">releasetime</span><span style="color:#f92672">-</span><span style="color:#a6e22e">t0</span>, <span style="color:#ae81ff">2</span>)
+	}
+	<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">c</span> = <span style="color:#66d9ef">nil</span>
+	<span style="color:#75715e">// 释放 sudog 结构体
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">releaseSudog</span>(<span style="color:#a6e22e">mysg</span>)
+	<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>
+}
+</code></pre></div><p>  上面代码中第一种情况直接发送调用的是 send()函数,下面来看看这个函数的具体实现:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#75715e">// send processes a send operation on an empty channel c.
+</span><span style="color:#75715e">// The value ep sent by the sender is copied to the receiver sg.
+</span><span style="color:#75715e">// The receiver is then woken up to go on its merry way.
+</span><span style="color:#75715e">// Channel c must be empty and locked.  send unlocks c with unlockf.
+</span><span style="color:#75715e">// sg must already be dequeued from c.
+</span><span style="color:#75715e">// ep must be non-nil and point to the heap or the caller&#39;s stack.
+</span><span style="color:#75715e">// 从发送方把 ep 直接复制给接收方的 sg
+</span><span style="color:#75715e">// 把 lock 锁通过 func 传进来在 send 中操作完成之后释放
+</span><span style="color:#75715e">// 唤醒 ep(等待接收者),通道 c 此时已经锁定了,sg 已经从 c 中出队,ep != nil
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">send</span>(<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">hchan</span>, <span style="color:#a6e22e">sg</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">sudog</span>, <span style="color:#a6e22e">ep</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>, <span style="color:#a6e22e">unlockf</span> <span style="color:#66d9ef">func</span>(), <span style="color:#a6e22e">skip</span> <span style="color:#66d9ef">int</span>) {
+	<span style="color:#f92672">...</span>
+	<span style="color:#75715e">// 等了半天的接收元素直接给它放到接收地址中,拿走
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">elem</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#75715e">// msg := &lt;-messages 这里直接把 ep 复制给这个 msg
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">sendDirect</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">elemtype</span>, <span style="color:#a6e22e">sg</span>, <span style="color:#a6e22e">ep</span>)
+		<span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">elem</span> = <span style="color:#66d9ef">nil</span>
+	}
+	<span style="color:#a6e22e">gp</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">g</span>
+	<span style="color:#a6e22e">unlockf</span>()
+	<span style="color:#a6e22e">gp</span>.<span style="color:#a6e22e">param</span> = <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">sg</span>)
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">releasetime</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+		<span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">releasetime</span> = <span style="color:#a6e22e">cputicks</span>()
+	}
+	
+	<span style="color:#75715e">// 唤醒等待接收的 goroutine,并将其加入到发送方 goroutine 的 P.runnext 等待执行
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">goready</span>(<span style="color:#a6e22e">gp</span>, <span style="color:#a6e22e">skip</span><span style="color:#f92672">+</span><span style="color:#ae81ff">1</span>)
+}
+</code></pre></div><p>  上面就是整个的发送流程,从上面可以看出来,当向 channel 发送数据时,分为如下几步:</p>
+<ol>
+<li>等待接收队列不为空,直接扔给他,不让中间商赚差价</li>
+<li>没人接收,但是缓冲区不满,可以扔进缓冲区中然后溜之大吉</li>
+<li>没人等待,吗,没有缓冲区或者缓冲区满了,还不阻塞,直接返回 false</li>
+<li>实在发送不出去,只能阻塞住,等待接收者救它</li>
+</ol>
+<h2 id="chanrecv-操作">chanrecv 操作</h2>
+<p>下来我们看看接收数据的情况:
+老方法,先看看 msg := &lt;-messages 的汇编代码:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go">        <span style="color:#ae81ff">0x00bd</span> <span style="color:#ae81ff">001</span><span style="color:#ae81ff">89</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">20</span>)       <span style="color:#a6e22e">CALL</span>    <span style="color:#a6e22e">runtime</span>.<span style="color:#a6e22e">chanrecv1</span>(<span style="color:#a6e22e">SB</span>)
+</code></pre></div><p>调用的是 chanrecv1 进行数据的接收, chanrecv1 调用的是 chanrecv:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#75715e">// entry points for &lt;- c from compiled code
+</span><span style="color:#75715e">//go:nosplit
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">chanrecv1</span>(<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">hchan</span>, <span style="color:#a6e22e">elem</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>) {
+	<span style="color:#a6e22e">chanrecv</span>(<span style="color:#a6e22e">c</span>, <span style="color:#a6e22e">elem</span>, <span style="color:#66d9ef">true</span>)
+}
+<span style="color:#75715e">// 将接收到的数据写入 ep,ep 可能为 nil
+</span><span style="color:#75715e">// 如果为 nil 就忽略接收到的数据 eg: &lt;-message
+</span><span style="color:#75715e">// 如果 block == false &amp;&amp; 没有可用数据,直接返回 false,false
+</span><span style="color:#75715e">// 如果 c 关闭,则设置 ep 为 0,并返回 true,false
+</span><span style="color:#75715e">// 否则知道获取一个元素填充 ep,然后返回 true,true
+</span><span style="color:#75715e">// ep != nil,必须指向堆或者调用者的栈
+</span><span style="color:#75715e">// 参数解析: 接收的通道,接收值的地址,是否阻塞
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">chanrecv</span>(<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">hchan</span>, <span style="color:#a6e22e">ep</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>, <span style="color:#a6e22e">block</span> <span style="color:#66d9ef">bool</span>) (<span style="color:#a6e22e">selected</span>, <span style="color:#a6e22e">received</span> <span style="color:#66d9ef">bool</span>) {
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#75715e">// 从 nil channel 接收数据
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">block</span> {
+			<span style="color:#66d9ef">return</span>
+		}
+		<span style="color:#a6e22e">gopark</span>(<span style="color:#66d9ef">nil</span>, <span style="color:#66d9ef">nil</span>, <span style="color:#a6e22e">waitReasonChanReceiveNilChan</span>, <span style="color:#a6e22e">traceEvGoStop</span>, <span style="color:#ae81ff">2</span>)
+		<span style="color:#a6e22e">throw</span>(<span style="color:#e6db74">&#34;unreachable&#34;</span>)
+	}
+
+	<span style="color:#75715e">// 种种原因,直接返回类似上面 send 的相同部分
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">block</span> <span style="color:#f92672">&amp;&amp;</span> (<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">dataqsiz</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">sendq</span>.<span style="color:#a6e22e">first</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> <span style="color:#f92672">||</span>
+		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">dataqsiz</span> &gt; <span style="color:#ae81ff">0</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">Loaduint</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">qcount</span>) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) <span style="color:#f92672">&amp;&amp;</span>
+		<span style="color:#a6e22e">atomic</span>.<span style="color:#a6e22e">Load</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">closed</span>) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+		<span style="color:#66d9ef">return</span>
+	}
+
+	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">t0</span> <span style="color:#66d9ef">int64</span>
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">blockprofilerate</span> &gt; <span style="color:#ae81ff">0</span> {
+		<span style="color:#a6e22e">t0</span> = <span style="color:#a6e22e">cputicks</span>()
+	}
+
+	<span style="color:#a6e22e">lock</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">lock</span>)
+	<span style="color:#75715e">// 加锁开始操作
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">closed</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">qcount</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+		<span style="color:#75715e">// 从一个已经关闭的 channel 读取,但是缓冲区为空,直接返回读取不到数据
+</span><span style="color:#75715e"></span>		<span style="color:#f92672">...</span>
+		<span style="color:#a6e22e">unlock</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">lock</span>)
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">ep</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#a6e22e">typedmemclr</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">elemtype</span>, <span style="color:#a6e22e">ep</span>)
+		}
+		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>, <span style="color:#66d9ef">false</span>
+	}
+	<span style="color:#75715e">// 看看发送队列是不是有 goroutine 再等待,同样没有中间商赚差价
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">sg</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">sendq</span>.<span style="color:#a6e22e">dequeue</span>(); <span style="color:#a6e22e">sg</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+		<span style="color:#75715e">// 调用 revc 直接从目标 goroutine 获取元素,revc 见后面
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">recv</span>(<span style="color:#a6e22e">c</span>, <span style="color:#a6e22e">sg</span>, <span style="color:#a6e22e">ep</span>, <span style="color:#66d9ef">func</span>() { <span style="color:#a6e22e">unlock</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">lock</span>) }, <span style="color:#ae81ff">3</span>)
+		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>, <span style="color:#66d9ef">true</span>
+	}
+	<span style="color:#75715e">// 缓冲区中有数据,哪一个过来,直接退出
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">qcount</span> &gt; <span style="color:#ae81ff">0</span> {
+		<span style="color:#75715e">// 从环形队列拿一个
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">qp</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">chanbuf</span>(<span style="color:#a6e22e">c</span>, <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">recvx</span>)
+		<span style="color:#f92672">...</span>
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">ep</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#75715e">// 目标地址不为 nil,要把数据复制过去
+</span><span style="color:#75715e"></span>			<span style="color:#a6e22e">typedmemmove</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">elemtype</span>, <span style="color:#a6e22e">ep</span>, <span style="color:#a6e22e">qp</span>)
+		}
+		<span style="color:#a6e22e">typedmemclr</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">elemtype</span>, <span style="color:#a6e22e">qp</span>)
+		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">recvx</span><span style="color:#f92672">++</span>
+		<span style="color:#75715e">// 处理环形队列边界情况
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">recvx</span> <span style="color:#f92672">==</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">dataqsiz</span> {
+			<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">recvx</span> = <span style="color:#ae81ff">0</span>
+		}
+		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">qcount</span><span style="color:#f92672">--</span>
+		<span style="color:#a6e22e">unlock</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">lock</span>)
+		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>, <span style="color:#66d9ef">true</span>
+	}
+	<span style="color:#75715e">// 拿不到还不阻塞,拜拜
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> !<span style="color:#a6e22e">block</span> {
+		<span style="color:#a6e22e">unlock</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">lock</span>)
+		<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">false</span>, <span style="color:#66d9ef">false</span>
+	}
+
+	<span style="color:#75715e">// 阻塞在这个 channel 上
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">gp</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">getg</span>()
+	<span style="color:#75715e">// 同样把自己包装成 sudog
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">mysg</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">acquireSudog</span>()
+	<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">releasetime</span> = <span style="color:#ae81ff">0</span>
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">t0</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+		<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">releasetime</span> = <span style="color:#f92672">-</span><span style="color:#ae81ff">1</span>
+	}
+	<span style="color:#75715e">// 见 chansend 的相同操作,填充 sudog
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">elem</span> = <span style="color:#a6e22e">ep</span>
+	<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">waitlink</span> = <span style="color:#66d9ef">nil</span>
+	<span style="color:#a6e22e">gp</span>.<span style="color:#a6e22e">waiting</span> = <span style="color:#a6e22e">mysg</span>
+	<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">g</span> = <span style="color:#a6e22e">gp</span>
+	<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">isSelect</span> = <span style="color:#66d9ef">false</span>
+	<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">c</span> = <span style="color:#a6e22e">c</span>
+	<span style="color:#a6e22e">gp</span>.<span style="color:#a6e22e">param</span> = <span style="color:#66d9ef">nil</span>
+	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">recvq</span>.<span style="color:#a6e22e">enqueue</span>(<span style="color:#a6e22e">mysg</span>)
+	<span style="color:#75715e">// goroutine 陷入睡眠
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">goparkunlock</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">lock</span>, <span style="color:#a6e22e">waitReasonChanReceive</span>, <span style="color:#a6e22e">traceEvGoBlockRecv</span>, <span style="color:#ae81ff">3</span>)
+
+	<span style="color:#75715e">// 唤醒之后的代码,这个时候 mysg.elem 已经有想要的数据了,后面做一些收尾处理即可
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">mysg</span> <span style="color:#f92672">!=</span> <span style="color:#a6e22e">gp</span>.<span style="color:#a6e22e">waiting</span> {
+		<span style="color:#a6e22e">throw</span>(<span style="color:#e6db74">&#34;G waiting list is corrupted&#34;</span>)
+	}
+	<span style="color:#a6e22e">gp</span>.<span style="color:#a6e22e">waiting</span> = <span style="color:#66d9ef">nil</span>
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">releasetime</span> &gt; <span style="color:#ae81ff">0</span> {
+		<span style="color:#a6e22e">blockevent</span>(<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">releasetime</span><span style="color:#f92672">-</span><span style="color:#a6e22e">t0</span>, <span style="color:#ae81ff">2</span>)
+	}
+	<span style="color:#a6e22e">closed</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">gp</span>.<span style="color:#a6e22e">param</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span>
+	<span style="color:#a6e22e">gp</span>.<span style="color:#a6e22e">param</span> = <span style="color:#66d9ef">nil</span>
+	<span style="color:#a6e22e">mysg</span>.<span style="color:#a6e22e">c</span> = <span style="color:#66d9ef">nil</span>
+	<span style="color:#a6e22e">releaseSudog</span>(<span style="color:#a6e22e">mysg</span>)
+	<span style="color:#66d9ef">return</span> <span style="color:#66d9ef">true</span>, !<span style="color:#a6e22e">closed</span>
+}
+</code></pre></div><p>继续看看两个 goroutine 直接交易数据的函数 recv:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#75715e">// 参数:接收 channel,发送者 sudog,数据目标地址
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">recv</span>(<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">hchan</span>, <span style="color:#a6e22e">sg</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">sudog</span>, <span style="color:#a6e22e">ep</span> <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>, <span style="color:#a6e22e">unlockf</span> <span style="color:#66d9ef">func</span>(), <span style="color:#a6e22e">skip</span> <span style="color:#66d9ef">int</span>) {
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">dataqsiz</span> <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> {
+		<span style="color:#75715e">// 没有缓冲区
+</span><span style="color:#75715e"></span>		<span style="color:#f92672">...</span>
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">ep</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#75715e">// 从发送者哪里把数据拷贝过来
+</span><span style="color:#75715e"></span>			<span style="color:#a6e22e">recvDirect</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">elemtype</span>, <span style="color:#a6e22e">sg</span>, <span style="color:#a6e22e">ep</span>)
+		}
+	} <span style="color:#66d9ef">else</span> {
+		<span style="color:#75715e">// 有缓冲区
+</span><span style="color:#75715e"></span>		<span style="color:#f92672">...</span>
+		<span style="color:#75715e">// 获取缓冲区中的数据
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">qp</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">chanbuf</span>(<span style="color:#a6e22e">c</span>, <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">recvx</span>)
+		<span style="color:#75715e">// copy data from queue to receiver
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">ep</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#75715e">// 将缓冲区中的数据复制给接收者
+</span><span style="color:#75715e"></span>			<span style="color:#a6e22e">typedmemmove</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">elemtype</span>, <span style="color:#a6e22e">ep</span>, <span style="color:#a6e22e">qp</span>)
+		}
+		<span style="color:#75715e">// 将发送者的数据放到缓冲区中
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">typedmemmove</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">elemtype</span>, <span style="color:#a6e22e">qp</span>, <span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">elem</span>)
+		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">recvx</span><span style="color:#f92672">++</span>
+		<span style="color:#75715e">// 处理边界条件
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">recvx</span> <span style="color:#f92672">==</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">dataqsiz</span> {
+			<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">recvx</span> = <span style="color:#ae81ff">0</span>
+		}
+		<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">sendx</span> = <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">recvx</span> <span style="color:#75715e">// c.sendx = (c.sendx+1) % c.dataqsiz
+</span><span style="color:#75715e"></span>	}
+	<span style="color:#75715e">// 清空发送者原来持有的数据
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">elem</span> = <span style="color:#66d9ef">nil</span>
+	<span style="color:#a6e22e">gp</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">g</span>
+	<span style="color:#a6e22e">unlockf</span>()
+	<span style="color:#a6e22e">gp</span>.<span style="color:#a6e22e">param</span> = <span style="color:#a6e22e">unsafe</span>.<span style="color:#a6e22e">Pointer</span>(<span style="color:#a6e22e">sg</span>)
+	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">releasetime</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+		<span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">releasetime</span> = <span style="color:#a6e22e">cputicks</span>()
+	}
+	<span style="color:#75715e">// 唤醒发送者
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">goready</span>(<span style="color:#a6e22e">gp</span>, <span style="color:#a6e22e">skip</span><span style="color:#f92672">+</span><span style="color:#ae81ff">1</span>)
+}
+</code></pre></div><p>  这里首先需要注意的一点就是 chanrecv 有两个返回值,第二个返回值判断 channel 是否关闭
+从 channel 中获取数据同样也分为几步:</p>
+<ol>
+<li>channel 已经关闭,缓冲区中无数据,直接返回</li>
+<li>channel 中的发送缓冲队列有 goroutine 在等待,直接和它进行 py 交易即可返回
+<ul>
+<li>没有缓冲区,直接将第一个发送者的数据给接收者即可</li>
+<li>有缓冲区,将缓冲区中的数据给接收者,然后把发送者的数据存到缓冲区中,这是为了防止,发送者阻塞过久,通过这种判断可以当缓冲区中出现空闲时,将等待发送者解放并唤醒</li>
+</ul>
+</li>
+<li>等待队列为空不要紧,缓冲区里还有数据,拿一个返回即可</li>
+<li>咋都没数据,但是这个接收不阻塞,直接返回</li>
+<li>咋都没数据还要阻塞等待,把自己收拾成 sudog,然后进行等待,唤醒后返回</li>
+</ol>
+<h2 id="closechan-操作">closechan 操作</h2>
+<p>  创建 channel,接收数据和发送数据都看完了,下面看看 channel 是如何关闭的,老规矩 close(messages) 汇编代码如下:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go">        <span style="color:#ae81ff">0x0041</span> <span style="color:#ae81ff">00065</span> (<span style="color:#a6e22e">test</span>.<span style="color:#66d9ef">go</span>:<span style="color:#ae81ff">13</span>)       <span style="color:#a6e22e">CALL</span>    <span style="color:#a6e22e">runtime</span>.<span style="color:#a6e22e">closechan</span>(<span style="color:#a6e22e">SB</span>)
+</code></pre></div><p>执行的是 closechan,可以关闭 channel:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-go" data-lang="go"><span style="color:#66d9ef">func</span> <span style="color:#a6e22e">closechan</span>(<span style="color:#a6e22e">c</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">hchan</span>) {
+	<span style="color:#75715e">// nil 不能 close,直接 panic
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+		panic(<span style="color:#a6e22e">plainError</span>(<span style="color:#e6db74">&#34;close of nil channel&#34;</span>))
+	}
+	
+	<span style="color:#a6e22e">lock</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">lock</span>)
+	<span style="color:#75715e">// 重复 close channel
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">closed</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+		<span style="color:#a6e22e">unlock</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">lock</span>)
+		panic(<span style="color:#a6e22e">plainError</span>(<span style="color:#e6db74">&#34;close of closed channel&#34;</span>))
+	}
+
+	<span style="color:#f92672">...</span>
+	<span style="color:#75715e">// 设置 close 标志位
+</span><span style="color:#75715e"></span>	<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">closed</span> = <span style="color:#ae81ff">1</span>
+
+	<span style="color:#66d9ef">var</span> <span style="color:#a6e22e">glist</span> <span style="color:#a6e22e">gList</span>
+
+	<span style="color:#75715e">// 释放所有接收者
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">for</span> {
+		<span style="color:#a6e22e">sg</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">recvq</span>.<span style="color:#a6e22e">dequeue</span>()
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">sg</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#66d9ef">break</span>
+		}
+		<span style="color:#75715e">// 处理一个接收者
+</span><span style="color:#75715e"></span>		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">elem</span> <span style="color:#f92672">!=</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#75715e">// 尝试给等待接收者的复制一个对应 type 的默认值,int(0),string(&#34;&#34;),ptr(nil)
+</span><span style="color:#75715e"></span>			<span style="color:#a6e22e">typedmemclr</span>(<span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">elemtype</span>, <span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">elem</span>)
+			<span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">elem</span> = <span style="color:#66d9ef">nil</span>
+		}
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">releasetime</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+			<span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">releasetime</span> = <span style="color:#a6e22e">cputicks</span>()
+		}
+		<span style="color:#a6e22e">gp</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">g</span>
+		<span style="color:#a6e22e">gp</span>.<span style="color:#a6e22e">param</span> = <span style="color:#66d9ef">nil</span>
+		<span style="color:#f92672">...</span>
+		<span style="color:#75715e">// 加入 glist 后面进行统一唤醒
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">glist</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">gp</span>)
+	}
+
+	<span style="color:#75715e">// 释放所有发送者,可能会 panic
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">for</span> {
+		<span style="color:#a6e22e">sg</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">sendq</span>.<span style="color:#a6e22e">dequeue</span>()
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">sg</span> <span style="color:#f92672">==</span> <span style="color:#66d9ef">nil</span> {
+			<span style="color:#66d9ef">break</span>
+		}
+		<span style="color:#75715e">// 数据直接扔掉
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">elem</span> = <span style="color:#66d9ef">nil</span>
+		<span style="color:#66d9ef">if</span> <span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">releasetime</span> <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span> {
+			<span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">releasetime</span> = <span style="color:#a6e22e">cputicks</span>()
+		}
+		<span style="color:#a6e22e">gp</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">sg</span>.<span style="color:#a6e22e">g</span>
+		<span style="color:#a6e22e">gp</span>.<span style="color:#a6e22e">param</span> = <span style="color:#66d9ef">nil</span>
+		<span style="color:#f92672">...</span>
+		<span style="color:#75715e">// 加入 glist 后面进行统一唤醒
+</span><span style="color:#75715e"></span>		<span style="color:#a6e22e">glist</span>.<span style="color:#a6e22e">push</span>(<span style="color:#a6e22e">gp</span>)
+	}
+	<span style="color:#a6e22e">unlock</span>(<span style="color:#f92672">&amp;</span><span style="color:#a6e22e">c</span>.<span style="color:#a6e22e">lock</span>)
+
+	<span style="color:#75715e">// 最后别忘了唤醒所有 channel
+</span><span style="color:#75715e"></span>	<span style="color:#66d9ef">for</span> !<span style="color:#a6e22e">glist</span>.<span style="color:#a6e22e">empty</span>() {
+		<span style="color:#a6e22e">gp</span> <span style="color:#f92672">:=</span> <span style="color:#a6e22e">glist</span>.<span style="color:#a6e22e">pop</span>()
+		<span style="color:#a6e22e">gp</span>.<span style="color:#a6e22e">schedlink</span> = <span style="color:#ae81ff">0</span>
+		<span style="color:#a6e22e">goready</span>(<span style="color:#a6e22e">gp</span>, <span style="color:#ae81ff">3</span>)
+	}
+}
+</code></pre></div><h1 id="小结">小结</h1>
+<p>  写代码的时候需要注意不要对 nil channel 进行 close 操作.
+  整个 channel 的代码并不复杂,本质就是一个唤醒队列加上 Mutex 进行线程间的通信.但在实际的使用还是要了解它的使用方式,尤其是其和 select 等其余组件一起使用的时候</p>
+		</section>
+
+		<div class="post-tags">
+			
+			
+			<nav class="nav tags">
+				<ul class="tags">
+					
+					<li><a href="/tags/go%E6%BA%90%E7%A0%81">go源码</a></li>
+					
+				</ul>
+			</nav>
+			
+			
+		</div>
+	</article>
+</main>
+<footer>
+  <div style="display:flex"><a class="soc" href="https://github.com/nercoeus" title="GitHub"><i data-feather="github"></i></a><a class="soc" href="https://twitter.com/nercoeus/" title="Twitter"><i data-feather="twitter"></i></a><a class="soc" href="nercoeus@gmail.com" title="Email"><i data-feather="mail"></i></a></div>
+  <div class="footer-info">
+    2022  © nercoeus |  Built with <a
+      href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+
+<script>
+  feather.replace()
+</script></div>
+    </body>
+</html>

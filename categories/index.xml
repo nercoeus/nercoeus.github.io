@@ -6,6 +6,16 @@
     <description>Recent content in Categories on nercoeus-blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <copyright>© nercoeus</copyright><atom:link href="https://nercoeus.github.io/categories/index.xml" rel="self" type="application/rss+xml" />
+    <copyright>© nercoeus</copyright>
+    <lastBuildDate>Mon, 13 Jan 2020 18:42:22 +0000</lastBuildDate><atom:link href="https://nercoeus.github.io/categories/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>go源码</title>
+      <link>https://nercoeus.github.io/categories/go%E6%BA%90%E7%A0%81/</link>
+      <pubDate>Mon, 13 Jan 2020 18:42:22 +0000</pubDate>
+      
+      <guid>https://nercoeus.github.io/categories/go%E6%BA%90%E7%A0%81/</guid>
+      <description></description>
+    </item>
+    
   </channel>
 </rss>
