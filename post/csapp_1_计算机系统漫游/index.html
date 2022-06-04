@@ -62,6 +62,12 @@
 <li>Assembly phase: translate assemly-language to machine-language instruction, packages them in a from known as a relocatable object program, and store in the object file <em><strong>hello.o</strong></em></li>
 <li>Linking phase: hello program use standard C library(printf.o). The linker merge <em><strong>hello.o</strong></em> and <em><strong>printf.o</strong></em> and create the <em><strong>hello</strong></em> file, which is an executable object file.</li>
 </ul>
+<h3 id="some-reasons-why-programmers-need-to-understand-how-compliation-systems-word">some reasons why programmers need to understand how compliation systems word</h3>
+<ul>
+<li>Optimizing program performance: in order to make good coding decisions in programs, we do need a basic understanding of machine-level code and how the compiler translates different C statements into machine code. [chapter 3, 6]</li>
+<li>Understanding link-time errors: For example: what does it mean when the linker reports hat it cannot resolve a reference? What id the difference between a static library and a dynamic library? [chapter 7]</li>
+<li>Avoiding security holes: Too few programmers understand the need to carefully restrict the quantity and forms of data they accept from untrustes sources. [chapter 3]</li>
+</ul>
 		</section>
 
 		<div class="post-tags">
